@@ -267,4 +267,10 @@
     <string name="transfer_confirm">{name} файлын жәшіктен жою керек пе?</string>
     <string name="tools_failed">Аяқталмады. Файл өлшемін, бос орынды және файл таңдау қолдауын тексеріңіз.</string>
     <string name="tools_saved">Файл дайын</string>
+    <string name="care_title">ТД күтімі</string>
+    <string name="care_desktop_cpu">AetherTV CPU</string>
+    <string name="care_clean">Кэшті тазалау</string>
+    <string name="care_cleaning">Тазалануда…</string>
+    <string name="care_cleaned">Тазаланды: %1$s</string>
+    <string name="care_background">Фондық қолданбалар</string>
 </resources>

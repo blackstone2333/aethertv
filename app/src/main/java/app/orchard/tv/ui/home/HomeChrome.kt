@@ -190,6 +190,7 @@ fun HomeBackground(
      * its glass with the rest of Home, the same plate it keeps once the picture is in.
      */
     filmStopped: () -> Float = { 0f },
+    videoGlass: Boolean = false,
     /** How far Home has given way to the screensaver carrying its wallpaper on: the plate goes. */
     toSaver: () -> Float = { 0f },
     /** The wallpaper's picture unshaded, shown [saverReveal] of the way and [saverPush] into its draw-in. */
@@ -201,6 +202,7 @@ fun HomeBackground(
         // Over a paused film, under the pictures: the shading its picture will have. The picture
         // fades in over it as the film gives way, so the screen keeps the same light throughout.
         Canvas(Modifier.fillMaxSize()) {
+            if (videoGlass) return@Canvas // The video shader already applies the shared Home shading.
             val stopped = filmStopped()
             // Deep in the grid its frosted background covers everything.
             if (stopped < 0.01f || cover() < 0.01f || scroll() > collapse * 0.7f) return@Canvas
@@ -212,7 +214,7 @@ fun HomeBackground(
             val a = saverReveal()
             if (a > 0.01f) drawDrawingIn(saverImage, saverPush(), a)
         }
-        Plate(if (AerialSettings.glassStyle == "clear") backdrop else frosted ?: backdrop, plate, scroll, collapse, cover, filmStopped, toSaver)
+        Plate(if (AerialSettings.glassStyle == "clear") backdrop else frosted ?: backdrop, plate, scroll, collapse, cover, videoGlass, toSaver)
     }
 }
 
@@ -254,22 +256,22 @@ private fun Pictures(backdrop: ImageBitmap?, frosted: ImageBitmap?, scroll: () -
 
 /**
  * The plate under the top row, one layer over whatever is behind it: the picture, or the film
- * once stopped. It gives way only to a moving film, so the swap from the paused film to its
+ * once stopped. During GPU video playback the compositor supplies the same lens; the swap to its
  * picture leaves it as it is. A new glass fades in over the old one, which stays whole beneath
  * it: two plates fading against each other let what is behind show through halfway.
  */
 @Composable
-private fun Plate(glass: ImageBitmap?, plate: Rect?, scroll: () -> Float, collapse: Float, cover: () -> Float, filmStopped: () -> Float, toSaver: () -> Float) {
+private fun Plate(glass: ImageBitmap?, plate: Rect?, scroll: () -> Float, collapse: Float, cover: () -> Float, videoGlass: Boolean, toSaver: () -> Float) {
     var shown by remember { mutableStateOf(glass) }
     var under by remember { mutableStateOf<ImageBitmap?>(null) }
     val swap = remember { Animatable(1f) }
     fun visibility(): Float {
         val rest = 1f - smooth(((scroll() / collapse).coerceIn(0f, 1f) / 0.55f).coerceIn(0f, 1f))
-        return rest * (1f - cover() * (1f - filmStopped())) * (1f - toSaver())
+        return rest * (if (videoGlass) 1f - cover() else 1f) * (1f - toSaver())
     }
     LaunchedEffect(glass) {
         if (glass === shown) return@LaunchedEffect
-        // Not on screen (a moving film, or the grid): the new glass simply takes over. Faded in
+        // Not on screen (GPU video, or the grid): the new glass simply takes over. Faded in
         // over the old one, a plate appearing for a stopped film would flash the last film's colours.
         if (visibility() < 0.05f) {
             shown = glass
@@ -300,7 +302,7 @@ private fun Plate(glass: ImageBitmap?, plate: Rect?, scroll: () -> Float, collap
         val grow = PlateSwell.toPx() * (1f - rest)
         val r = plate.translate(0f, -scroll()).inflate(grow)
         if (lite) {
-            drawRoundRect(Color(0xBB242833), topLeft = r.topLeft, size = r.size,
+            drawRoundRect(Color(0x50202024), topLeft = r.topLeft, size = r.size,
                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(PlateCorner.toPx()), alpha = alpha)
             return@Canvas
         }

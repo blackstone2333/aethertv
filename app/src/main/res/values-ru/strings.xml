@@ -267,4 +267,10 @@
     <string name="transfer_confirm">Удалить {name} из буфера?</string>
     <string name="tools_failed">Не удалось завершить. Проверьте размер файла, свободное место и поддержку выбора файлов.</string>
     <string name="tools_saved">Файл готов</string>
+    <string name="care_title">Уход за ТВ</string>
+    <string name="care_desktop_cpu">ЦП AetherTV</string>
+    <string name="care_clean">Очистить кэш</string>
+    <string name="care_cleaning">Очистка…</string>
+    <string name="care_cleaned">Очищено: %1$s</string>
+    <string name="care_background">Фоновые приложения</string>
 </resources>

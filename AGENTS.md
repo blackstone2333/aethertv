@@ -6,7 +6,7 @@ tvOS 风格的 Android TV 桌面，面向国内电视（小米、TCL 等），Ko
 1. `docs/PROJECT.md` 和 `docs/AGENT_WORKFLOW.md`：当前项目边界和协作规则
 2. `docs/work/` 中目标工作包及相关交接：当前验收目标和执行状态
 3. `docs/HANDOFF.md`：现状、操作方式，以及**必须遵守**的规则
-4. `docs/ARCHITECTURE.md`：代码结构
+4. `docs/ARCHITECTURE.md`：代码结构；`docs/DESIGN_SYSTEM.md`：所有 UI 变更必须遵守的材质、组件、层级和验收规则
 5. `docs/devices/` 中目标机型文档：各台电视的限制和解决办法
 6. `local/TVS.md`（如果存在）：电视的 IP、每台电视上改过的设置、户主的数据。这些是本机信息，不要复制进版本库里的文件
 

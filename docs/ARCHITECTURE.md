@@ -6,16 +6,19 @@
 
 - `POST api/desktop` 接受经过验证的 `columns` (4–8)、`glass` (clear/frosted)、`delay` (0–60秒)、`pause` (true/false)、`aerial` 和 `daily` 主题；电视和手机消费同一设置状态。
 - `Aerials.preferred` 过滤播放目录；`PhotoThemes` 对每日图片说明推断主题，自动每日选择在没有匹配时回退最新图，并在手机页提示。
-- `refractivePlate` 对静态背景在边缘做透镜采样，按背景与几何缓存，静止时没有持续动画；动态航拍播放时保持原版收起底板策略，不假称视频实时光学折射。Lite使用简化底板。
-- `GET api/system` 读取RAM、存储、网速与本进程CPU，CPU百分比按整机算力归一；不提供其他应用的强杀。
+- `GlassOptics` 统一静态/动态底栏透镜参数。`refractivePlate` 静态双线性采样并缓存；Full 的 `AerialGlassView` 用单 Media3 解码器输出 OES 纹理，在同一次 GPU 绘制中合成当前视频帧和边缘透镜，运动期间底栏持续可见。只在新视频帧或几何改变时绘制；暂停时离屏读取未加底栏/遮光的原始帧。Lite 使用普通 SurfaceView 与低成本半透明底栏。AndroidView 更换输出时按 view 所有者绑定/解绑，旧 view 释放不能清除新输出。
+- `ControlPanel` 是控制中心及电视管家的唯一外壳。`CcPage.Care/CareDetails/Exchange` 均在同一个导航栈内；主菜单提供图形内存/存储概览，管家首焦点为清理，网络复用原控制中心的设置路径。详情/互传返回恢复入口焦点，无额外返回按钮。系统设置返回保留管家页；守护重绑定优先采用同进程 resumed 状态，避免误发 MAIN 重置菜单。
+- `GET api/system` 读取RAM、存储、网速与本进程CPU，CPU百分比按整机算力归一，UI明确标注桌面CPU。管家可直接释放可重建缓存；后台与应用打开系统管理页面，Android14起普通应用不能批量结束其他应用，不宣称已清理全机任务。监看只在控制中心打开时每2秒刷新。
 - `api/files` 列表、`api/files/upload`、`files/<随机ID>` 下载、`api/files/delete` 只操作私有中转箱。网络下载强制attachment/octet-stream，不在网页执行收到的内容。
-- PhoneServer 在个性化/系统工具任一面板打开时保留，全部关闭后5分钟停止；令牌随服务重启轮换。
+- PhoneServer 在个性化/管家的文件互传页任一打开时保留，全部关闭后5分钟停止；令牌随服务重启轮换。
 
 ## v0.1 接口和生命周期
 
 - 手机 `POST api/render-mode` 接受 `auto/full/lite`，`api/state` 返回选择值和实际 Lite 状态；五语言文案统一在 Web `KEYS/TEXTS` 中。
 - `LiveHttpFetcher` 只处理显式配置的直播源。HTTP 使用有边界的 socket 请求，不改变全局 cleartext 策略；HTTPS 使用系统证书校验。重定向有次数上限，跨 origin 清除自定义请求头，禁止 HTTPS 降级。
 - Home 隐藏时释放壁纸解码图和 Compose 图片缓存；`onStart` 先恢复本地烘焙图，再按需重建。系统时钟屏保也使用壁纸，因此 `AerialDream` 持有窗口时保留共享图片，并在附着窗口时恢复缓存。
+
+> 以下上游历史中关于动态影片收起底板和CPU取帧的记录，不适用于当前Full GPU合成路径；当前设计与验收见 `docs/DESIGN_SYSTEM.md` 和 `docs/work/AERIAL-20261026-liquid-glass.md`。
 
 ## 目录一览
 

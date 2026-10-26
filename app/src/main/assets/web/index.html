@@ -12,7 +12,7 @@
     --sep: rgba(60,60,67,.18); --tint: #007aff; --fill: rgba(118,118,128,.12); --danger: #ff3b30;
     --bar: rgba(249,249,249,.82); --bar-line: rgba(0,0,0,.14); --scrim: rgba(0,0,0,.32); --sheet: #f2f2f7;
     --ease-out: cubic-bezier(.23,1,.32,1); --ease-drawer: cubic-bezier(.32,.72,0,1);
-    --tabbar: calc(50px + env(safe-area-inset-bottom));
+    --tabbar: calc(82px + env(safe-area-inset-bottom));
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -144,26 +144,35 @@
     color: var(--label); background: var(--card); border-radius: 12px; padding: 10px;
   }
 
-  /* Tab bar. */
+  /* One floating navigation layer; content groups retain their ordinary material. */
   nav {
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; height: var(--tabbar); padding-bottom: env(safe-area-inset-bottom);
-    display: flex; justify-content: center; background: var(--bar); box-shadow: 0 -.5px 0 var(--bar-line);
-    -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px);
+    position: fixed; left: 50%; bottom: calc(10px + env(safe-area-inset-bottom)); transform: translateX(-50%);
+    z-index: 10; width: min(calc(100% - 32px), 480px); height: 62px; padding: 5px;
+    display: flex; gap: 4px; background: var(--bar); border-radius: 34px;
+    border: .5px solid var(--bar-line);
+    box-shadow: 0 8px 28px rgba(0,0,0,.14), inset 0 1px 0 rgba(255,255,255,.22), inset 0 -1px 1px rgba(0,0,0,.12);
+    -webkit-backdrop-filter: saturate(140%) blur(24px); backdrop-filter: saturate(140%) blur(24px);
   }
   nav button {
-    flex: 1; max-width: 160px; border: 0; background: none; padding: 6px 0 0; color: var(--secondary);
-    display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10.5px; font-weight: 500; cursor: pointer;
+    flex: 1; min-width: 0; border: 0; background: none; border-radius: 28px; padding: 4px 2px;
+    color: var(--secondary); display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 2px; font-size: 11px; font-weight: 600; cursor: pointer;
+    transition: background-color .2s var(--ease-out), color .2s;
   }
   nav button svg { transition: transform .16s var(--ease-out); }
-  nav button:active svg { transform: scale(.88); }
-  nav button[aria-selected="true"] { color: var(--tint); }
+  nav button:active svg { transform: scale(.9); }
+  nav button[aria-selected="true"] { color: var(--tint); background: var(--fill); }
+  @media (prefers-reduced-transparency: reduce) {
+    nav { background: var(--card); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  }
+  @media (prefers-contrast: more) { nav { border: 1px solid var(--label); background: var(--card); } }
 
   /* Bottom sheet. Enters on the drawer curve; leaves faster than it came. */
   .back { display: inline-flex; align-items: center; gap: 3px; font-size: 17px; margin: 0 0 6px -2px; }
   .arow { min-height: 60px; background: var(--card); }
   .arow .thumb { width: 64px; }
   .arow .act { flex-shrink: 0; font-weight: 600; }
-  /* Home as on the TV: five tiles a row, the first on a shelf. */
+  /* Home mirrors the configured television column count. */
   .agrid {
     position: relative; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px 7px;
     padding: 12px 10px 14px; background: var(--card); border-radius: 14px;

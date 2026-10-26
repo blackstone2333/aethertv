@@ -43,7 +43,7 @@ import app.orchard.tv.wallpaper.Wallpapers
 import kotlin.math.roundToInt
 
 /**
- * Liquid Glass, the material of tvOS 26's panels, without a live blur: the TVs here mostly run
+ * The regular control material, with cached diffusion for text-heavy panels: the TVs here mostly run
  * Android 9–11 (no RenderEffect) and their GPUs could not afford one. The surface shows the part
  * of the frosted wallpaper (Wallpapers.frosted, baked small) that lies behind it, dimmed so white
  * text reads on any picture, and light catches its rim. The frosted picture is stretched over the
@@ -124,7 +124,15 @@ fun glassEdge(w: Int, h: Int, radius: Float, rim: Float, bottomCorners: Boolean 
         canvas.drawPath(
             smoothRectPath(Rect(0f, 0f, w.toFloat(), bottom), radius).asAndroidPath(),
             Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                shader = LinearGradient(0f, 0f, 0f, bottom, intArrayOf(white(0.10f), 0), floatArrayOf(0f, 0.5f), Shader.TileMode.CLAMP)
+                shader = LinearGradient(0f, 0f, 0f, bottom, intArrayOf(white(0.025f), 0), floatArrayOf(0f, 0.5f), Shader.TileMode.CLAMP)
+            },
+        )
+        // A narrow dark meniscus anchors the highlight; a uniform white outline looks painted on.
+        canvas.drawPath(
+            smoothRectPath(Rect(rim * 1.8f, rim * 1.8f, w - rim * 1.8f, bottom - rim * 1.8f), radius - rim * 1.8f).asAndroidPath(),
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.STROKE; strokeWidth = rim * 1.4f
+                color = android.graphics.Color.argb(48, 0, 0, 0)
             },
         )
         canvas.drawPath(
@@ -134,7 +142,7 @@ fun glassEdge(w: Int, h: Int, radius: Float, rim: Float, bottomCorners: Boolean 
                 strokeWidth = rim
                 shader = LinearGradient(
                     0f, 0f, w.toFloat(), bottom,
-                    intArrayOf(white(0.55f), white(0.10f), white(0.06f), white(0.30f)),
+                    intArrayOf(white(0.30f), white(0.07f), white(0.025f), white(0.18f)),
                     floatArrayOf(0f, 0.35f, 0.7f, 1f),
                     Shader.TileMode.CLAMP,
                 )
@@ -145,8 +153,8 @@ fun glassEdge(w: Int, h: Int, radius: Float, rim: Float, bottomCorners: Boolean 
 
 /** Panels: the frosted picture at half its light, lifted a little, so white text reads on snow. */
 private val PanelTint = ColorFilter.colorMatrix(ColorMatrix(floatArrayOf(
-    0.48f, 0f, 0f, 0f, 14f,
-    0f, 0.48f, 0f, 0f, 14f,
-    0f, 0f, 0.48f, 0f, 14f,
+    0.42f, 0f, 0f, 0f, 8f,
+    0f, 0.42f, 0f, 0f, 8f,
+    0f, 0f, 0.42f, 0f, 8f,
     0f, 0f, 0f, 1f, 0f,
 )))

@@ -411,7 +411,11 @@ class HomeGuardService : AccessibilityService() {
         // the boot rechecks, on firmwares that raise no window change for the app the viewer
         // opened (Skyworth 9S52_Q4A, Android 6, issue #489). Aerial itself says nothing about what
         // it uncovered when it died, so it stays unknown.
-        val last = lastWindow ?: frontByUsage()?.also { Log.i(TAG, "$reason; usage stats say ${it.first} is in front") }
+        // On Redmi K40S (Android 14), rebinding after system settings supplied no window event.
+        // MainActivity already being resumed is stronger evidence than an unknown/stale window;
+        // sending MAIN over it would close the Control Center page the viewer is using.
+        val last = if (aerialResumed) packageName to MainActivity::class.java.name
+        else lastWindow ?: frontByUsage()?.also { Log.i(TAG, "$reason; usage stats say ${it.first} is in front") }
         // Unknown means we were only just bound, which happens after a standby kill. Any screen of
         // the stock launcher counts: when Aerial is killed, whatever was on top of the launcher's
         // task is uncovered, not always its home activity (PatchWall's StrategicLayerActivity).

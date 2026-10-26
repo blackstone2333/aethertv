@@ -43,13 +43,15 @@ IPTV 第一版只提供离线可用的源契约和手机配置入口：`live/rep
 
 ## 桌面定制与本地工具
 
-- `AERIAL-20261026-desktop-personalization`：每排4–8个入口、航拍播放策略、素材分类偏好、透明折射玻璃、系统信息和受限局域网互传。
+- `AERIAL-20261026-desktop-personalization`：每排4–8个入口、航拍播放策略、素材分类偏好和受限局域网互传。
+- `AERIAL-20261026-liquid-glass`：共享设计规范、同帧GPU视频玻璃和控制中心内的电视管家；详细证据与未验证边界见对应工作包。
 - `system/SystemMonitor.kt` 只读系统状态；清理只移除应用可重建缓存。
 - `system/TransferStore.kt` 使用应用私有 `files/exchange/`，单文件100MB、总量512MB、64项；文件访问通过随机ID，系统选择器负责本机导入/另存。PhoneServer 的二维码令牌保护全部网络入口。
 - `docs/UPSTREAM_SYNC.md` 追踪选择性上游合入；每日维护避开活动开发，不整体覆盖定制。
 
 ## 当前工作前沿
 
+- `AERIAL-20261026-liquid-glass`：1.2.0 / 103 动态玻璃和控制中心内的电视管家，双 Release、受影响单测及 Redmi K40S L1 已验收；当贝 F3 L3 仍未验证，详细证据见对应工作包。
 - `AERIAL-20261026-desktop-personalization`：1.1.0 / 102 桌面定制与系统工具，双 Release 和 Redmi K40S L1 已验收；当前交付与限制见对应工作包。
 - `AERIAL-20261025-dangbei-home`：迁移和首屏基线已在工作树中，真机仍未验证。
 - `AERIAL-20261026-roadmap-phase2`：v0.1 品牌、Lite、手机配置和直播数据基线总包。

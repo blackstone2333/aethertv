@@ -275,4 +275,10 @@
     <string name="transfer_confirm">Remove {name} from the exchange box?</string>
     <string name="tools_failed">Could not complete. Check file size, available storage or file-picker support.</string>
     <string name="tools_saved">File ready</string>
+    <string name="care_title">TV Care</string>
+    <string name="care_desktop_cpu">AetherTV CPU</string>
+    <string name="care_clean">Clear cache</string>
+    <string name="care_cleaning">Cleaning…</string>
+    <string name="care_cleaned">Cleared %1$s</string>
+    <string name="care_background">Background &amp; apps</string>
 </resources>

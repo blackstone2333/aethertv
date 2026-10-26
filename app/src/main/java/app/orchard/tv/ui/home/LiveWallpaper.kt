@@ -11,6 +11,9 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.platform.LocalDensity
+import android.view.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -47,7 +50,6 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.coroutines.resume
 
-/** How long Home sits still before the aerial wallpaper starts moving. */
 // Delay is selected by the owner; Lite briefly settles input to avoid decoder churn.
 
 /** A stopped film keeps its player this long, so it moves on again without loading. */
@@ -66,6 +68,7 @@ class LiveFilm {
      * (Wallpapers.useLiveFrost): the paused film is what shows, and the plate stands over it.
      */
     var stopped by mutableStateOf(false); internal set
+    var glassComposited by mutableStateOf(false); internal set
     val positionMs: Long get() = player?.currentPosition ?: 0L
 
     fun skip(step: Int) {
@@ -98,7 +101,7 @@ class LiveFilm {
 
 /**
  * The aerial wallpaper (issue #216): once Home has sat still on the top row for the chosen delay,
- * Apple's film plays behind the tiles, and any key stops it on the frame it was showing. That frame
+ * Apple's film plays behind the tiles. When interaction pauses it, the undecorated frame
  * becomes the wallpaper's picture (Wallpapers.useLiveFrame), so the glass plate, the grid's frosted
  * background and the next start all match what was on screen. The film starts again from that
  * frame (Wallpapers.liveSpot), even after its player has gone, so still and moving are one shot.
@@ -120,11 +123,17 @@ fun LiveWallpaper(
     /** Nothing over Home that blurs it: a stopped film may stand in for its picture. */
     standIn: Boolean,
     live: LiveFilm,
+    plate: Rect?,
+    plateAlpha: () -> Float,
 ) {
     val context = LocalContext.current
     LaunchedEffect(Unit) { cover.snapTo(0f) }
     var player by remember { mutableStateOf<ExoPlayer?>(null) }
     var surface by remember { mutableStateOf<SurfaceView?>(null) }
+    var videoSurface by remember { mutableStateOf<Surface?>(null) }
+    var gpuFailed by remember { mutableStateOf(false) }
+    val gpu = !AerialSettings.liteMode && !gpuFailed
+    val density = LocalDensity.current.density
     // Frames are reaching the screen: the first one has been drawn and the film is not stopped.
     var showing by remember { mutableStateOf(false) }
     var idle by remember { mutableStateOf(false) }
@@ -186,7 +195,7 @@ fun LiveWallpaper(
                 }
             })
             setMediaItems(films.map { AerialStream.mediaItem(it, quality, overHttp) }, 0, if (resume != null) spot?.second ?: 0L else 0L)
-            surface?.let { setVideoSurfaceView(it) }
+            if (gpu) videoSurface?.let { setVideoSurface(it) } else surface?.let { setVideoSurfaceView(it) }
             prepare()
             live.player = this
             live.film = films.first()
@@ -199,7 +208,7 @@ fun LiveWallpaper(
     LaunchedEffect(live.film, play, showing) {
         val id = live.film?.id ?: return@LaunchedEffect
         // Where PixelCopy reads the film (TCL MT5879), its frame is at hand without the file.
-        if (!play || pixelCopy == true) return@LaunchedEffect
+        if (!play || gpu || pixelCopy == true) return@LaunchedEffect
         reader.open(id)
         // The first soon, for a film stopped moments after it moved.
         var wait = 800L
@@ -211,9 +220,10 @@ fun LiveWallpaper(
         }
     }
 
-    LaunchedEffect(play) {
+    LaunchedEffect(play, gpu) {
         live.stopped = false
         if (play) {
+            if (!showing) cover.snapTo(0f)
             val p = player ?: open().also { player = it }
             DiagLog.i("wallpaper film starts (state ${p.playbackState}, ${p.currentMediaItem?.mediaId} at ${p.currentPosition} ms)")
             // Its decoder was let go for the screensaver (LiveFilm.letDecoderGo).
@@ -247,7 +257,7 @@ fun LiveWallpaper(
                     glassReady(live)
                 }
                 glassSample = null
-                var frame = if (pixelCopy == false) null else surface?.let { capture(it) }
+                var frame = if (pixelCopy == false && surface !is AerialGlassView) null else surface?.let { capture(it) }
                 if (frame == null && film != null) {
                     if (!live.stopped) reader.frame(film, at, 320, 180, exact = false)?.let {
                         Wallpapers.useLiveFrost(it)
@@ -294,11 +304,48 @@ fun LiveWallpaper(
     }
     DisposableEffect(Unit) { onDispose { release() } }
 
-    AndroidView(
-        modifier = Modifier.fillMaxSize(),
-        factory = { ctx -> SurfaceView(ctx).also { surface = it; player?.setVideoSurfaceView(it) } },
-        onRelease = { player?.clearVideoSurfaceView(it); surface = null },
-    )
+    androidx.compose.runtime.key(gpu) {
+        AndroidView(
+            modifier = Modifier.fillMaxSize(),
+            factory = { ctx ->
+                showing = false
+                if (gpu) {
+                    lateinit var owner: AerialGlassView
+                    owner = AerialGlassView(ctx, ready = { output ->
+                        // A previous AndroidView may finish releasing after its replacement binds.
+                        if (surface === owner) {
+                            if (output == null) videoSurface?.let { player?.clearVideoSurface(it) }
+                            else player?.setVideoSurface(output)
+                            videoSurface = output
+                            live.glassComposited = output != null
+                        }
+                    }, failed = { if (surface === owner) gpuFailed = true })
+                    owner.also { surface = it }
+                } else SurfaceView(ctx).also {
+                    surface = it; videoSurface = null
+                    player?.setVideoSurfaceView(it); live.glassComposited = false
+                }
+            },
+            update = { view ->
+                if (view is AerialGlassView) view.plate(plate, density, AerialSettings.glassStyle == "frosted", plateAlpha())
+            },
+            onRelease = {
+                if (surface === it) {
+                    if (it is AerialGlassView) videoSurface?.let { output -> player?.clearVideoSurface(output) }
+                    else player?.clearVideoSurfaceView(it)
+                    surface = null; videoSurface = null; live.glassComposited = false
+                }
+                if (it is AerialGlassView) it.close()
+            },
+        )
+    }
+    // Observe only this small GL uniform during dock/scroll transitions, with no bitmap readback.
+    LaunchedEffect(gpu, plate, AerialSettings.glassStyle) {
+        snapshotFlow { plateAlpha() }.collect { alpha ->
+            (surface as? AerialGlassView)?.plate(plate, density, AerialSettings.glassStyle == "frosted", alpha)
+        }
+    }
+
 }
 
 /**
@@ -333,6 +380,7 @@ private const val GLASS_EVERY_MS = 2_500L
 private class GlassSample(val film: String, val atMs: Long, val frame: Bitmap)
 
 private suspend fun captureOnce(view: SurfaceView): Bitmap? {
+    if (view is AerialGlassView) return withTimeoutOrNull(1500) { view.rawFrame() }
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N || view.width <= 0 || !view.holder.surface.isValid) return null
     val bitmap = createBitmap(view.width, view.height)
     val result = suspendCancellableCoroutine { done ->

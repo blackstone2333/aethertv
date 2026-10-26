@@ -40,6 +40,9 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import org.json.JSONObject
 import androidx.compose.foundation.Image
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -111,72 +114,71 @@ fun ControlCenter(
     onOpen: (android.content.Intent) -> Unit,
     onClose: () -> Unit,
 ) {
+    val context = LocalContext.current
+    val care = rememberCareSnapshot(visible)
+    var focusCare by remember { mutableStateOf(false) }
+    var careFocus by remember { mutableStateOf(CareFocus.Clean) }
+    fun openNetwork() {
+        vm.whenUnlocked {
+            val pages = SystemProbe.networkSettingsIntents(context, ethernet = vm.network.kind == NetKind.Ethernet)
+            LaunchFallback.arm(pages.drop(1))
+            onOpen(pages.first())
+        }
+    }
     BackHandler(enabled = visible) {
         when (page) {
             CcPage.Main -> onClose()
             CcPage.Inputs -> vm.overlay = Overlay.ControlCenter(CcPage.Main)
             CcPage.InputSettings -> vm.overlay = Overlay.ControlCenter(CcPage.Inputs)
-            CcPage.Update, CcPage.Setup -> vm.overlay = Overlay.ControlCenter(CcPage.Main)
+            CcPage.Update, CcPage.Setup, CcPage.Care -> vm.overlay = Overlay.ControlCenter(CcPage.Main)
+            CcPage.CareDetails, CcPage.Exchange -> vm.overlay = Overlay.ControlCenter(CcPage.Care)
         }
     }
 
     LaunchedEffect(visible) { if (visible) Updates.checkIfStale(maxAgeMs = Updates.CONTROL_CENTER_MAX_AGE_MS) }
 
-    AnimatedVisibility(
-        visible = visible,
-        enter = fadeIn(tween(220, easing = Motion.EaseOut)),
-        exit = fadeOut(tween(180, easing = Motion.EaseOut)),
-        modifier = Modifier.fillMaxSize(),
-    ) {
-        // A tap outside the panel closes Control Center.
-        Box(Modifier.fillMaxSize().dismissOnTap(onClose).background(Color.Black.copy(alpha = 0.28f)))
-    }
-
-    Box(Modifier.fillMaxSize().padding(top = 24.dp, end = 32.dp), contentAlignment = Alignment.TopEnd) {
-        AnimatedVisibility(
-            visible = visible,
-            // Grows out of the corner where the status pill lives; leaves faster than it came.
-            enter = fadeIn(tween(200, easing = Motion.EaseOut)) + scaleIn(tween(280, easing = Motion.Drawer), initialScale = 0.9f, transformOrigin = TransformOrigin(1f, 0f)),
-            exit = fadeOut(tween(160, easing = Motion.EaseOut)) + scaleOut(tween(160, easing = Motion.EaseOut), targetScale = 0.95f, transformOrigin = TransformOrigin(1f, 0f)),
-        ) {
-            Column(
-                Modifier
-                    .width(300.dp)
-                    .consumeTaps()
-                    .liquidGlass(24.dp)
-                    .padding(16.dp),
-            ) {
-                AnimatedContent(
-                    targetState = page,
-                    transitionSpec = {
-                        // Fade only, and snap the panel size. Animating the panel's height re-measures
-                        // both pages (and their scrollables) every frame, and sliding the new page on
-                        // top of the cross-fade makes its first frame land late; on low-end TV SoCs
-                        // that is felt as a stutter when opening and leaving pages.
-                        (fadeIn(tween(130, easing = Motion.EaseOut)) togetherWith fadeOut(tween(110, easing = Motion.EaseOut)))
-                            .using(SizeTransform { _, _ -> tween(0) })
-                    },
-                    label = "cc-page",
-                ) { p ->
-                    // Closing sets the page back to Main while the panel fades out; that page must
-                    // not take focus from the tile Home has just put it back on.
-                    when (p) {
-                        CcPage.Main -> MainPage(vm, now, visible, onOpen)
-                        CcPage.Inputs -> InputsPage(vm, visible, onOpen)
-                        CcPage.InputSettings -> InputSettingsPage(vm, visible)
-                        CcPage.Update -> UpdatePage(vm, visible)
-                        CcPage.Setup -> SetupPage(vm, visible, onOpen)
-                    }
-                }
+    ControlPanel(visible, onClose) {
+        AnimatedContent(
+            targetState = page,
+            transitionSpec = {
+                // Fade only, and snap the panel size. Animating the panel's height re-measures
+                // both pages (and their scrollables) every frame, and sliding the new page on
+                // top of the cross-fade makes its first frame land late; on low-end TV SoCs
+                // that is felt as a stutter when opening and leaving pages.
+                (fadeIn(tween(130, easing = Motion.EaseOut)) togetherWith fadeOut(tween(110, easing = Motion.EaseOut)))
+                    .using(SizeTransform { _, _ -> tween(0) })
+            },
+            label = "cc-page",
+        ) { p ->
+            // Closing sets the page back to Main while the panel fades out; that page must
+            // not take focus from the tile Home has just put it back on.
+            when (p) {
+                CcPage.Main -> MainPage(vm, now, visible, care, focusCare, onCare = {
+                    focusCare = true; careFocus = CareFocus.Clean
+                    vm.whenUnlocked { vm.overlay = Overlay.ControlCenter(CcPage.Care) }
+                }, onNetwork = { focusCare = false; openNetwork() }, onOpen = onOpen)
+                CcPage.Inputs -> InputsPage(vm, visible, onOpen)
+                CcPage.InputSettings -> InputSettingsPage(vm, visible)
+                CcPage.Update -> UpdatePage(vm, visible)
+                CcPage.Setup -> SetupPage(vm, visible, onOpen)
+                CcPage.Care -> CarePage(care, visible, careFocus, onPage = { next, origin ->
+                    careFocus = origin; vm.overlay = Overlay.ControlCenter(next)
+                }, onNetwork = { openNetwork() }, onOpen = { intent ->
+                    vm.whenUnlocked { onOpen(if (intent.resolveActivity(context.packageManager) != null) intent else SystemProbe.settingsIntent(context)) }
+                })
+                CcPage.CareDetails -> CareDetails(care, visible)
+                CcPage.Exchange -> ExchangePage(visible)
             }
         }
     }
 }
 
 @Composable
-private fun MainPage(vm: HomeViewModel, now: LocalDateTime, takeFocus: Boolean, onOpen: (android.content.Intent) -> Unit) {
+private fun MainPage(vm: HomeViewModel, now: LocalDateTime, takeFocus: Boolean, care: JSONObject, focusCare: Boolean,
+                     onCare: () -> Unit, onNetwork: () -> Unit, onOpen: (android.content.Intent) -> Unit) {
     val context = LocalContext.current
     val first = remember { FocusRequester() }
+    val careEntry = remember { FocusRequester() }
     // Firmwares that list their inputs late (see HomeViewModel.refreshSources): look again while
     // the page is open and still empty. One provider or TvInputManager query every 3 s.
     LaunchedEffect(Unit) {
@@ -188,10 +190,10 @@ private fun MainPage(vm: HomeViewModel, now: LocalDateTime, takeFocus: Boolean, 
     LaunchedEffect(Unit) {
         if (!takeFocus) return@LaunchedEffect
         withFrameNanos { }
-        runCatching { first.requestFocus() }
+        runCatching { (if (focusCare) careEntry else first).requestFocus() }
     }
 
-    Column {
+    Column(Modifier.verticalScroll(rememberScrollState())) {
         Row(verticalAlignment = Alignment.Bottom) {
             Column(Modifier.weight(1f)) {
                 BasicText(timeText(now), style = Type.SmallClock.copy(fontSize = Type.LargeTitle.fontSize * 1.05f))
@@ -225,17 +227,13 @@ private fun MainPage(vm: HomeViewModel, now: LocalDateTime, takeFocus: Boolean, 
             RoundButton(
                 when (vm.network.kind) { NetKind.Ethernet -> Glyph.Ethernet; NetKind.Offline -> Glyph.Offline; else -> Glyph.Wifi },
                 stringResource(R.string.cc_network),
-            ) {
-                vm.whenUnlocked {
-                    val pages = SystemProbe.networkSettingsIntents(context, ethernet = vm.network.kind == NetKind.Ethernet)
-                    LaunchFallback.arm(pages.drop(1))
-                    onOpen(pages.first())
-                }
-            }
+            ) { onNetwork() }
             RoundButton(Glyph.Gear, stringResource(R.string.cc_settings)) { vm.whenUnlocked { onOpen(SystemProbe.settingsIntent(context)) } }
         }
 
         Spacer(Modifier.height(12.dp))
+        CareOverview(care, careEntry, onCare)
+        Spacer(Modifier.height(8.dp))
         VolumeRow(vm)
         Spacer(Modifier.height(6.dp))
         BrightnessRow(vm)
@@ -266,7 +264,6 @@ private fun MainPage(vm: HomeViewModel, now: LocalDateTime, takeFocus: Boolean, 
 
         // Installed from the APK alone: how to finish, on the TV or with a computer.
         if (vm.homeStatus == HomeStatus.NotDefault) {
-            MenuRow(Glyph.Info, stringResource(R.string.system_info), onClick = { vm.whenUnlocked { vm.overlay = Overlay.SystemTools } }, trailing = "›")
             MenuRow(Glyph.Shield, stringResource(R.string.cc_setup_title), onClick = { vm.overlay = Overlay.ControlCenter(CcPage.Setup) }, trailing = "›")
         }
 

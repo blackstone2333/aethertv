@@ -48,12 +48,11 @@ sealed interface Overlay {
     data class AppMenu(val key: String, val anchor: Rect, val inFolder: String? = null) : Overlay
     data class Folder(val id: String) : Overlay
     data object HiddenApps : Overlay
-    data object SystemTools : Overlay
     data object Wallpaper : Overlay
     data class Pin(val mode: PinMode, val onDone: () -> Unit) : Overlay
 }
 
-enum class CcPage { Main, Inputs, InputSettings, Update, Setup }
+enum class CcPage { Main, Inputs, InputSettings, Update, Setup, Care, CareDetails, Exchange }
 
 /** Time since boot at which the app list is looked at again; see HomeViewModel.catchUpAfterBoot. */
 private val BOOT_CATCH_UP_MS = listOf(60_000L, 180_000L)

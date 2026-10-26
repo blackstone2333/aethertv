@@ -37,7 +37,7 @@ class SystemMonitor(private val context: Context) {
         }.getOrDefault("")
         val result = JSONObject().put("model", "${Build.MANUFACTURER} ${Build.MODEL}").put("android", Build.VERSION.RELEASE)
             .put("cpu", if (Build.VERSION.SDK_INT >= 31) "${Build.SOC_MANUFACTURER} ${Build.SOC_MODEL}" else Build.HARDWARE).put("cores", Runtime.getRuntime().availableProcessors()).put("appCpuPercent", appCpu.toDouble())
-            .put("memoryTotal", memory.totalMem).put("memoryUsed", memory.totalMem - memory.availMem).put("appMemory", pss)
+            .put("memoryLow", memory.lowMemory).put("memoryAvailable", memory.availMem).put("memoryTotal", memory.totalMem).put("memoryUsed", memory.totalMem - memory.availMem).put("appMemory", pss)
             .put("storageTotal", disk.totalBytes).put("storageUsed", disk.totalBytes - disk.availableBytes)
             .put("network", SystemProbe.network(context).kind.name).put("addresses", ips)
             .put("rxPerSecond", if (rx >= lastRx && lastRx >= 0) (rx - lastRx) * 1000 / elapsed else -1)

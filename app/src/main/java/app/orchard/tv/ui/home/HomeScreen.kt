@@ -73,10 +73,6 @@ import app.orchard.tv.Overlay
 import app.orchard.tv.R
 import app.orchard.tv.settings.AerialSettings
 import app.orchard.tv.apps.AppEntry
-import app.orchard.tv.ui.control.SystemTools
-import app.orchard.tv.ui.components.Pressable
-import app.orchard.tv.ui.theme.Glyph
-import app.orchard.tv.ui.theme.GlyphIcon
 import app.orchard.tv.ui.control.ControlCenter
 import app.orchard.tv.ui.wallpaper.WallpaperSheet
 import app.orchard.tv.wallpaper.ScreensaverMode
@@ -507,6 +503,8 @@ fun HomeScreen(
                     hold = filmSaver && vm.resumed,
                     standIn = overlay == Overlay.None,
                     live = liveFilm,
+                    plate = plate,
+                    plateAlpha = { (1f - toSaver.value) * (1f - (scroll.value / collapsePx / 0.55f).coerceIn(0f, 1f)) },
                 )
             }
             HomeBackground(
@@ -518,6 +516,7 @@ fun HomeScreen(
                 collapse = collapsePx,
                 cover = { filmCover.value },
                 filmStopped = { filmStopped },
+                videoGlass = liveFilm.glassComposited,
                 toSaver = { toSaver.value },
                 saverImage = saverImage,
                 saverReveal = { saverReveal.value },
@@ -689,15 +688,6 @@ fun HomeScreen(
                     vm.overlay = Overlay.ControlCenter()
                 },
             )
-            Pressable(onClick = { vm.whenUnlocked { vm.overlay = Overlay.SystemTools } },
-                enabled = gridEnabled && moving == null,
-                modifier = Modifier.padding(start = 6.dp).graphicsLayer { alpha = 1f - toSaver.value }) { state ->
-                Row(Modifier.liquidGlass(18.dp).height(34.dp).padding(horizontal = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically) {
-                    GlyphIcon(Glyph.Info, if (state.focused) Color(0xFF8ACBFF) else Color.White, 18.dp)
-                    BasicText(stringResource(R.string.system_short), style = Type.Caption, modifier = Modifier.padding(start = 6.dp))
-                }
-            }
 
         }
 
@@ -724,7 +714,10 @@ fun HomeScreen(
             page = (overlay as? Overlay.ControlCenter)?.page ?: CcPage.Main,
             vm = vm,
             now = now,
-            onOpen = { vm.overlay = Overlay.None; onOpen(it) },
+            onOpen = {
+                if ((vm.overlay as? Overlay.ControlCenter)?.page != CcPage.Care) vm.overlay = Overlay.None
+                onOpen(it)
+            },
             onClose = { vm.overlay = Overlay.None },
         )
 
@@ -824,7 +817,6 @@ fun HomeScreen(
             },
         )
 
-        if (overlay is Overlay.SystemTools) SystemTools { vm.overlay = Overlay.None }
 
         val pin = overlay as? Overlay.Pin
         PinPad(

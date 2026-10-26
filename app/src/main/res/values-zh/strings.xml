@@ -274,4 +274,10 @@
     <string name="transfer_confirm">从中转箱移除 {name}？</string>
     <string name="tools_failed">未能完成，请检查文件大小、剩余空间或系统文件选择器支持。</string>
     <string name="tools_saved">文件已就绪</string>
+    <string name="care_title">电视管家</string>
+    <string name="care_desktop_cpu">桌面 CPU</string>
+    <string name="care_clean">一键清理缓存</string>
+    <string name="care_cleaning">正在清理…</string>
+    <string name="care_cleaned">已清理 %1$s</string>
+    <string name="care_background">后台与应用</string>
 </resources>
