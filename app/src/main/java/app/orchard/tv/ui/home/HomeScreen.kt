@@ -73,6 +73,10 @@ import app.orchard.tv.Overlay
 import app.orchard.tv.R
 import app.orchard.tv.settings.AerialSettings
 import app.orchard.tv.apps.AppEntry
+import app.orchard.tv.ui.control.SystemTools
+import app.orchard.tv.ui.components.Pressable
+import app.orchard.tv.ui.theme.Glyph
+import app.orchard.tv.ui.theme.GlyphIcon
 import app.orchard.tv.ui.control.ControlCenter
 import app.orchard.tv.ui.wallpaper.WallpaperSheet
 import app.orchard.tv.wallpaper.ScreensaverMode
@@ -96,7 +100,6 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
-private const val COLUMNS = 5
 
 /** The plate's distance from the bottom edge with no second row peeking: as from the sides. */
 private val PlateMarginBottom = 30.dp
@@ -105,10 +108,10 @@ private val PlateMarginBottom = 30.dp
 private val PlateNameRoom = 28.dp
 
 /** Grid geometry for the screen at hand. On a 1080p TV this is a 960×540 dp canvas. */
-private class GridMetrics(screenW: Dp, screenH: Dp, oneRow: Boolean, plateNames: Boolean, peek: Boolean, plate: Boolean) {
+private class GridMetrics(screenW: Dp, screenH: Dp, oneRow: Boolean, plateNames: Boolean, peek: Boolean, plate: Boolean, val columns: Int) {
     val margin = 56.dp
-    val gap = 28.dp
-    val tileW = (screenW - margin * 2 - gap * (COLUMNS - 1)) / COLUMNS
+    val gap = if (columns >= 7) 20.dp else 28.dp
+    val tileW = (screenW - margin * 2 - gap * (columns - 1)) / columns
     val tileH = tileW * 9f / 16f
     val pitchX = tileW + gap
     val pitchY = tileH + 50.dp
@@ -147,8 +150,8 @@ private class GridMetrics(screenW: Dp, screenH: Dp, oneRow: Boolean, plateNames:
     val screenH = screenH
 
     fun slot(index: Int, onTop: Boolean): Pair<Dp, Dp> {
-        val row = index / COLUMNS
-        return Pair(margin + pitchX * (index % COLUMNS), topRowY + pitchY * row + if (row > 0 && onTop) firstGap else 0.dp)
+        val row = index / columns
+        return Pair(margin + pitchX * (index % columns), topRowY + pitchY * row + if (row > 0 && onTop) firstGap else 0.dp)
     }
 
     fun scrollFor(row: Int, rows: Int): Dp {
@@ -177,6 +180,7 @@ fun HomeScreen(
     onUninstall: (String) -> Unit,
     onStartScreensaver: () -> Unit,
 ) {
+    val columns = AerialSettings.homeColumns
     val apps = vm.apps
     val overlay = vm.overlay
     val moving = vm.movingKey
@@ -199,7 +203,7 @@ fun HomeScreen(
     var pillFocused by remember { mutableStateOf(false) }
     var lastFocusedIndex by remember { mutableStateOf(0) }
     val focusedIndex = apps.indexOfFirst { it.key == focusedKey }
-    val focusedRow = if (pillFocused || focusedIndex < 0) 0 else focusedIndex / COLUMNS
+    val focusedRow = if (pillFocused || focusedIndex < 0) 0 else focusedIndex / columns
     val gridEnabled = overlay == Overlay.None
 
     // The aerial wallpaper's film, and how far it shows through.
@@ -341,7 +345,7 @@ fun HomeScreen(
         val scrolled = dragged && scroll.value > 1f
         dragged = false
         // Handled even when that is turned off: unhandled, Back would close Home itself.
-        if (focusedRow > 0 || scrolled) focusApp(focusedIndex.coerceAtLeast(0) % COLUMNS)
+        if (focusedRow > 0 || scrolled) focusApp(focusedIndex.coerceAtLeast(0) % columns)
         else if (AerialSettings.backStartsScreensaver) onStartScreensaver()
     }
 
@@ -362,8 +366,8 @@ fun HomeScreen(
                     when (code) {
                         NativeKeyEvent.KEYCODE_DPAD_LEFT -> vm.moveBy(-1)
                         NativeKeyEvent.KEYCODE_DPAD_RIGHT -> vm.moveBy(1)
-                        NativeKeyEvent.KEYCODE_DPAD_UP -> vm.moveBy(-COLUMNS)
-                        NativeKeyEvent.KEYCODE_DPAD_DOWN -> vm.moveBy(COLUMNS)
+                        NativeKeyEvent.KEYCODE_DPAD_UP -> vm.moveBy(-columns)
+                        NativeKeyEvent.KEYCODE_DPAD_DOWN -> vm.moveBy(columns)
                         NativeKeyEvent.KEYCODE_BACK, NativeKeyEvent.KEYCODE_DPAD_CENTER,
                         NativeKeyEvent.KEYCODE_ENTER, NativeKeyEvent.KEYCODE_NUMPAD_ENTER -> vm.endMove()
                         else -> return@onPreviewKeyEvent false
@@ -393,15 +397,15 @@ fun HomeScreen(
                 }
             },
     ) {
-        val rows = (apps.size + COLUMNS - 1) / COLUMNS
+        val rows = (apps.size + columns - 1) / columns
         // With a single row of apps the two-row layout would leave the bottom of the screen empty.
         val oneRow = AerialSettings.oneRowHome || rows <= 1
         // With every name shown, the top row's go on its glass plate, which grows to hold them.
         val plateNames = AerialSettings.showAllNames && AerialSettings.homePlate
         val peek = AerialSettings.peekNextRow
         val hasPlate = AerialSettings.homePlate
-        val metrics = remember(maxWidth, maxHeight, oneRow, plateNames, peek, hasPlate) {
-            GridMetrics(maxWidth, maxHeight, oneRow, plateNames, peek, hasPlate)
+        val metrics = remember(maxWidth, maxHeight, oneRow, plateNames, peek, hasPlate, columns) {
+            GridMetrics(maxWidth, maxHeight, oneRow, plateNames, peek, hasPlate, columns)
         }
         val collapsePx = with(density) { (metrics.topRowY - metrics.restY).toPx() }
 
@@ -488,12 +492,12 @@ fun HomeScreen(
                 Rect(
                     (metrics.margin - PlatePadH).toPx(),
                     (metrics.topRowY - PlatePadV).toPx(),
-                    (metrics.margin + metrics.pitchX * (COLUMNS - 1) + metrics.tileW + PlatePadH).toPx(),
+                    (metrics.margin + metrics.pitchX * (columns - 1) + metrics.tileW + PlatePadH).toPx(),
                     (metrics.topRowY + metrics.tileH + PlatePadV + metrics.firstGap).toPx(),
                 )
             }
             // The aerial wallpaper's film, under everything; it moves only on a still top row.
-            if (Wallpapers.selectedId == Wallpapers.LIVE) {
+            if (Wallpapers.selectedId == Wallpapers.LIVE) key(AerialSettings.aerialCategory) {
                 LiveWallpaper(
                     moving = vm.resumed && overlay == Overlay.None && !vm.screensaverVisible && !pastShelf &&
                         focusedRow == 0 && moving == null,
@@ -599,7 +603,7 @@ fun HomeScreen(
                             modifier = Modifier
                                 .offset { slot.value }
                                 .then(
-                                    if (hideBelow && index >= COLUMNS) Modifier.graphicsLayer {
+                                    if (hideBelow && index >= columns) Modifier.graphicsLayer {
                                         alpha = (scroll.value / collapsePx * 2.5f).coerceIn(0f, 1f)
                                         // No offscreen buffer: it would clip the focus frame to the tile.
                                         compositingStrategy = CompositingStrategy.ModulateAlpha
@@ -607,18 +611,18 @@ fun HomeScreen(
                                 )
                                 // Into the screensaver, the apps go left to right, sinking a little.
                                 .graphicsLayer {
-                                    val f = ((toSaver.value - 0.05f * (index % COLUMNS)) / 0.6f).coerceIn(0f, 1f)
+                                    val f = ((toSaver.value - 0.05f * (index % columns)) / 0.6f).coerceIn(0f, 1f)
                                     if (f > 0f) {
                                         alpha = 1f - f
                                         translationY = f * 18.dp.toPx()
                                         compositingStrategy = CompositingStrategy.ModulateAlpha
                                     }
                                 },
-                            rowEnd = index % COLUMNS == COLUMNS - 1 || index == apps.lastIndex,
+                            rowEnd = index % columns == columns - 1 || index == apps.lastIndex,
                             // On the glass plate only with every name shown (an earlier build showed
                             // the focused one alone there, but it sat oddly on the glass).
-                            showName = plate == null || index >= COLUMNS || plateNames,
-                            nameOnPlate = plate != null && index < COLUMNS,
+                            showName = plate == null || index >= columns || plateNames,
+                            nameOnPlate = plate != null && index < columns,
                         )
                     }
                 }
@@ -685,6 +689,16 @@ fun HomeScreen(
                     vm.overlay = Overlay.ControlCenter()
                 },
             )
+            Pressable(onClick = { vm.whenUnlocked { vm.overlay = Overlay.SystemTools } },
+                enabled = gridEnabled && moving == null,
+                modifier = Modifier.padding(start = 6.dp).graphicsLayer { alpha = 1f - toSaver.value }) { state ->
+                Row(Modifier.liquidGlass(18.dp).height(34.dp).padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    GlyphIcon(Glyph.Info, if (state.focused) Color(0xFF8ACBFF) else Color.White, 18.dp)
+                    BasicText(stringResource(R.string.system_short), style = Type.Caption, modifier = Modifier.padding(start = 6.dp))
+                }
+            }
+
         }
 
         AnimatedVisibility(
@@ -721,7 +735,7 @@ fun HomeScreen(
             enabled = overlay is Overlay.Folder,
             tileW = metrics.tileW,
             tileH = metrics.tileH,
-            columns = COLUMNS,
+            columns = columns,
             onLaunch = onLaunch,
             onLongPress = { app, bounds -> vm.overlay = Overlay.AppMenu(app.key, bounds ?: Rect.Zero, inFolder = openFolder) },
             onDismiss = { vm.overlay = Overlay.None },
@@ -809,6 +823,8 @@ fun HomeScreen(
                 else vm.whenUnlocked { AerialSettings.choosePin(null); vm.overlay = Overlay.Wallpaper }
             },
         )
+
+        if (overlay is Overlay.SystemTools) SystemTools { vm.overlay = Overlay.None }
 
         val pin = overlay as? Overlay.Pin
         PinPad(

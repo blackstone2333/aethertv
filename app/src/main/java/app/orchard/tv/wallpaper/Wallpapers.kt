@@ -1,5 +1,6 @@
 package app.orchard.tv.wallpaper
 
+import app.orchard.tv.settings.AerialSettings
 import android.content.Context
 import android.os.Build
 import android.graphics.Bitmap
@@ -215,7 +216,7 @@ object Wallpapers {
 
     /** The concrete wallpaper the selection points at today. */
     fun resolve(id: String = selectedId): Wallpaper? = when (id) {
-        LATEST_DAILY -> items.firstOrNull { it.kind == WallpaperKind.Daily }
+        LATEST_DAILY -> preferredDaily().firstOrNull() ?: items.firstOrNull { it.kind == WallpaperKind.Daily }
         ROTATE_PHOTOS -> items.filter { it.kind == WallpaperKind.Photo }.sortedBy { it.id }.let { photos ->
             if (photos.isEmpty()) resolve(LATEST_DAILY) else photos[Math.floorMod(today(), photos.size)]
         }
@@ -404,6 +405,17 @@ object Wallpapers {
     /** Puts back the glass from before [useLiveFrost] when the exact frame could not be had. */
     fun restoreFrost(before: ImageBitmap?) {
         if (selectedId == LIVE && before != null) frosted = before
+    }
+
+    fun clearThumbnailCache() = synchronized(thumbs) { thumbs.clear() }
+
+    fun preferredDaily(): List<Wallpaper> = items.filter {
+        it.kind == WallpaperKind.Daily && (AerialSettings.dailyTheme == "all" || PhotoThemes.of(it.title, it.caption.orEmpty()) == AerialSettings.dailyTheme)
+    }
+
+    fun refreshPreference() {
+        synchronized(thumbs) { thumbs.remove(LATEST_DAILY) }
+        if (selectedId == LATEST_DAILY) rebuildBackdrop()
     }
 
     private fun rebuildList() {

@@ -16,6 +16,8 @@ import app.orchard.tv.apps.SourceDevice
 import app.orchard.tv.apps.SourceLooks
 import app.orchard.tv.apps.TileArtFactory
 import app.orchard.tv.settings.AerialSettings
+import app.orchard.tv.system.TransferStore
+import app.orchard.tv.system.SystemMonitor
 import app.orchard.tv.system.Diagnostics
 import app.orchard.tv.system.currentNetwork
 import app.orchard.tv.settings.FocusStyle
@@ -32,6 +34,7 @@ import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
 import fi.iki.elonen.NanoHTTPD
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayInputStream
@@ -51,15 +54,25 @@ import java.security.SecureRandom
  */
 class PhoneServer private constructor(private val context: Context, private val token: String) : NanoHTTPD(PORT) {
 
+    private val transfers = TransferStore(File(context.filesDir, "exchange"))
+    private val monitor = SystemMonitor(context)
+
     override fun serve(session: IHTTPSession): Response {
         val prefix = "/$token"
         val uri = session.uri
-        if (!uri.startsWith(prefix)) return text(Response.Status.NOT_FOUND, "Not found")
+        if (uri != prefix && !uri.startsWith("$prefix/")) return text(Response.Status.NOT_FOUND, "Not found")
         val path = uri.removePrefix(prefix).ifEmpty { "/" }
         return runCatching {
             when {
                 path == "/" -> newFixedLengthResponse(Response.Status.OK, "text/html; charset=utf-8", page())
                 path == "/api/state" -> json(state())
+                session.method == Method.GET && path == "/api/system" -> json(monitor.snapshot())
+                session.method == Method.POST && path == "/api/system/clean" -> json(JSONObject().put("removedBytes", SystemMonitor.clean(context)))
+                session.method == Method.GET && path == "/api/files" -> json(JSONObject().put("files", transfers.json()))
+                session.method == Method.POST && path == "/api/files/upload" -> transferUpload(session)
+                session.method == Method.POST && path == "/api/files/delete" -> json(JSONObject().put("removed", transfers.delete(form(session)["id"].orEmpty())).put("files", transfers.json()))
+                session.method == Method.GET && path.startsWith("/files/") -> transferDownload(path.removePrefix("/files/"))
+                session.method == Method.POST && path == "/api/desktop" -> desktop(form(session))
                 path == "/api/live/state" -> { LiveSources.init(context); json(LiveSources.snapshot()) }
                 path == "/api/diagnostics" -> text(Response.Status.OK, Diagnostics.report(context))
                 path.startsWith("/thumb/") -> thumb(path.removePrefix("/thumb/"))
@@ -183,7 +196,7 @@ class PhoneServer private constructor(private val context: Context, private val 
         val list = JSONArray()
         val selected = Wallpapers.selectedId
         Wallpapers.items.forEach { w ->
-            list.put(JSONObject().put("id", w.id).put("kind", w.kind.name.lowercase()).put("title", w.title).put("caption", w.caption ?: ""))
+            list.put(JSONObject().put("id", w.id).put("kind", w.kind.name.lowercase()).put("title", w.title).put("caption", w.caption ?: "").put("theme", PhotoThemes.of(w.title, w.caption.orEmpty())))
         }
         return JSONObject()
             .put("selected", selected)
@@ -197,6 +210,13 @@ class PhoneServer private constructor(private val context: Context, private val 
             .put("focusStyle", AerialSettings.focusStyle.key)
             .put("renderMode", AerialSettings.renderMode.key)
             .put("liteMode", AerialSettings.liteMode)
+            .put("homeColumns", AerialSettings.homeColumns)
+            .put("glassStyle", AerialSettings.glassStyle)
+            .put("aerialDelay", AerialSettings.aerialDelaySeconds)
+            .put("aerialPause", AerialSettings.aerialPauseOnInput)
+            .put("aerialCategory", AerialSettings.aerialCategory)
+            .put("dailyTheme", AerialSettings.dailyTheme)
+            .put("dailyMatches", Wallpapers.preferredDaily().size)
             .put("wallpapers", list)
             .put("apps", JSONArray().apply {
                 // Pinned inputs first, then apps by the name Home shows. [default] is the name a
@@ -239,6 +259,50 @@ class PhoneServer private constructor(private val context: Context, private val 
                 Weather.now?.let { put("celsius", it.celsius); put("kind", it.kind.name.lowercase()); put("day", it.day) }
             })
             .put("live", LiveSources.snapshot())
+    }
+
+    private fun desktop(f: Map<String, String>): Response {
+        val valid = f.isNotEmpty() && f.all { (key, value) -> when (key) {
+            "columns" -> value.toIntOrNull() in 4..8
+            "glass" -> value in listOf("clear", "frosted")
+            "delay" -> value.toIntOrNull()?.let { it in 0..60 } == true
+            "pause" -> value in listOf("true", "false")
+            "aerial" -> value in listOf("all", "landscapes", "cities", "underwater", "space")
+            "daily" -> value in listOf("all", "nature", "water", "city", "animals", "space", "other")
+            else -> false
+        } }
+        if (!valid) return text(Response.Status.BAD_REQUEST, "invalid setting")
+        onMain {
+            f["columns"]?.toInt()?.let(AerialSettings::chooseHomeColumns)
+            f["glass"]?.let(AerialSettings::chooseGlassStyle)
+            f["delay"]?.toInt()?.let(AerialSettings::chooseAerialDelay)
+            f["pause"]?.let { AerialSettings.chooseAerialPause(it == "true") }
+            f["aerial"]?.let(AerialSettings::chooseAerialCategory)
+            f["daily"]?.let(AerialSettings::chooseDailyTheme)
+        }
+        return json(state())
+    }
+
+    private fun transferUpload(session: IHTTPSession): Response {
+        val size = session.headers["content-length"]?.toLongOrNull() ?: 0
+        if (size <= 0 || size > TransferStore.MAX_FILE + 65536) return text(Response.Status.BAD_REQUEST, "file limit")
+        val files = HashMap<String, String>()
+        session.parseBody(files)
+        val file = files["file"]?.let(::File) ?: return text(Response.Status.BAD_REQUEST, "missing file")
+        return try {
+            val entry = file.inputStream().use { transfers.add(it, session.parameters["file"]?.firstOrNull().orEmpty()) }
+            json(JSONObject().put("saved", entry.json()).put("files", transfers.json()))
+        } catch (_: IllegalArgumentException) { text(Response.Status.BAD_REQUEST, "exchange box limit") }
+    }
+
+    private fun transferDownload(id: String): Response {
+        val entry = transfers.entries().firstOrNull { it.id == id } ?: return text(Response.Status.NOT_FOUND, "missing file")
+        val file = transfers.data(id) ?: return text(Response.Status.NOT_FOUND, "missing file")
+        return newFixedLengthResponse(Response.Status.OK, "application/octet-stream", file.inputStream(), file.length()).apply {
+            addHeader("Content-Disposition", "attachment; filename*=UTF-8''" + java.net.URLEncoder.encode(entry.name, "UTF-8").replace("+", "%20"))
+            addHeader("X-Content-Type-Options", "nosniff")
+            addHeader("Cache-Control", "no-store")
+        }
     }
 
     private fun liveSource(fields: Map<String, String>): Response {
@@ -403,6 +467,24 @@ class PhoneServer private constructor(private val context: Context, private val 
         @Volatile
         private var running: PhoneServer? = null
 
+        private val clients = mutableSetOf<String>()
+        private val lifetime = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + Dispatchers.IO)
+        private var stopJob: kotlinx.coroutines.Job? = null
+
+        @Synchronized fun visible(owner: String, on: Boolean) {
+            if (on) { clients.add(owner); stopJob?.cancel() }
+            else {
+                clients.remove(owner)
+                if (clients.isEmpty()) {
+                    stopJob?.cancel()
+                    stopJob = lifetime.launch {
+                        kotlinx.coroutines.delay(5 * 60 * 1000L)
+                        synchronized(this@Companion) { if (clients.isEmpty()) stop() }
+                    }
+                }
+            }
+        }
+
         /** Starts the server if needed and returns the address to put in the QR code, or null offline. */
         @Synchronized
         fun start(context: Context): String? {
@@ -436,7 +518,7 @@ class PhoneServer private constructor(private val context: Context, private val 
         fun qr(text: String, scale: Int = 8): Bitmap {
             val matrix = QRCodeWriter().encode(
                 text, BarcodeFormat.QR_CODE, 0, 0,
-                mapOf(EncodeHintType.MARGIN to 0, EncodeHintType.ERROR_CORRECTION to ErrorCorrectionLevel.M),
+                mapOf(EncodeHintType.MARGIN to 4, EncodeHintType.ERROR_CORRECTION to ErrorCorrectionLevel.M),
             )
             val n = matrix.width
             val bmp = createBitmap(n * scale, n * scale)

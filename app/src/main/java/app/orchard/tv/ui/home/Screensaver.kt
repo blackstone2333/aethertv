@@ -297,7 +297,7 @@ private fun AerialSaver(
         mutableStateOf(aerialQualityCap?.takeIf { it.ordinal < wanted.ordinal } ?: wanted)
     }
     val films = remember {
-        val all = Aerials.all(context).shuffled()
+        val all = Aerials.preferred(context).shuffled()
         val first = startAt?.let { (id, _) -> all.firstOrNull { it.id == id } }
         if (first != null) listOf(first) + (all - first) else AerialStream.withOpenerFirst(context, all, quality)
     }
@@ -457,10 +457,10 @@ private fun PhotoSaver(
     carried: SaverCarry.Still? = null,
 ) {
     val reduced = LocalReducedMotion.current
-    val pool = remember(Wallpapers.items) {
+    val pool = remember(Wallpapers.items, AerialSettings.dailyTheme) {
         // The owner's own photos when there are any, else the daily ones (issue #27).
         val pictures = Wallpapers.items.filter { it.kind == WallpaperKind.Photo }
-            .ifEmpty { Wallpapers.items.filter { it.kind == WallpaperKind.Daily } }
+            .ifEmpty { Wallpapers.preferredDaily().ifEmpty { Wallpapers.items.filter { it.kind == WallpaperKind.Daily } } }
         val rest = (pictures.ifEmpty { Wallpapers.items.filter { it.kind == WallpaperKind.Builtin } }).shuffled()
         if (first == null) rest else listOf(first) + rest.filter { it.id != first.id }
     }

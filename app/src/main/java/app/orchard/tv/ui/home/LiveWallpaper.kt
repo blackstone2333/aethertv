@@ -28,6 +28,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import app.orchard.tv.settings.AerialSettings
 import app.orchard.tv.system.DiagLog
 import app.orchard.tv.ui.theme.Motion
 import app.orchard.tv.wallpaper.Aerial
@@ -47,7 +48,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.coroutines.resume
 
 /** How long Home sits still before the aerial wallpaper starts moving. */
-private const val START_AFTER_MS = 10_000L
+// Delay is selected by the owner; Lite briefly settles input to avoid decoder churn.
 
 /** A stopped film keeps its player this long, so it moves on again without loading. */
 private const val KEEP_STOPPED_MS = 2 * 60 * 1000L
@@ -96,7 +97,7 @@ class LiveFilm {
 }
 
 /**
- * The aerial wallpaper (issue #216): once Home has sat still on the top row for [START_AFTER_MS],
+ * The aerial wallpaper (issue #216): once Home has sat still on the top row for the chosen delay,
  * Apple's film plays behind the tiles, and any key stops it on the frame it was showing. That frame
  * becomes the wallpaper's picture (Wallpapers.useLiveFrame), so the glass plate, the grid's frosted
  * background and the next start all match what was on screen. The film starts again from that
@@ -121,16 +122,19 @@ fun LiveWallpaper(
     live: LiveFilm,
 ) {
     val context = LocalContext.current
+    LaunchedEffect(Unit) { cover.snapTo(0f) }
     var player by remember { mutableStateOf<ExoPlayer?>(null) }
     var surface by remember { mutableStateOf<SurfaceView?>(null) }
     // Frames are reaching the screen: the first one has been drawn and the film is not stopped.
     var showing by remember { mutableStateOf(false) }
     var idle by remember { mutableStateOf(false) }
     val reader = remember { FrameReader(context) }
-    LaunchedEffect(lastInputAt, moving) {
+    val pauseOnInput = AerialSettings.aerialPauseOnInput || AerialSettings.liteMode
+    val delayMs = maxOf(AerialSettings.aerialDelaySeconds * 1000L, if (pauseOnInput) 800L else 0L)
+    LaunchedEffect(if (pauseOnInput || delayMs > 0) lastInputAt else 0L, moving, delayMs, AerialSettings.aerialCategory) {
         idle = false
         if (!moving) return@LaunchedEffect
-        delay(START_AFTER_MS)
+        delay(delayMs)
         idle = true
     }
     val play = moving && idle || hold
@@ -150,7 +154,7 @@ fun LiveWallpaper(
     fun open(): ExoPlayer {
         val quality = AerialFormats.forWallpaper(context)
         val overHttp = Build.VERSION.SDK_INT < Build.VERSION_CODES.N
-        val all = Aerials.all(context).shuffled()
+        val all = Aerials.preferred(context).shuffled()
         // The film the picture on screen came from, at that moment; else one fetched ahead.
         val spot = Wallpapers.liveSpot()
         val resume = spot?.let { (id, _) -> all.firstOrNull { it.id == id } }

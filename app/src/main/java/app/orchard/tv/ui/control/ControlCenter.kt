@@ -266,6 +266,7 @@ private fun MainPage(vm: HomeViewModel, now: LocalDateTime, takeFocus: Boolean, 
 
         // Installed from the APK alone: how to finish, on the TV or with a computer.
         if (vm.homeStatus == HomeStatus.NotDefault) {
+            MenuRow(Glyph.Info, stringResource(R.string.system_info), onClick = { vm.whenUnlocked { vm.overlay = Overlay.SystemTools } }, trailing = "›")
             MenuRow(Glyph.Shield, stringResource(R.string.cc_setup_title), onClick = { vm.overlay = Overlay.ControlCenter(CcPage.Setup) }, trailing = "›")
         }
 

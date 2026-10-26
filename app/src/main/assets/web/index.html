@@ -222,6 +222,9 @@
     .agrid.sorting .atile:not(.lift) { transition: none; }
     .toast { transform: translate(-50%, 0); }
   }
+  .item select { max-width: 52%; min-height: 40px; border: 0; border-radius: 10px; padding: 6px 8px; background: var(--fill); color: var(--tint); font: inherit; }
+  #exchangeFiles .item { flex-wrap: wrap; gap: 10px; }
+  #systemStats .val { max-width: 52%; overflow-wrap: anywhere; text-align: right; }
 </style>
 </head>
 <body>
@@ -234,6 +237,7 @@
 
 <!-- Home screen: the TV's tiles, arranged here -->
 <section data-tab="home">
+  <div class="list" id="desktopHome"></div>
   <div id="homeBody"></div>
   <div id="inputsBox" hidden>
     <h2 data-i18n="inputs_h"></h2>
@@ -246,6 +250,8 @@
 <!-- Wallpaper and screensaver -->
 <section data-tab="looks" hidden>
   <div class="hero" id="hero"><img id="heroImg" alt=""><div class="cap"><small data-i18n="current_wp"></small><b id="heroTitle"></b></div></div>
+  <div class="list" id="desktopLooks"></div>
+  <p class="foot" id="dailyMatch" data-i18n="new_no_matches" hidden></p>
   <div id="sections"></div>
 
   <h2 class="big" data-i18n="screensaver"></h2>
@@ -271,6 +277,14 @@
 
 <!-- More -->
 <section data-tab="more" hidden>
+  <h2 data-i18n="system_info"></h2>
+  <div class="list" id="systemStats" aria-live="off"></div>
+  <div class="list"><button class="item center tint" id="systemRefresh" data-i18n="new_refresh"></button><button class="item center tint" id="systemClean" data-i18n="system_clean"></button></div>
+  <p class="foot" data-i18n="system_clean_hint"></p>
+  <h2 data-i18n="transfer_title"></h2>
+  <label class="btn"><span id="exchangeLabel" data-i18n="transfer_upload"></span><input id="exchangeInput" type="file" hidden></label>
+  <p class="foot" data-i18n="transfer_hint"></p>
+  <div class="list" id="exchangeFiles"></div>
   <h2 data-i18n="focus"></h2>
   <div class="list" id="focus" role="radiogroup" data-i18n-aria-label="focus">
     <button class="item" role="radio" data-style="high_contrast"><span class="txt"><span data-i18n="focus_high"></span><span class="sub" data-i18n="focus_hint_high"></span></span><svg class="tick" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>
@@ -346,7 +360,7 @@ let state = null, stateJson = '';
 
 // The language: ?lang=ru in the address, else the one picked under More (kept on the phone), else the
 // first of the phone's preferred languages that has a table, else English. Keys are in KEYS, one array of texts per language.
-const KEYS = ["screensaver", "screensaver_short", "ss_aerial", "ss_photos", "ss_clock", "focus", "focus_high", "focus_standard", "weather", "city_ph", "set", "upload_label", "feedback_h", "feedback_hint", "diag_show", "diag_copy", "diag_github", "hint_aerial", "hint_photos", "hint_clock", "g_live", "g_live_sub", "g_daily", "g_daily_sub", "g_photo", "g_builtin", "g_auto", "toast_wallpaper", "aria_delete", "confirm_delete", "wx_clear", "wx_partlycloudy", "wx_cloudy", "wx_fog", "wx_rain", "wx_snow", "wx_thunder", "wx_chosen", "wx_auto_btn", "toast_auto", "wx_guessed", "wx_none", "tag_source", "aria_rename", "toast_renamed", "toast_name_reset", "toast_rename_fail", "aria_reset_icon", "toast_icon_reset", "focus_hint_standard", "focus_hint_high", "daily_title", "daily_caption", "rotate_title", "rotate_caption", "empty_photos", "add_second", "toast_tv_updated", "sending_n", "toast_added", "toast_no_photos", "toast_send_fail", "toast_city_set", "toast_city_nf", "toast_set_fail", "toast_sending_icon", "toast_icon_set", "toast_icon_bad", "diag_collecting", "toast_diag_fail", "toast_copied", "toast_copy_manual", "language", "hint_follows", "ss_videos", "hint_videos", "videos_h", "videos_upload", "videos_hint", "videos_empty", "confirm_video_delete", "toast_videos_added", "toast_video_bad", "sending_video", "hint_system", "tab_home", "tab_more", "current_wp", "cancel", "save", "name_ph", "rename_hint", "change_icon", "this_tv", "folder_count", "folder_ph", "inputs_h", "inputs_hint", "rename_hint_app", "was_named", "arrange_hint", "arrange_unready", "hidden_h", "hidden_none", "hidden_locked", "show_app", "hide_app", "to_folder", "new_folder", "out_of_folder", "ungroup", "ungroup_confirm", "folder_hint", "toast_hidden", "toast_shown", "toast_in_folder", "toast_out_folder", "toast_ungrouped", "tab_looks", "looks_title", "show_on_home", "source_device", "source_plain", "source_device_hint", "tv_model", "live_h", "live_hint", "live_id_ph", "live_m3u_ph", "live_epg_ph", "live_priority_ph", "live_save", "live_refresh", "live_delete", "live_empty", "live_saved", "live_refreshed", "live_failed", "render_h", "render_hint", "render_auto", "render_full", "render_lite", "render_active_full", "render_active_lite", "live_counts", "live_cache", "live_unchecked"];
+const KEYS = ["screensaver", "screensaver_short", "ss_aerial", "ss_photos", "ss_clock", "focus", "focus_high", "focus_standard", "weather", "city_ph", "set", "upload_label", "feedback_h", "feedback_hint", "diag_show", "diag_copy", "diag_github", "hint_aerial", "hint_photos", "hint_clock", "g_live", "g_live_sub", "g_daily", "g_daily_sub", "g_photo", "g_builtin", "g_auto", "toast_wallpaper", "aria_delete", "confirm_delete", "wx_clear", "wx_partlycloudy", "wx_cloudy", "wx_fog", "wx_rain", "wx_snow", "wx_thunder", "wx_chosen", "wx_auto_btn", "toast_auto", "wx_guessed", "wx_none", "tag_source", "aria_rename", "toast_renamed", "toast_name_reset", "toast_rename_fail", "aria_reset_icon", "toast_icon_reset", "focus_hint_standard", "focus_hint_high", "daily_title", "daily_caption", "rotate_title", "rotate_caption", "empty_photos", "add_second", "toast_tv_updated", "sending_n", "toast_added", "toast_no_photos", "toast_send_fail", "toast_city_set", "toast_city_nf", "toast_set_fail", "toast_sending_icon", "toast_icon_set", "toast_icon_bad", "diag_collecting", "toast_diag_fail", "toast_copied", "toast_copy_manual", "language", "hint_follows", "ss_videos", "hint_videos", "videos_h", "videos_upload", "videos_hint", "videos_empty", "confirm_video_delete", "toast_videos_added", "toast_video_bad", "sending_video", "hint_system", "tab_home", "tab_more", "current_wp", "cancel", "save", "name_ph", "rename_hint", "change_icon", "this_tv", "folder_count", "folder_ph", "inputs_h", "inputs_hint", "rename_hint_app", "was_named", "arrange_hint", "arrange_unready", "hidden_h", "hidden_none", "hidden_locked", "show_app", "hide_app", "to_folder", "new_folder", "out_of_folder", "ungroup", "ungroup_confirm", "folder_hint", "toast_hidden", "toast_shown", "toast_in_folder", "toast_out_folder", "toast_ungrouped", "tab_looks", "looks_title", "show_on_home", "source_device", "source_plain", "source_device_hint", "tv_model", "live_h", "live_hint", "live_id_ph", "live_m3u_ph", "live_epg_ph", "live_priority_ph", "live_save", "live_refresh", "live_delete", "live_empty", "live_saved", "live_refreshed", "live_failed", "render_h", "render_hint", "render_auto", "render_full", "render_lite", "render_active_full", "render_active_lite", "live_counts", "live_cache", "live_unchecked", "home_columns", "glass_material", "glass_clear", "glass_frosted", "glass_hint", "aerial_start", "aerial_immediate", "aerial_start_hint", "aerial_pause", "aerial_keep_playing", "aerial_stop_input", "aerial_pause_hint", "aerial_category", "daily_theme", "daily_theme_more", "daily_theme_hint", "topic_all", "topic_nature", "topic_city", "topic_water", "topic_underwater", "topic_space", "topic_animals", "topic_other", "system_info", "system_short", "system_cpu", "system_cores", "system_memory", "system_storage", "system_used", "system_network", "system_offline", "system_clean", "system_clean_hint", "new_cleaned", "new_app_cpu", "new_app_mem", "new_no_matches", "new_loading", "new_refresh", "new_memory", "transfer_title", "transfer_connect", "transfer_hint", "transfer_pick", "transfer_empty", "transfer_save", "transfer_remove", "transfer_upload", "transfer_download", "transfer_confirm", "new_sending", "tools_failed", "tools_saved"];
 const TEXTS = {
  "zh": [
   "屏幕保护程序",
@@ -370,7 +384,7 @@ const TEXTS = {
   "轮播每日精选和你的照片。",
   "大号时钟，配合当前壁纸。",
   "航拍",
-  "停在主屏幕 10 秒后，壁纸播放 Apple TV 的航拍；按任意键停在当前画面",
+  "选择后立即加载播放航拍，可在下方调整延迟、交互暂停和分类偏好。",
   "每日精选",
   "每天自动更新的风景摄影",
   "我的照片",
@@ -401,7 +415,7 @@ const TEXTS = {
   "与 Apple TV 默认一致：选中的 App 只放大浮起。",
   "选中的 App 外面加一圈白色描边，离得远也看得清。",
   "每日自动更新",
-  "总是使用当天的照片",
+  "自动选用偏好主题中最新的照片；无匹配时使用最新每日一图。",
   "每天换一张",
   "每天自动换成下一张照片",
   "还没有照片。用上面的按钮从手机添加。",
@@ -449,7 +463,7 @@ const TEXTS = {
   "打开后，这个信号源会放到主屏幕第一个位置；在上面点它可以换图标、改名字。",
   "改成你想在电视上看到的名字，留空恢复「{name}」。",
   "原名：{name}",
-  "和电视上的排列一样，每排 5 个，第一排就是电视底板上的那一排。按住图标拖到想放的位置；点一下可以改名、换图标、放进文件夹或隐藏。",
+  "和电视上的排列一样，每排 {n} 个。按住图标拖动；点一下可改名、换图标、放进文件夹或隐藏。",
   "电视上的主屏幕还没准备好，回到电视的主屏幕后再试。",
   "隐藏的 App",
   "没有隐藏的 App。",
@@ -496,7 +510,62 @@ const TEXTS = {
   "当前使用轻量模式",
   "{channels} 个频道 · {programs} 个节目",
   "离线缓存",
-  "尚未刷新"
+  "尚未刷新",
+  "每排入口数量",
+  "玻璃材质",
+  "透明 · 折射",
+  "磨砂",
+  "透明玻璃在边缘折射背景；Lite 使用简化半透明底板。",
+  "航拍开始播放",
+  "立即",
+  "桌面可见后即开始加载播放；网络缓冲仍需时间。可选择闲置延迟。",
+  "操作桌面时",
+  "继续播放",
+  "操作时暂停",
+  "Lite 始终操作即停，短暂闲置后恢复；离开桌面时停止。",
+  "航拍分类",
+  "每日一图主题",
+  "更多图片主题",
+  "主题根据图片说明推断。近期没有匹配图片时保留最新图片；可随时切回“全部”。",
+  "全部",
+  "自然风光",
+  "城市建筑",
+  "山海湖泊",
+  "海底世界",
+  "地球与太空",
+  "野生动物",
+  "其他",
+  "系统信息",
+  "系统",
+  "处理器",
+  "核心",
+  "内存",
+  "存储空间",
+  "已用 / 总容量",
+  "网络",
+  "暂无活动网络",
+  "清理内存与缓存",
+  "释放可重建的界面缓存及图标缓存文件，保留其他应用和个人文件。全机内存由 Android 管理。",
+  "已清理缓存文件：{size}",
+  "桌面 CPU：{value}%",
+  "桌面占用：{size}",
+  "近期暂无匹配主题的图片，可使用最新图片。",
+  "正在读取…",
+  "刷新",
+  "已用 {used} / {total}",
+  "局域网文件互传",
+  "请连接同一 Wi-Fi 或有线局域网。",
+  "扫码发送或下载文件。单个上限 100 MB，总量 512 MB；文件保存在私有中转箱，手动移除。",
+  "选择本机文件供下载",
+  "中转箱暂无文件",
+  "保存到本机…",
+  "从中转箱移除",
+  "发送文件",
+  "下载",
+  "从中转箱移除 {name}？",
+  "正在发送…",
+  "未能完成，请检查文件大小、剩余空间或系统文件选择器支持。",
+  "文件已就绪"
  ],
  "en": [
   "Screensaver",
@@ -520,7 +589,7 @@ const TEXTS = {
   "Cycles through the daily photos and yours.",
   "A big clock over the current wallpaper.",
   "AetherTV",
-  "After 10 seconds on Home, the wallpaper plays Apple TV’s aerial films; press any key to stop on the current frame",
+  "Aerial films play immediately when selected. Playback delay, interaction and categories are adjustable below.",
   "Daily Photos",
   "Landscape photography, updated every day",
   "My Photos",
@@ -551,7 +620,7 @@ const TEXTS = {
   "As on Apple TV: the selected app only lifts.",
   "A white frame around the selected app, easy to see from across the room.",
   "Always Today’s",
-  "Always uses today’s photo",
+  "Uses the newest photo matching your theme, or the latest daily photo if none match.",
   "One a Day",
   "Switches to the next photo every day",
   "No photos yet. Add some from your phone with the button above.",
@@ -599,7 +668,7 @@ const TEXTS = {
   "Turned on, the input goes first on Home; tap it above to change its icon or name.",
   "The name the TV shows; leave it empty to go back to “{name}”.",
   "Originally “{name}”",
-  "Laid out as on the TV, five to a row; the first row is the one on the TV's shelf. Press and hold a tile and drag it into place; tap it to rename it, change its icon, put it in a folder or hide it.",
+  "Matches the TV layout, with {n} apps per row. Hold to drag; tap to rename, change artwork, group or hide.",
   "Home on the TV is not ready; go back to Home on the TV and try again.",
   "Hidden Apps",
   "No hidden apps.",
@@ -646,7 +715,62 @@ const TEXTS = {
   "Lite is active",
   "{channels} channels · {programs} programmes",
   "Offline cache",
-  "Not refreshed yet"
+  "Not refreshed yet",
+  "Apps per row",
+  "Glass material",
+  "Clear · Refraction",
+  "Frosted",
+  "Clear glass bends light at its edges. Lite uses a simple translucent plate.",
+  "Aerial starts",
+  "Immediately",
+  "Starts as soon as Home is visible, subject to network buffering. Choose a delay to wait for idle.",
+  "While using Home",
+  "Keep playing",
+  "Pause on input",
+  "Lite always pauses on input and resumes after a brief idle. Playback also stops when leaving Home.",
+  "Aerial category",
+  "Daily photo topic",
+  "More photo topics",
+  "Topics are inferred from captions. If none match the recent photos, the latest photo stays available.",
+  "All",
+  "Nature",
+  "Cities",
+  "Water",
+  "Underwater",
+  "Earth & space",
+  "Wildlife",
+  "Other",
+  "System information",
+  "System",
+  "CPU",
+  "cores",
+  "Memory",
+  "Storage",
+  "Used / total",
+  "Network",
+  "No active network",
+  "Clean memory & cache",
+  "Releases rebuildable interface caches and tile files. Other apps and personal files are preserved. Android controls system-wide memory.",
+  "Cache files removed: {size}",
+  "AetherTV CPU: {value}%",
+  "AetherTV: {size}",
+  "No topic matches yet; the latest photo is available.",
+  "Loading…",
+  "Refresh",
+  "{used} / {total} used",
+  "Local file exchange",
+  "Connect to the same Wi-Fi or Ethernet network.",
+  "Scan to send or download files. Up to 100 MB each, 512 MB total. Files stay in a private exchange box until removed.",
+  "Choose a file on this device",
+  "No shared files yet",
+  "Save to device…",
+  "Remove from exchange box",
+  "Send a file",
+  "Download",
+  "Remove {name} from the exchange box?",
+  "Sending…",
+  "Could not complete. Check file size, available storage or file-picker support.",
+  "File ready"
  ],
  "ru": [
   "Заставка",
@@ -670,7 +794,7 @@ const TEXTS = {
   "Сменяются фото дня и ваши фото.",
   "Большие часы поверх текущих обоев.",
   "Аэросъёмка",
-  "После 10 секунд на главном экране обои воспроизводят аэросъёмку Apple TV; нажмите любую кнопку, чтобы остановиться на текущем кадре",
+  "Аэросъёмка запускается сразу после выбора. Ниже настраиваются задержка, пауза и категории.",
   "Фото дня",
   "Пейзажная фотография, обновляется каждый день",
   "Мои фото",
@@ -701,7 +825,7 @@ const TEXTS = {
   "Как на Apple TV: выбранное приложение лишь приподнимается.",
   "Белая рамка вокруг выбранного приложения, хорошо заметная с другого конца комнаты.",
   "Всегда сегодняшнее",
-  "Всегда сегодняшнее фото",
+  "Новейшее фото по выбранной теме; если совпадений нет — последнее фото дня.",
   "Одно в день",
   "Каждый день сменяется следующим фото",
   "Фото пока нет. Добавьте их с телефона кнопкой выше.",
@@ -749,7 +873,7 @@ const TEXTS = {
   "Включённый источник встаёт первым на главном экране; нажмите на него выше, чтобы сменить значок или название.",
   "Название, которое показывает телевизор; оставьте пустым, чтобы вернуть «{name}».",
   "Исходное название: {name}",
-  "Как на телевизоре: по пять в ряд, первый ряд — тот, что на полке телевизора. Нажмите и удерживайте плитку и перетащите её; нажмите, чтобы переименовать, сменить значок, положить в папку или скрыть.",
+  "Как на телевизоре: по {n} приложений в ряду. Удерживайте для перемещения; нажмите для переименования, смены значка, группировки или скрытия.",
   "Главный экран телевизора ещё не готов; вернитесь на него и попробуйте снова.",
   "Скрытые приложения",
   "Скрытых приложений нет.",
@@ -796,7 +920,62 @@ const TEXTS = {
   "Активен режим Lite",
   "Каналы: {channels} · Программы: {programs}",
   "Офлайн-кэш",
-  "Ещё не обновлено"
+  "Ещё не обновлено",
+  "Приложений в ряду",
+  "Материал стекла",
+  "Прозрачное · преломление",
+  "Матовое",
+  "Прозрачное стекло преломляет фон по краям. В Lite — простая полупрозрачная панель.",
+  "Запуск аэросъёмки",
+  "Сразу",
+  "Запускается при открытии главного экрана с учётом буферизации. Можно задать задержку.",
+  "При управлении",
+  "Продолжать",
+  "Пауза при вводе",
+  "В Lite ввод всегда ставит видео на паузу до короткого простоя. При выходе с главного экрана видео останавливается.",
+  "Категория аэросъёмки",
+  "Тема фото дня",
+  "Другие темы",
+  "Темы определяются по описанию. Если совпадений нет, доступно последнее фото.",
+  "Все",
+  "Природа",
+  "Города",
+  "Вода",
+  "Под водой",
+  "Земля и космос",
+  "Животные",
+  "Другие",
+  "Сведения о системе",
+  "Система",
+  "Процессор",
+  "ядер",
+  "Память",
+  "Хранилище",
+  "Занято / всего",
+  "Сеть",
+  "Нет подключения",
+  "Очистить память и кэш",
+  "Удаляет восстанавливаемый кэш интерфейса и значков. Личные файлы сохраняются. Общей памятью управляет Android.",
+  "Удалено кэша: {size}",
+  "CPU AetherTV: {value}%",
+  "AetherTV: {size}",
+  "Совпадений нет; доступно последнее фото.",
+  "Загрузка…",
+  "Обновить",
+  "Занято {used} / {total}",
+  "Передача файлов по сети",
+  "Подключитесь к одной локальной сети.",
+  "Сканируйте для отправки и скачивания. До 100 МБ на файл, 512 МБ всего. Файлы хранятся в личном буфере до удаления.",
+  "Выбрать файл на устройстве",
+  "Нет файлов",
+  "Сохранить на устройство…",
+  "Удалить из буфера",
+  "Отправить файл",
+  "Скачать",
+  "Удалить {name} из буфера?",
+  "Отправка…",
+  "Не удалось завершить. Проверьте размер файла, свободное место и поддержку выбора файлов.",
+  "Файл готов"
  ],
  "uk": [
   "Заставка",
@@ -820,7 +999,7 @@ const TEXTS = {
   "Змінюються фото дня та ваші фото.",
   "Великий годинник поверх поточних шпалер.",
   "Аерозйомка",
-  "Після 10 секунд на головному екрані шпалери відтворюють аерозйомку Apple TV; натисніть будь-яку кнопку, щоб зупинитися на поточному кадрі",
+  "Аерозйомка запускається одразу після вибору. Нижче налаштовуються затримка, пауза та категорії.",
   "Фото дня",
   "Пейзажна фотографія, оновлюється щодня",
   "Мої фото",
@@ -851,7 +1030,7 @@ const TEXTS = {
   "Як на Apple TV: вибраний застосунок лише трохи підіймається.",
   "Біла рамка навколо вибраного застосунку, добре помітна з іншого кінця кімнати.",
   "Завжди сьогоднішнє",
-  "Завжди сьогоднішнє фото",
+  "Найновіше фото за обраною темою; якщо збігів немає — останнє фото дня.",
   "Одне на день",
   "Щодня змінюється наступним фото",
   "Фото ще немає. Додайте їх з телефона кнопкою вище.",
@@ -899,7 +1078,7 @@ const TEXTS = {
   "Увімкнене джерело стає першим на головному екрані; натисніть на нього вище, щоб змінити значок або назву.",
   "Назва, яку показує телевізор; залиште порожнім, щоб повернути «{name}».",
   "Початкова назва: {name}",
-  "Як на телевізорі: по п'ять у ряд, перший ряд — той, що на полиці телевізора. Натисніть і утримуйте плитку та перетягніть її; натисніть, щоб перейменувати, змінити значок, покласти в папку або приховати.",
+  "Як на телевізорі: по {n} програм у рядку. Утримуйте для переміщення; натисніть для перейменування, зміни значка, групування чи приховування.",
   "Головний екран телевізора ще не готовий; поверніться на нього й спробуйте знову.",
   "Приховані застосунки",
   "Прихованих застосунків немає.",
@@ -946,7 +1125,62 @@ const TEXTS = {
   "Активний режим Lite",
   "Канали: {channels} · Програми: {programs}",
   "Офлайн-кеш",
-  "Ще не оновлено"
+  "Ще не оновлено",
+  "Програм у рядку",
+  "Матеріал скла",
+  "Прозоре · заломлення",
+  "Матове",
+  "Прозоре скло заломлює тло по краях. У Lite — проста напівпрозора панель.",
+  "Запуск аерозйомки",
+  "Одразу",
+  "Запускається при відкритті головного екрана з урахуванням буферизації. Можна задати затримку.",
+  "Під час керування",
+  "Продовжувати",
+  "Пауза при введенні",
+  "У Lite введення завжди призупиняє відео до короткого простою. Після виходу з головного екрана відео зупиняється.",
+  "Категорія аерозйомки",
+  "Тема фото дня",
+  "Інші теми",
+  "Теми визначаються за описом. Якщо збігів немає, доступне останнє фото.",
+  "Усі",
+  "Природа",
+  "Міста",
+  "Вода",
+  "Під водою",
+  "Земля та космос",
+  "Тварини",
+  "Інше",
+  "Відомості про систему",
+  "Система",
+  "Процесор",
+  "ядер",
+  "Памʼять",
+  "Сховище",
+  "Зайнято / усього",
+  "Мережа",
+  "Немає підключення",
+  "Очистити памʼять і кеш",
+  "Видаляє відновлюваний кеш інтерфейсу та значків. Особисті файли зберігаються. Загальною памʼяттю керує Android.",
+  "Видалено кешу: {size}",
+  "CPU AetherTV: {value}%",
+  "AetherTV: {size}",
+  "Збігів немає; доступне останнє фото.",
+  "Завантаження…",
+  "Оновити",
+  "Зайнято {used} / {total}",
+  "Передавання файлів мережею",
+  "Підключіться до однієї локальної мережі.",
+  "Скануйте для надсилання та завантаження. До 100 МБ на файл, 512 МБ разом. Файли зберігаються в приватному буфері до видалення.",
+  "Вибрати файл на пристрої",
+  "Файлів поки немає",
+  "Зберегти на пристрій…",
+  "Видалити з буфера",
+  "Надіслати файл",
+  "Завантажити",
+  "Видалити {name} з буфера?",
+  "Надсилання…",
+  "Не вдалося завершити. Перевірте розмір файлу, вільне місце та підтримку вибору файлів.",
+  "Файл готовий"
  ],
  "kk": [
   "Экран қорғаушы",
@@ -970,7 +1204,7 @@ const TEXTS = {
   "Күннің фотолары мен өз фотоларыңыз кезектеседі.",
   "Ағымдағы түсқағаз үстіндегі үлкен сағат.",
   "Аэрожиын",
-  "Басты экранда 10 секунд тұрғаннан кейін түсқағаз Apple TV аэрожиынын ойнатады; ағымдағы кадрда тоқтау үшін кез келген түймені басыңыз",
+  "Таңдалғаннан кейін аэробейне бірден жүктеледі. Кідіріс, кідірту және санаттар төменде реттеледі.",
   "Күннің фотолары",
   "Пейзаждық фотография, күн сайын жаңартылады",
   "Менің фотоларым",
@@ -1001,7 +1235,7 @@ const TEXTS = {
   "Apple TV сияқты: таңдалған қолданба тек көтеріледі.",
   "Таңдалған қолданбаның айналасындағы ақ жақтау, бөлменің арғы шетінен де жақсы көрінеді.",
   "Әрқашан бүгінгісі",
-  "Әрқашан бүгінгі фото",
+  "Таңдалған тақырыптағы ең жаңа сурет; сәйкес сурет болмаса, соңғы күн суреті.",
   "Күніне біреуі",
   "Күн сайын келесі фотоға ауысады",
   "Фотолар әлі жоқ. Оларды жоғарыдағы түймемен телефоннан қосыңыз.",
@@ -1049,7 +1283,7 @@ const TEXTS = {
   "Қосылған көз басты экранда бірінші тұрады; белгішесін не атауын өзгерту үшін оны жоғарыда түртіңіз.",
   "Теледидар көрсететін атау; «{name}» атауын қайтару үшін бос қалдырыңыз.",
   "Бастапқы атауы: {name}",
-  "Теледидардағыдай: қатарда бесеуден, бірінші қатар — теледидар сөресіндегі қатар. Плитканы басып ұстап, орнына сүйреңіз; атын, белгішесін өзгерту, қалтаға салу не жасыру үшін түртіңіз.",
+  "Теледидардағыдай, әр қатарда {n} қолданба. Жылжыту үшін ұстап тұрыңыз; атауын, белгішесін өзгерту, топтау не жасыру үшін түртіңіз.",
   "Теледидардағы басты экран әлі дайын емес; оған оралып, қайталап көріңіз.",
   "Жасырылған қолданбалар",
   "Жасырылған қолданбалар жоқ.",
@@ -1096,7 +1330,62 @@ const TEXTS = {
   "Lite режимі қосулы",
   "{channels} арна · {programs} бағдарлама",
   "Офлайн кэш",
-  "Әлі жаңартылмаған"
+  "Әлі жаңартылмаған",
+  "Қатардағы қолданбалар",
+  "Әйнек материалы",
+  "Мөлдір · сыну",
+  "Күңгірт",
+  "Мөлдір әйнек шеттерінде фонды сындырады. Lite қарапайым жартылай мөлдір панельді қолданады.",
+  "Аэробейне басталуы",
+  "Бірден",
+  "Басты экран ашылғанда жүктеледі. Буферлеу уақыт алуы мүмкін. Кідірісті таңдауға болады.",
+  "Басқару кезінде",
+  "Ойнатуды жалғастыру",
+  "Әрекетте кідірту",
+  "Lite әрекетте кідіртіп, қысқа тыныштықтан кейін жалғастырады. Басты экраннан шыққанда тоқтайды.",
+  "Аэробейне санаты",
+  "Күн суретінің тақырыбы",
+  "Басқа тақырыптар",
+  "Тақырыптар сипаттамадан анықталады. Сәйкес сурет болмаса, соңғы сурет қолжетімді.",
+  "Барлығы",
+  "Табиғат",
+  "Қалалар",
+  "Су",
+  "Су асты",
+  "Жер және ғарыш",
+  "Жануарлар",
+  "Басқа",
+  "Жүйе ақпараты",
+  "Жүйе",
+  "Процессор",
+  "ядро",
+  "Жад",
+  "Сақтау орны",
+  "Пайдаланылған / барлығы",
+  "Желі",
+  "Желі қосылмаған",
+  "Жад пен кэшті тазалау",
+  "Қалпына келетін интерфейс пен белгіше кэшін босатады. Жеке файлдар сақталады. Жүйелік жадты Android басқарады.",
+  "Жойылған кэш: {size}",
+  "AetherTV CPU: {value}%",
+  "AetherTV: {size}",
+  "Сәйкес сурет жоқ; соңғы сурет қолжетімді.",
+  "Жүктелуде…",
+  "Жаңарту",
+  "Пайдаланылған {used} / {total}",
+  "Жергілікті файл алмасу",
+  "Бір жергілікті желіге қосылыңыз.",
+  "Жіберу не жүктеу үшін сканерлеңіз. Бір файл 100 МБ, барлығы 512 МБ. Файлдар жеке алмасу жәшігінде сақталады.",
+  "Осы құрылғыдан файл таңдау",
+  "Файлдар жоқ",
+  "Құрылғыға сақтау…",
+  "Алмасу жәшігінен жою",
+  "Файл жіберу",
+  "Жүктеу",
+  "{name} файлын жәшіктен жою керек пе?",
+  "Жіберілуде…",
+  "Аяқталмады. Файл өлшемін, бос орынды және файл таңдау қолдауын тексеріңіз.",
+  "Файл дайын"
  ]
 };
 const LANGS = Object.keys(TEXTS);
@@ -1186,6 +1475,7 @@ function show(next, keepScroll) {
   }
   if (tab) scrolls[tab] = window.scrollY;
   tab = next;
+  if (next === 'more') queueMicrotask(refreshSystem);
   document.querySelectorAll('section[data-tab]').forEach(s => s.hidden = s.dataset.tab !== tab);
   document.querySelectorAll('nav button').forEach(b => b.setAttribute('aria-selected', b.dataset.go === tab ? 'true' : 'false'));
   setTitle();
@@ -1295,12 +1585,13 @@ function card(w) {
   return b;
 }
 function renderWallpapers() {
-  $('#heroImg').src = `${base}thumb/${encodeURIComponent(state.selected)}`;
+  $('#heroImg').src = `${base}thumb/${encodeURIComponent(state.selected)}?topic=${state.dailyTheme || 'all'}`;
   $('#heroTitle').textContent = titleOf(state.selected);
   const root = $('#sections'); root.replaceChildren();
   for (const [kind, title, sub] of groups) {
     let list = state.wallpapers.filter(w => w.kind === kind);
-    if (kind === 'daily' && list.length) list = [{ id: state.latestDaily, kind: 'daily', title: t('daily_title'), caption: t('daily_caption') }, ...list];
+    if (kind === 'daily' && state.dailyTheme !== 'all') list = list.filter(w => w.theme === state.dailyTheme);
+    if (kind === 'daily' && state.wallpapers.some(w => w.kind === 'daily')) list = [{ id: state.latestDaily, kind: 'daily', title: t('daily_title'), caption: t('daily_caption') }, ...list];
     // Two or more photos: one a day, as on the TV (#27, #194).
     if (kind === 'photo' && list.length > 1) list = [{ id: state.rotatePhotos, kind: 'photos', title: t('rotate_title'), caption: t('rotate_caption') }, ...list];
     if (!list.length && kind !== 'photo') continue;
@@ -1578,7 +1869,7 @@ function buildHomeView(view, L) {
   sortableGrid(grid, L.home.map(e => e.key),
     (key, target) => lay({ op: 'move', key, target }),
     i => { const e = L.home[i]; e.kind === 'folder' ? (arrView = e.id, renderArrange(true)) : tileSheet(e, null); });
-  view.appendChild(el('p', 'foot', t('arrange_hint')));
+  view.appendChild(el('p', 'foot', t('arrange_hint', { n: state.homeColumns || 5 })));
 
   view.appendChild(el('h2', '', t('hidden_h')));
   if (L.locked && L.hiddenCount) { view.appendChild(el('p', 'foot', t('hidden_locked', { n: L.hiddenCount }))); return; }
@@ -1627,6 +1918,7 @@ function buildFolderView(view, folder, apps) {
 
 function tileGrid(entries, shelf) {
   const grid = el('div', 'agrid');
+  grid.style.gridTemplateColumns = `repeat(${state.homeColumns || 5}, minmax(0, 1fr))`;
   if (shelf && entries.length) grid.appendChild(el('div', 'shelf'));
   for (const e of entries) {
     const tile = el('div', 'atile'); tile.dataset.key = e.key; tile.setAttribute('role', 'button'); tile.tabIndex = 0;
@@ -1642,7 +1934,7 @@ function tileGrid(entries, shelf) {
 function placeShelves() {
   document.querySelectorAll('#homeBody .agrid').forEach(g => {
     const shelf = g.querySelector('.shelf'); if (!shelf) return;
-    const first = [...g.querySelectorAll('.atile')].slice(0, 5);
+    const first = [...g.querySelectorAll('.atile')].slice(0, state.homeColumns || 5);
     const bottom = Math.max(...first.map(t => t.offsetTop + t.offsetHeight));
     shelf.style.height = (bottom + 6 - 4) + 'px';
   });
@@ -1876,12 +2168,101 @@ function render() {
   const json = JSON.stringify(state);
   if (json === stateJson) return;
   stateJson = json;
+  renderDesktop();
   renderWallpapers();
   renderScreensaver();
   renderMore();
   renderInputs();
   renderArrange(false);
 }
+
+/* Preferences use the same validated settings as the remote-control UI. */
+function desktopSelect(root, key, title, values, current, hint) {
+  const row = el('label', 'item');
+  const text = el('span', 'txt', t(title));
+  if (hint) text.appendChild(el('span', 'sub', t(hint)));
+  const select = el('select'); select.setAttribute('aria-label', t(title));
+  for (const [value, label] of values) { const o = el('option', '', typeof label === 'string' && label.startsWith('@') ? label.slice(1) : t(label)); o.value = String(value); select.appendChild(o); }
+  select.value = String(current);
+  select.onchange = async () => {
+    select.disabled = true;
+    try { take(await api('api/desktop', { [key]: select.value })); }
+    catch (err) { select.disabled = false; toast(t('toast_set_fail')); }
+  };
+  row.append(text, select); root.appendChild(row);
+}
+function renderDesktop() {
+  const home = $('#desktopHome'); home.replaceChildren();
+  desktopSelect(home, 'columns', 'home_columns', [4,5,6,7,8].map(n => [n, '@'+n]), state.homeColumns);
+  desktopSelect(home, 'glass', 'glass_material', [['clear','glass_clear'],['frosted','glass_frosted']], state.glassStyle, 'glass_hint');
+  const root = $('#desktopLooks'); root.replaceChildren();
+  desktopSelect(root, 'delay', 'aerial_start', [[0,'aerial_immediate'],[2,'@2 s'],[10,'@10 s'],[30,'@30 s']], state.aerialDelay, 'aerial_start_hint');
+  desktopSelect(root, 'pause', 'aerial_pause', [[false,'aerial_keep_playing'],[true,'aerial_stop_input']], state.aerialPause, 'aerial_pause_hint');
+  desktopSelect(root, 'aerial', 'aerial_category', [['all','topic_all'],['landscapes','topic_nature'],['cities','topic_city'],['underwater','topic_underwater'],['space','topic_space']], state.aerialCategory);
+  desktopSelect(root, 'daily', 'daily_theme', [['all','topic_all'],['nature','topic_nature'],['water','topic_water'],['city','topic_city'],['animals','topic_animals'],['space','topic_space'],['other','topic_other']], state.dailyTheme, 'daily_theme_hint');
+  $('#dailyMatch').hidden = state.dailyTheme === 'all' || state.dailyMatches > 0;
+}
+function fileSize(bytes) {
+  const n = Math.max(0, Number(bytes) || 0);
+  if (n < 1024) return n + ' B';
+  if (n < 1024*1024) return (n/1024).toFixed(1) + ' KB';
+  if (n < 1024*1024*1024) return (n/(1024*1024)).toFixed(1) + ' MB';
+  return (n/(1024*1024*1024)).toFixed(1) + ' GB';
+}
+let systemBusy = false;
+async function refreshSystem() {
+  if (systemBusy || document.hidden || $('[data-tab="more"]').hidden) return;
+  systemBusy = true;
+  try {
+    const s = await api('api/system');
+    const root = $('#systemStats'); root.replaceChildren();
+    const stat = (title, value, sub) => {
+      const row = el('div', 'item'); const text = el('span', 'txt');
+      text.append(el('span', '', t(title)), el('span', 'sub', sub || '')); row.append(text, el('span', 'val', value)); root.appendChild(row);
+    };
+    stat('system_info', s.model, 'Android ' + s.android);
+    stat('system_cpu', s.cpu + ' · ' + s.cores, t('new_app_cpu', { value: Number(s.appCpuPercent).toFixed(1) }));
+    stat('system_memory', t('new_memory',{used:fileSize(s.memoryUsed),total:fileSize(s.memoryTotal)}), t('new_app_mem',{size:fileSize(s.appMemory)}));
+    stat('system_storage', t('new_memory',{used:fileSize(s.storageUsed),total:fileSize(s.storageTotal)}));
+    stat('system_network', '↓ '+fileSize(s.rxPerSecond)+'/s ↑ '+fileSize(s.txPerSecond)+'/s', s.addresses || t('system_offline'));
+    await refreshFiles();
+  } catch (err) { $('#systemStats').textContent = t('tools_failed'); }
+  finally { systemBusy = false; }
+}
+async function refreshFiles() {
+  const result = await api('api/files'); const root = $('#exchangeFiles');
+  // Keep download links stable during a tap or screen-reader navigation.
+  const stamp = JSON.stringify(result.files); if (root.dataset.stamp === stamp) return;
+  root.dataset.stamp = stamp; root.replaceChildren();
+  if (!result.files.length) root.appendChild(el('p','item',t('transfer_empty')));
+  for (const f of result.files) {
+    const row = el('div','item'); const text = el('span','txt',f.name); text.appendChild(el('span','sub',fileSize(f.bytes)));
+    const link = el('a','link',t('transfer_download')); link.href = base+'files/'+encodeURIComponent(f.id); link.download=f.name;
+    const remove = el('button','link',t('transfer_remove')); remove.style.color='var(--danger)';
+    remove.onclick=async()=>{ if(!confirm(t('transfer_confirm',{name:f.name})))return; remove.disabled=true; try{await api('api/files/delete',{id:f.id}); await refreshFiles();}catch(e){remove.disabled=false;toast(t('tools_failed'));} };
+    row.append(text,link,remove); root.appendChild(row);
+  }
+}
+$('#systemRefresh').onclick = refreshSystem;
+$('#systemClean').onclick = async e => {
+  e.currentTarget.disabled = true;
+  try { const r = await api('api/system/clean',{}); toast(t('new_cleaned',{size:fileSize(r.removedBytes)})); await refreshSystem(); }
+  catch(err) { toast(t('tools_failed')); }
+  finally { $('#systemClean').disabled=false; }
+};
+$('#exchangeInput').onchange = async e => {
+  const file = e.target.files[0]; if(!file)return;
+  if(file.size>100*1024*1024 || !file.size){toast(t('tools_failed'));e.target.value='';return;}
+  const label=$('#exchangeLabel'); label.textContent=t('new_sending');
+  try {
+    const data=new FormData();data.append('file',file,file.name);
+    const response=await fetch(base+'api/files/upload',{method:'POST',body:data});
+    if(!response.ok)throw new Error(response.status);
+    await response.json();await refreshFiles();toast(t('tools_saved'));
+  }catch(err){toast(t('tools_failed'));}
+  finally{label.textContent=t('transfer_upload');e.target.value='';}
+};
+setInterval(refreshSystem,3000);
 
 initLangSwitch();
 applyI18n();

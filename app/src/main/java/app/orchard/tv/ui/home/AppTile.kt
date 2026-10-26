@@ -421,8 +421,8 @@ fun AppTile(
                         art.fore?.let { fore ->
                             val at = art.foreAt
                             // Parallax: the logo travels further than the plate when the tile leans.
-                            val px = leanY.value / 7f * pw * 0.035f
-                            val py = -leanX.value / 7f * ph * 0.035f
+                            val px = if (AerialSettings.liteMode) 0f else leanY.value / 7f * pw * 0.035f
+                            val py = if (AerialSettings.liteMode) 0f else -leanX.value / 7f * ph * 0.035f
                             drawImage(
                                 fore,
                                 dstOffset = IntOffset((at.left * pw + px).roundToInt(), (at.top * ph + py).roundToInt()),
@@ -431,7 +431,7 @@ fun AppTile(
                             )
                         }
                     }
-                    if (lift > 0.01f) {
+                    if (lift > 0.01f && !AerialSettings.liteMode) {
                         // Light from above: a soft sheen across the top, brighter where the tile leans toward it.
                         val glintX = size.width * (0.3f + leanY.value / 7f * 0.25f)
                         val glint = RadialGradient(

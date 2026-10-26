@@ -70,6 +70,7 @@ import app.orchard.tv.system.NetworkStatus
 import app.orchard.tv.ui.components.Dissolve
 import app.orchard.tv.ui.components.Pressable
 import app.orchard.tv.ui.components.frozen
+import app.orchard.tv.ui.components.refractivePlate
 import app.orchard.tv.ui.components.glassEdge
 import app.orchard.tv.ui.components.smoothMask
 import app.orchard.tv.ui.theme.Glyph
@@ -211,7 +212,7 @@ fun HomeBackground(
             val a = saverReveal()
             if (a > 0.01f) drawDrawingIn(saverImage, saverPush(), a)
         }
-        Plate(frosted ?: backdrop, plate, scroll, collapse, cover, filmStopped, toSaver)
+        Plate(if (AerialSettings.glassStyle == "clear") backdrop else frosted ?: backdrop, plate, scroll, collapse, cover, filmStopped, toSaver)
     }
 }
 
@@ -282,8 +283,10 @@ private fun Plate(glass: ImageBitmap?, plate: Rect?, scroll: () -> Float, collap
         swap.animateTo(1f, tween(450, easing = Motion.EaseOut))
         under = null
     }
-    val top = remember(shown) { shown?.let { PlateLayer(plateTinted(it)) } }
-    val bottom = remember(under) { under?.let { PlateLayer(plateTinted(it)) } }
+    val clear = AerialSettings.glassStyle == "clear"
+    val lite = AerialSettings.liteMode
+    val top = remember(shown, clear) { shown?.let { PlateLayer(if (clear) it else plateTinted(it), clear) } }
+    val bottom = remember(under, clear) { under?.let { PlateLayer(if (clear) it else plateTinted(it), clear) } }
     Canvas(Modifier.fillMaxSize()) {
         if (plate == null) return@Canvas
         // The plate rides with its row and dissolves into the frosted background: it fades
@@ -296,6 +299,11 @@ private fun Plate(glass: ImageBitmap?, plate: Rect?, scroll: () -> Float, collap
         if (alpha < 0.01f) return@Canvas
         val grow = PlateSwell.toPx() * (1f - rest)
         val r = plate.translate(0f, -scroll()).inflate(grow)
+        if (lite) {
+            drawRoundRect(Color(0xBB242833), topLeft = r.topLeft, size = r.size,
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(PlateCorner.toPx()), alpha = alpha)
+            return@Canvas
+        }
         val t = swap.value
         if (t < 1f) bottom?.draw(this, plate, r, alpha)
         top?.draw(this, plate, r, if (bottom != null) alpha * t else alpha)
@@ -309,12 +317,12 @@ private fun Plate(glass: ImageBitmap?, plate: Rect?, scroll: () -> Float, collap
  * MiTV-ASTP0, Android 9, Mali-G31, issue #183; a HuiQu projector, #181) and drawn apart they cost
  * 3 ms more a frame than the plain rounded plate. Baked while drawing, for one screen and place.
  */
-private class PlateLayer(private val src: ImageBitmap) {
+private class PlateLayer(private val src: ImageBitmap, private val clear: Boolean) {
     private var baked: Pair<Pair<Size, Rect>, ImageBitmap>? = null
 
     fun draw(scope: androidx.compose.ui.graphics.drawscope.DrawScope, plate: Rect, at: Rect, alpha: Float) = with(scope) {
         val image = baked?.takeIf { it.first == size to plate }?.second
-            ?: bakePlate(src, size, plate, PlateCorner.toPx(), 1.2.dp.toPx()).also { baked = (size to plate) to it }
+            ?: (if (clear) refractivePlate(src, size, plate, PlateCorner.toPx(), 1.2.dp.toPx()) else bakePlate(src, size, plate, PlateCorner.toPx(), 1.2.dp.toPx())).also { baked = (size to plate) to it }
         drawImage(
             image,
             dstOffset = IntOffset(at.left.roundToInt(), at.top.roundToInt()),
@@ -328,9 +336,9 @@ private class PlateLayer(private val src: ImageBitmap) {
 private fun smooth(x: Float) = x * x * (3f - 2f * x)
 
 /** The Liquid Glass plate under the top row: how far it reaches past the tiles, and its corners. */
-val PlatePadH = 26.dp
+val PlatePadH = 20.dp
 val PlatePadV = 20.dp
-private val PlateCorner = 32.dp
+private val PlateCorner = 12.dp + PlatePadV
 
 /** The grid's background: the frosted picture under this much black. */
 private const val GRID_SHADE = 0.55f

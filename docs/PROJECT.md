@@ -41,8 +41,16 @@ Roadmap 的新功能必须沿现有依赖方向接入：入口/状态 → 功能
 
 IPTV 第一版只提供离线可用的源契约和手机配置入口：`live/repo/LiveSources` 保存源配置，`LiveFeedRepository` 负责网络/缓存回退，`M3uParser` 和 `XmlTvParser` 只做纯数据解析。Media3 全屏播放器、首页预览和 NAS Dock 继续由后续工作包接入。
 
+## 桌面定制与本地工具
+
+- `AERIAL-20261026-desktop-personalization`：每排4–8个入口、航拍播放策略、素材分类偏好、透明折射玻璃、系统信息和受限局域网互传。
+- `system/SystemMonitor.kt` 只读系统状态；清理只移除应用可重建缓存。
+- `system/TransferStore.kt` 使用应用私有 `files/exchange/`，单文件100MB、总量512MB、64项；文件访问通过随机ID，系统选择器负责本机导入/另存。PhoneServer 的二维码令牌保护全部网络入口。
+- `docs/UPSTREAM_SYNC.md` 追踪选择性上游合入；每日维护避开活动开发，不整体覆盖定制。
+
 ## 当前工作前沿
 
+- `AERIAL-20261026-desktop-personalization`：1.1.0 / 102 桌面定制与系统工具，双 Release 和 Redmi K40S L1 已验收；当前交付与限制见对应工作包。
 - `AERIAL-20261025-dangbei-home`：迁移和首屏基线已在工作树中，真机仍未验证。
 - `AERIAL-20261026-roadmap-phase2`：v0.1 品牌、Lite、手机配置和直播数据基线总包。
 - `AERIAL-20261026-phone-acceptance`：Redmi K40S L1 验收与运行时修复，最新设备证据入口。

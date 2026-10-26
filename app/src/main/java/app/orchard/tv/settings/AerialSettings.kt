@@ -1,16 +1,16 @@
 package app.orchard.tv.settings
 
 import android.content.Context
-import android.app.ActivityManager
-import android.os.Build
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.edit
 import android.os.SystemClock
 import android.provider.Settings
+import app.orchard.tv.system.DeviceClass
 import app.orchard.tv.guard.GuardSetup
 import app.orchard.tv.wallpaper.AerialQuality
+import app.orchard.tv.wallpaper.Wallpapers
 import java.security.MessageDigest
 
 /**
@@ -63,10 +63,28 @@ object AerialSettings {
         get() = when (renderMode) {
             RenderMode.Lite -> true
             RenderMode.Full -> false
-            RenderMode.Auto -> Build.VERSION.SDK_INT < 24 ||
-                (::app.isInitialized && (app.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager)?.isLowRamDevice == true)
+            RenderMode.Auto -> ::app.isInitialized && DeviceClass.lowEnd(app)
         }
 
+
+    var homeColumns by mutableStateOf(5); private set
+    var glassStyle by mutableStateOf("clear"); private set
+    var aerialDelaySeconds by mutableStateOf(0); private set
+    var aerialPauseOnInput by mutableStateOf(false); private set
+    var aerialCategory by mutableStateOf("all"); private set
+    var dailyTheme by mutableStateOf("all"); private set
+
+    fun chooseHomeColumns(value: Int) { homeColumns = value.coerceIn(4, 8); save("home_columns", homeColumns) }
+    fun chooseGlassStyle(value: String) { if (value in listOf("clear", "frosted")) { glassStyle = value; save("glass_style", value) } }
+    fun chooseAerialDelay(value: Int) { aerialDelaySeconds = value.coerceIn(0, 60); save("aerial_delay", aerialDelaySeconds) }
+    fun chooseAerialPause(value: Boolean) { aerialPauseOnInput = value; save("aerial_pause", value) }
+    fun chooseAerialCategory(value: String) { if (value in listOf("all", "landscapes", "cities", "underwater", "space")) { aerialCategory = value; save("aerial_category", value) } }
+    fun chooseDailyTheme(value: String) { if (value in listOf("all", "nature", "water", "city", "animals", "space", "other")) { dailyTheme = value; save("daily_theme", value); Wallpapers.refreshPreference() } }
+    private fun save(key: String, value: Any) {
+        app.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit {
+            when (value) { is Int -> putInt(key, value); is Boolean -> putBoolean(key, value); is String -> putString(key, value) }
+        }
+    }
 
     /** TV inputs pinned to Home as tiles, by TvInputInfo id. */
     var pinnedSources by mutableStateOf<Set<String>>(emptySet()); private set
@@ -145,6 +163,12 @@ object AerialSettings {
         started = true
         app = context.applicationContext
         val prefs = app.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        homeColumns = prefs.getInt("home_columns", 5).coerceIn(4, 8)
+        glassStyle = prefs.getString("glass_style", "clear") ?: "clear"
+        aerialDelaySeconds = prefs.getInt("aerial_delay", 0).coerceIn(0, 60)
+        aerialPauseOnInput = prefs.getBoolean("aerial_pause", false)
+        aerialCategory = prefs.getString("aerial_category", "all") ?: "all"
+        dailyTheme = prefs.getString("daily_theme", "all") ?: "all"
         focusStyle = FocusStyle.of(prefs.getString("focus_style", null))
         renderMode = RenderMode.of(prefs.getString("render_mode", null))
         pinnedSources = prefs.getStringSet("pinned_sources", null)?.toSet() ?: emptySet()

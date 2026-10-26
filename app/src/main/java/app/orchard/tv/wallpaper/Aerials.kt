@@ -120,6 +120,10 @@ object Aerials {
         cache ?: load(context).also { cache = it }
     }
 
+    fun preferred(context: Context): List<Aerial> = all(context).let { films ->
+        films.filter { AerialSettings.aerialCategory == "all" || it.category == AerialSettings.aerialCategory }.ifEmpty { films }
+    }
+
     private fun load(context: Context): List<Aerial> {
         val zh = Locale.getDefault().language == "zh"
         val root = JSONObject(context.assets.open("aerials.json").bufferedReader().use { it.readText() })
