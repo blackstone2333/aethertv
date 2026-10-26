@@ -1,7 +1,7 @@
 # AERIAL-20261026-phase2-brand-baseline
 
-Status: pending
-Owner: phase2-brand owner
+Status: complete
+Owner: main model / integration owner
 
 ## Spec
 
@@ -19,15 +19,16 @@ Owner: phase2-brand owner
 
 ## Status
 
-- 已完成：工作范围和约束定义。
-- 当前动作：等待 Owner 接管。
-- 阻塞：未决定最终版本号和品牌资源导出尺寸。
-- Exact next action：先检查现有 strings 键和 `aapt2` 可用性，再提交资源变更提案。
+- 已完成：Android 应用名、守护/更新/屏保入口和 Web 核心文案切换为 AetherTV/以太桌面；五语言资源键保持一致；手机反馈链接指向公开仓库；包名和版本元数据保持白名单基线。
+- 当前动作：发布验收完成。
+- 阻塞：无；视觉体系重做仍延期到 Phase 4。
+- Exact next action：后续发布时补充品牌资源的视觉回归截图。
 
 ## Evidence
 
-- 事实依据：`BRANDING.md`、`PROJECT.md`、`ROADMAP.md`。
-- 真机：未验证。
+- `app/src/main/res/values*/strings.xml`、`app/src/main/assets/web/index.html`、`docs/brand/`。
+- `assembleStandardRelease assembleGuardRelease` 和 `aapt2` 包名/版本检查：通过。
+- 真机：Redmi K40S 已配对但 APK 安装被 MIUI 拒绝；当贝 F3 品牌显示未验证。
 
 ## Deferred
 

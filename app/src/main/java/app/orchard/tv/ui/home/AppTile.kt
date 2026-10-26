@@ -246,7 +246,7 @@ fun AppTile(
                 translationY = (1f - appear.value) * 18.dp.toPx()
             },
     ) {
-        if (lift > 0.01f) {
+        if (lift > 0.01f && !AerialSettings.liteMode) {
             // A lifted tile casts a soft shadow below it, as cards do on tvOS. The system's
             // elevation shadow is too faint to read on a TV; this one is baked, so it costs one
             // image draw while a tile is lifted.

@@ -1,7 +1,7 @@
 # AERIAL-20261026-flavor-matrix
 
-Status: pending
-Owner: packaging owner
+Status: complete
+Owner: main model / integration owner
 
 ## Spec
 
@@ -19,15 +19,15 @@ Owner: packaging owner
 
 ## Status
 
-- 已完成：矩阵边界和当贝优先顺序定义。
-- 当前动作：等待 Owner 接管。
-- 阻塞：暂无第二品牌的授权设备和白名单资料。
-- Exact next action：先为当贝 flavor 写 APK metadata probe，不增加新品牌代码。
+- 已完成：保留当贝白名单 `applicationId`、`app.orchard.tv` namespace、standard/guard 两个 flavor；标准版含 HOME，守护版不含 HOME；双 Release APK 的版本、包名和 CONFIG action 已静态核验。
+- 当前动作：发布验收完成。
+- 阻塞：其他品牌设备能力差异仍需独立设备资料。
+- Exact next action：新增品牌 flavor 前先建独立工作包和 APK 元数据检查。
 
 ## Evidence
 
-- 事实依据：`app/build.gradle.kts`、`app/src/standard/AndroidManifest.xml`、外部当贝交接。
-- 真机：除已有交接记录外，AetherTV 当前工作树未新增 F3 证据。
+- `app/build.gradle.kts`、`app/src/standard/AndroidManifest.xml`、外部当贝交接；`aapt2 dump badging/xmltree`：双 APK 通过。
+- 真机：Redmi K40S 已连接但 MIUI 拒绝 APK 安装；当贝 F3 未完成安装证据，设备专属行为未验证。
 
 ## Deferred
 

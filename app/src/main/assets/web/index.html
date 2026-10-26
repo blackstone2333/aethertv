@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
-<title>Aerial</title>
+<title>AetherTV</title>
 <style>
   :root {
     --bg: #f2f2f7; --card: #ffffff; --label: #000; --secondary: rgba(60,60,67,.6); --tertiary: rgba(60,60,67,.3);
@@ -277,6 +277,16 @@
     <button class="item" role="radio" data-style="standard"><span class="txt"><span data-i18n="focus_standard"></span><span class="sub" data-i18n="focus_hint_standard"></span></span><svg class="tick" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>
   </div>
 
+  <h2 data-i18n="live_h"></h2>
+  <p class="foot" data-i18n="live_hint"></p>
+  <form class="list" id="liveForm">
+    <label class="item field"><input id="liveId" type="text" data-i18n-placeholder="live_id_ph" autocomplete="off" required></label>
+    <label class="item field"><input id="liveM3u" type="url" data-i18n-placeholder="live_m3u_ph" autocomplete="url" required></label>
+    <label class="item field"><input id="liveEpg" type="url" data-i18n-placeholder="live_epg_ph" autocomplete="url"></label>
+    <label class="item field"><input id="livePriority" type="number" value="0" min="-99" max="99" data-i18n-placeholder="live_priority_ph" inputmode="numeric"><button class="link" id="liveSave" data-i18n="live_save"></button></label>
+  </form>
+  <div class="list" id="liveSources"></div>
+
   <h2 data-i18n="weather"></h2>
   <div class="list">
     <div class="item wx"><b id="wxNow">—</b><span id="wxPlace"></span></div>
@@ -298,7 +308,7 @@
   <pre class="diag" id="diag" hidden></pre>
   <div class="row" id="diagActions" hidden>
     <button class="btn" id="diagCopy" data-i18n="diag_copy"></button>
-    <a class="btn plain" href="https://github.com/pengchujin/aerial-tv/issues/new?template=device.yml" target="_blank" rel="noopener" data-i18n="diag_github"></a>
+    <a class="btn plain" href="https://github.com/blackstone2333/aethertv/issues/new?template=device.yml" target="_blank" rel="noopener" data-i18n="diag_github"></a>
   </div>
   <p class="foot" data-i18n="feedback_hint"></p>
 </section>
@@ -327,7 +337,7 @@ let state = null, stateJson = '';
 
 // The language: ?lang=ru in the address, else the one picked under More (kept on the phone), else the
 // first of the phone's preferred languages that has a table, else English. Keys are in KEYS, one array of texts per language.
-const KEYS = ["screensaver", "screensaver_short", "ss_aerial", "ss_photos", "ss_clock", "focus", "focus_high", "focus_standard", "weather", "city_ph", "set", "upload_label", "feedback_h", "feedback_hint", "diag_show", "diag_copy", "diag_github", "hint_aerial", "hint_photos", "hint_clock", "g_live", "g_live_sub", "g_daily", "g_daily_sub", "g_photo", "g_builtin", "g_auto", "toast_wallpaper", "aria_delete", "confirm_delete", "wx_clear", "wx_partlycloudy", "wx_cloudy", "wx_fog", "wx_rain", "wx_snow", "wx_thunder", "wx_chosen", "wx_auto_btn", "toast_auto", "wx_guessed", "wx_none", "tag_source", "aria_rename", "toast_renamed", "toast_name_reset", "toast_rename_fail", "aria_reset_icon", "toast_icon_reset", "focus_hint_standard", "focus_hint_high", "daily_title", "daily_caption", "rotate_title", "rotate_caption", "empty_photos", "add_second", "toast_tv_updated", "sending_n", "toast_added", "toast_no_photos", "toast_send_fail", "toast_city_set", "toast_city_nf", "toast_set_fail", "toast_sending_icon", "toast_icon_set", "toast_icon_bad", "diag_collecting", "toast_diag_fail", "toast_copied", "toast_copy_manual", "language", "hint_follows", "ss_videos", "hint_videos", "videos_h", "videos_upload", "videos_hint", "videos_empty", "confirm_video_delete", "toast_videos_added", "toast_video_bad", "sending_video", "hint_system", "tab_home", "tab_more", "current_wp", "cancel", "save", "name_ph", "rename_hint", "change_icon", "this_tv", "folder_count", "folder_ph", "inputs_h", "inputs_hint", "rename_hint_app", "was_named", "arrange_hint", "arrange_unready", "hidden_h", "hidden_none", "hidden_locked", "show_app", "hide_app", "to_folder", "new_folder", "out_of_folder", "ungroup", "ungroup_confirm", "folder_hint", "toast_hidden", "toast_shown", "toast_in_folder", "toast_out_folder", "toast_ungrouped", "tab_looks", "looks_title", "show_on_home", "source_device", "source_plain", "source_device_hint", "tv_model"];
+const KEYS = ["screensaver", "screensaver_short", "ss_aerial", "ss_photos", "ss_clock", "focus", "focus_high", "focus_standard", "weather", "city_ph", "set", "upload_label", "feedback_h", "feedback_hint", "diag_show", "diag_copy", "diag_github", "hint_aerial", "hint_photos", "hint_clock", "g_live", "g_live_sub", "g_daily", "g_daily_sub", "g_photo", "g_builtin", "g_auto", "toast_wallpaper", "aria_delete", "confirm_delete", "wx_clear", "wx_partlycloudy", "wx_cloudy", "wx_fog", "wx_rain", "wx_snow", "wx_thunder", "wx_chosen", "wx_auto_btn", "toast_auto", "wx_guessed", "wx_none", "tag_source", "aria_rename", "toast_renamed", "toast_name_reset", "toast_rename_fail", "aria_reset_icon", "toast_icon_reset", "focus_hint_standard", "focus_hint_high", "daily_title", "daily_caption", "rotate_title", "rotate_caption", "empty_photos", "add_second", "toast_tv_updated", "sending_n", "toast_added", "toast_no_photos", "toast_send_fail", "toast_city_set", "toast_city_nf", "toast_set_fail", "toast_sending_icon", "toast_icon_set", "toast_icon_bad", "diag_collecting", "toast_diag_fail", "toast_copied", "toast_copy_manual", "language", "hint_follows", "ss_videos", "hint_videos", "videos_h", "videos_upload", "videos_hint", "videos_empty", "confirm_video_delete", "toast_videos_added", "toast_video_bad", "sending_video", "hint_system", "tab_home", "tab_more", "current_wp", "cancel", "save", "name_ph", "rename_hint", "change_icon", "this_tv", "folder_count", "folder_ph", "inputs_h", "inputs_hint", "rename_hint_app", "was_named", "arrange_hint", "arrange_unready", "hidden_h", "hidden_none", "hidden_locked", "show_app", "hide_app", "to_folder", "new_folder", "out_of_folder", "ungroup", "ungroup_confirm", "folder_hint", "toast_hidden", "toast_shown", "toast_in_folder", "toast_out_folder", "toast_ungrouped", "tab_looks", "looks_title", "show_on_home", "source_device", "source_plain", "source_device_hint", "tv_model", "live_h", "live_hint", "live_id_ph", "live_m3u_ph", "live_epg_ph", "live_priority_ph", "live_save", "live_refresh", "live_delete", "live_empty", "live_saved", "live_refreshed", "live_failed"];
 const TEXTS = {
  "zh": [
   "屏幕保护程序",
@@ -343,7 +353,7 @@ const TEXTS = {
   "设置",
   "添加照片",
   "反馈问题",
-  "这台电视上 Aerial 有问题，或者想让 Aerial 适配它：复制诊断信息，贴进 GitHub 的「机型适配」反馈里。里面是机型、系统版本、桌面接管状态、信号源和 Aerial 的日志，不含账号、Wi-Fi 名称、IP 地址和照片。",
+  "这台电视上 AetherTV 有问题，或者想让 AetherTV 适配它：复制诊断信息，贴进 GitHub 的「机型适配」反馈里。里面是机型、系统版本、桌面接管状态、信号源和 AetherTV 的日志，不含账号、Wi-Fi 名称、IP 地址和照片。",
   "显示诊断信息",
   "复制",
   "去 GitHub 反馈",
@@ -414,7 +424,7 @@ const TEXTS = {
   "视频：添加 {n} 段，失败 {failed} 段",
   "无法保存，请检查视频格式和电视剩余空间",
   "正在发送 {n} / {total}…",
-  "在电视的个性化里选了「系统内置」：用电视自带的屏保。在这里选一种就改回 Aerial 的屏保。",
+  "在电视的个性化里选了「系统内置」：用电视自带的屏保。在这里选一种就改回 AetherTV 的屏保。",
   "主屏幕",
   "更多",
   "当前壁纸",
@@ -454,12 +464,25 @@ const TEXTS = {
   "接入的设备",
   "默认",
   "选一个设备，电视上这个信号源的图标会换成它的样子，名字也跟着变；自己起的名字会被替换。",
-  "型号"
+  "型号",
+  "IPTV 直播",
+  "添加 M3U/EPG 源；列表和节目单会在电视本地缓存，网络失败时继续使用旧数据。",
+  "源 ID，例如 nas",
+  "M3U 地址（http/https）",
+  "EPG 地址（可选，支持 .gz）",
+  "优先级（数字越小越优先）",
+  "保存源",
+  "刷新",
+  "删除",
+  "还没有直播源。",
+  "已保存",
+  "已刷新",
+  "刷新失败"
  ],
  "en": [
   "Screensaver",
   "Screensaver",
-  "Aerial",
+  "AetherTV",
   "Photos",
   "Clock",
   "Focus Style",
@@ -470,14 +493,14 @@ const TEXTS = {
   "Set",
   "Add Photos",
   "Report a Problem",
-  "Something is wrong with Aerial on this TV, or you want Aerial to support it: copy the diagnostics and paste them into a GitHub “Device” issue. They hold the model, the system version, the Home takeover status, the inputs and Aerial’s log, and no accounts, Wi-Fi names, IP addresses or photos.",
+  "Something is wrong with AetherTV on this TV, or you want AetherTV to support it: copy the diagnostics and paste them into a GitHub “Device” issue. They hold the model, the system version, the Home takeover status, the inputs and AetherTV’s log, and no accounts, Wi-Fi names, IP addresses or photos.",
   "Show Diagnostics",
   "Copy",
   "Report on GitHub",
   "Plays Apple TV’s aerial films, with the place named on screen.",
   "Cycles through the daily photos and yours.",
   "A big clock over the current wallpaper.",
-  "Aerial",
+  "AetherTV",
   "After 10 seconds on Home, the wallpaper plays Apple TV’s aerial films; press any key to stop on the current frame",
   "Daily Photos",
   "Landscape photography, updated every day",
@@ -541,7 +564,7 @@ const TEXTS = {
   "Videos: {n} added, {failed} failed",
   "Could not save; check the format and free space on the TV",
   "Sending {n} / {total}…",
-  "“System” is chosen on the TV: the TV's own screensaver. Choose one here to use Aerial's again.",
+  "“System” is chosen on the TV: the TV's own screensaver. Choose one here to use AetherTV's again.",
   "Home Screen",
   "More",
   "Current Wallpaper",
@@ -581,7 +604,20 @@ const TEXTS = {
   "Connected Device",
   "Default",
   "Pick a device and the tile on the TV takes its look and its name; a name you typed is replaced.",
-  "Model"
+  "Model",
+  "Live TV",
+  "Add an M3U/EPG source; the list and guide stay cached on the TV and stale data is used offline.",
+  "Source ID, e.g. nas",
+  "M3U URL (http/https)",
+  "EPG URL (optional, .gz supported)",
+  "Priority (lower numbers first)",
+  "Save source",
+  "Refresh",
+  "Delete",
+  "No live sources yet.",
+  "Saved",
+  "Refreshed",
+  "Refresh failed"
  ],
  "ru": [
   "Заставка",
@@ -597,7 +633,7 @@ const TEXTS = {
   "Задать",
   "Добавить фото",
   "Сообщить о проблеме",
-  "С Aerial на этом телевизоре что-то не так, или вы хотите, чтобы Aerial его поддерживал: скопируйте диагностику и вставьте её в обращение GitHub о моделях. В ней модель, версия системы, статус перехвата главного экрана, источники и журнал Aerial, без учётных записей, названий Wi-Fi, IP-адресов и фото.",
+  "С AetherTV на этом телевизоре что-то не так, или вы хотите, чтобы AetherTV его поддерживал: скопируйте диагностику и вставьте её в обращение GitHub о моделях. В ней модель, версия системы, статус перехвата главного экрана, источники и журнал AetherTV, без учётных записей, названий Wi-Fi, IP-адресов и фото.",
   "Показать диагностику",
   "Копировать",
   "Сообщить на GitHub",
@@ -668,7 +704,7 @@ const TEXTS = {
   "Видео: добавлено {n}, не удалось {failed}",
   "Не удалось сохранить; проверьте формат и свободное место на ТВ",
   "Отправка {n} / {total}…",
-  "На телевизоре выбрана «Системная»: заставка самого телевизора. Выберите здесь, чтобы вернуть заставку Aerial.",
+  "На телевизоре выбрана «Системная»: заставка самого телевизора. Выберите здесь, чтобы вернуть заставку AetherTV.",
   "Главный экран",
   "Ещё",
   "Текущие обои",
@@ -708,7 +744,20 @@ const TEXTS = {
   "Подключённое устройство",
   "По умолчанию",
   "Выберите устройство — плитка на телевизоре примет его вид и название; введённое вами название заменится.",
-  "Модель"
+  "Модель",
+  "ТВ в прямом эфире",
+  "Добавьте источник M3U/EPG; список и программа сохраняются на телевизоре, при сбое сети используются старые данные.",
+  "ID источника, например nas",
+  "Адрес M3U (http/https)",
+  "Адрес EPG (необязательно, поддерживается .gz)",
+  "Приоритет (меньшее число — раньше)",
+  "Сохранить источник",
+  "Обновить",
+  "Удалить",
+  "Источников прямого эфира пока нет.",
+  "Сохранено",
+  "Обновлено",
+  "Не удалось обновить"
  ],
  "uk": [
   "Заставка",
@@ -724,7 +773,7 @@ const TEXTS = {
   "Задати",
   "Додати фото",
   "Повідомити про проблему",
-  "З Aerial на цьому телевізорі щось не так, або ви хочете, щоб Aerial його підтримував: скопіюйте діагностику й вставте її в звернення GitHub про моделі. У ній модель, версія системи, статус перехоплення головного екрана, джерела та журнал Aerial, без облікових записів, назв Wi-Fi, IP-адрес і фото.",
+  "З AetherTV на цьому телевізорі щось не так, або ви хочете, щоб AetherTV його підтримував: скопіюйте діагностику й вставте її в звернення GitHub про моделі. У ній модель, версія системи, статус перехоплення головного екрана, джерела та журнал AetherTV, без облікових записів, назв Wi-Fi, IP-адрес і фото.",
   "Показати діагностику",
   "Копіювати",
   "Повідомити на GitHub",
@@ -795,7 +844,7 @@ const TEXTS = {
   "Відео: додано {n}, не вдалося {failed}",
   "Не вдалося зберегти; перевірте формат і вільне місце на ТБ",
   "Надсилання {n} / {total}…",
-  "На телевізорі вибрано «Системна»: заставка самого телевізора. Виберіть тут, щоб повернути заставку Aerial.",
+  "На телевізорі вибрано «Системна»: заставка самого телевізора. Виберіть тут, щоб повернути заставку AetherTV.",
   "Головний екран",
   "Ще",
   "Поточні шпалери",
@@ -835,7 +884,20 @@ const TEXTS = {
   "Підключений пристрій",
   "Типово",
   "Виберіть пристрій — плитка на телевізорі набуде його вигляду й назви; введену вами назву буде замінено.",
-  "Модель"
+  "Модель",
+  "Телебачення наживо",
+  "Додайте джерело M3U/EPG; список і програма зберігаються на телевізорі, а без мережі використовуються старі дані.",
+  "ID джерела, наприклад nas",
+  "Адреса M3U (http/https)",
+  "Адреса EPG (необов’язково, підтримується .gz)",
+  "Пріоритет (менше число — раніше)",
+  "Зберегти джерело",
+  "Оновити",
+  "Видалити",
+  "Джерел наживо ще немає.",
+  "Збережено",
+  "Оновлено",
+  "Не вдалося оновити"
  ],
  "kk": [
   "Экран қорғаушы",
@@ -851,7 +913,7 @@ const TEXTS = {
   "Орнату",
   "Фото қосу",
   "Мәселе туралы хабарлау",
-  "Осы теледидардағы Aerial-де ақау бар немесе Aerial-дің оны қолдағанын қалайсыз: диагностиканы көшіріп, GitHub-тағы құрылғы туралы өтінішке қойыңыз. Онда модель, жүйе нұсқасы, басты экранды басып алу күйі, көздер және Aerial журналы бар, есептік жазбалар, Wi-Fi атаулары, IP мекенжайлар және фотолар жоқ.",
+  "Осы теледидардағы AetherTV-де ақау бар немесе AetherTV-дің оны қолдағанын қалайсыз: диагностиканы көшіріп, GitHub-тағы құрылғы туралы өтінішке қойыңыз. Онда модель, жүйе нұсқасы, басты экранды басып алу күйі, көздер және AetherTV журналы бар, есептік жазбалар, Wi-Fi атаулары, IP мекенжайлар және фотолар жоқ.",
   "Диагностиканы көрсету",
   "Көшіру",
   "GitHub-та хабарлау",
@@ -922,7 +984,7 @@ const TEXTS = {
   "Бейне: {n} қосылды, {failed} сәтсіз",
   "Сақтау мүмкін емес; пішімді және теледидардағы бос орынды тексеріңіз",
   "Жіберілуде {n} / {total}…",
-  "Теледидарда «Жүйелік» таңдалған: теледидардың өз экран сақтағышы. Aerial-дікіне қайту үшін осы жерден таңдаңыз.",
+  "Теледидарда «Жүйелік» таңдалған: теледидардың өз экран сақтағышы. AetherTV-дікіне қайту үшін осы жерден таңдаңыз.",
   "Басты экран",
   "Тағы",
   "Ағымдағы түсқағаз",
@@ -962,7 +1024,20 @@ const TEXTS = {
   "Қосылған құрылғы",
   "Әдепкі",
   "Құрылғыны таңдасаңыз, теледидардағы плитка оның түрі мен атауын алады; өзіңіз жазған атау ауыстырылады.",
-  "Модель"
+  "Модель",
+  "Тікелей теледидар",
+  "M3U/EPG көзін қосыңыз; тізім мен бағдарлама теледидарда сақталады, желі үзілсе ескі дерек қолданылады.",
+  "Көз ID-і, мысалы nas",
+  "M3U мекенжайы (http/https)",
+  "EPG мекенжайы (міндетті емес, .gz қолдайды)",
+  "Басымдық (кіші сан бірінші)",
+  "Көзді сақтау",
+  "Жаңарту",
+  "Жою",
+  "Тікелей эфир көздері әлі жоқ.",
+  "Сақталды",
+  "Жаңартылды",
+  "Жаңарту сәтсіз аяқталды"
  ]
 };
 const LANGS = Object.keys(TEXTS);
@@ -1248,8 +1323,37 @@ $('#videoFile').onchange = async e => {
 
 /* More tab: focus style and weather. */
 const weatherNames = { clear: t('wx_clear'), partlycloudy: t('wx_partlycloudy'), cloudy: t('wx_cloudy'), fog: t('wx_fog'), rain: t('wx_rain'), snow: t('wx_snow'), thunder: t('wx_thunder') };
+function renderLive() {
+  const root = $('#liveSources'); root.replaceChildren();
+  const sources = (state.live && state.live.sources) || [];
+  if (!sources.length) { root.appendChild(el('div', 'item', t('live_empty'))).style.color = 'var(--secondary)'; return; }
+  for (const source of sources) {
+    const row = el('div', 'item');
+    const txt = el('span', 'txt', source.id);
+    const counts = `${source.channels || 0} ch · ${source.epgPrograms || 0} EPG`;
+    const sub = el('span', 'sub', source.error ? source.error : source.stale ? `${counts} · ${t('live_refreshed')} (cache)` : counts);
+    txt.appendChild(sub); row.appendChild(txt);
+    const refresh = el('button', 'link', t('live_refresh')); refresh.onclick = async () => {
+      refresh.disabled = true;
+      try {
+        const next = await api('api/live/refresh', { id: source.id });
+        take(next);
+        const result = (next.live && next.live.sources || []).find(item => item.id === source.id);
+        toast(result && result.error ? t('live_failed') : t('live_refreshed'));
+      }
+      catch (e) { refresh.disabled = false; toast(t('live_failed')); }
+    };
+    const remove = el('button', 'link', t('live_delete')); remove.style.color = 'var(--danger)'; remove.onclick = async () => {
+      remove.disabled = true;
+      try { take(await api('api/live/source/delete', { id: source.id })); toast(t('live_saved')); }
+      catch (e) { remove.disabled = false; toast(t('toast_set_fail')); }
+    };
+    row.append(refresh, remove); root.appendChild(row);
+  }
+}
 function renderMore() {
   document.querySelectorAll('#focus [data-style]').forEach(b => b.setAttribute('aria-checked', b.dataset.style === state.focusStyle ? 'true' : 'false'));
+  renderLive();
   const w = state.weather || {};
   $('#wxNow').textContent = w.celsius !== undefined ? `${w.celsius}° ${weatherNames[w.kind] || ''}` : '—';
   $('#wxPlace').textContent = w.place || '';
@@ -1286,6 +1390,18 @@ document.querySelectorAll('#focus [data-style]').forEach(b => b.onclick = async 
   if (b.dataset.style === state.focusStyle) return;
   try { take(await api('api/focus', { style: b.dataset.style })); toast(t('toast_tv_updated')); } catch (e) { toast(t('toast_set_fail')); }
 });
+$('#liveForm').onsubmit = async e => {
+  e.preventDefault();
+  const id = $('#liveId').value.trim(), m3uUrl = $('#liveM3u').value.trim(), epgUrl = $('#liveEpg').value.trim();
+  if (!id || !m3uUrl) return;
+  const button = $('#liveSave'); button.disabled = true;
+  try {
+    take(await api('api/live/source', { id, m3uUrl, epgUrl, priority: $('#livePriority').value || '0', kind: 'lan' }));
+    $('#liveId').value = ''; $('#liveM3u').value = ''; $('#liveEpg').value = ''; $('#livePriority').value = '0';
+    toast(t('live_saved'));
+  } catch (err) { toast(t('toast_set_fail')); }
+  button.disabled = false;
+};
 $('#city').oninput = () => $('#cityBtn').disabled = !$('#city').value.trim();
 $('#cityForm').onsubmit = async e => {
   e.preventDefault();

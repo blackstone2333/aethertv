@@ -12,6 +12,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
+import androidx.compose.foundation.background
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
@@ -37,6 +38,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.createBitmap
 import app.orchard.tv.ui.theme.Palette
+import app.orchard.tv.settings.AerialSettings
 import app.orchard.tv.wallpaper.Wallpapers
 import kotlin.math.roundToInt
 
@@ -53,10 +55,14 @@ import kotlin.math.roundToInt
  * rounded rect, which holds it.
  */
 fun Modifier.liquidGlass(corner: Dp, bottomCorners: Boolean = true): Modifier = composed {
+    val shape = if (bottomCorners) RoundedCornerShape(corner) else RoundedCornerShape(topStart = corner, topEnd = corner)
+    if (AerialSettings.liteMode) {
+        // Android 5/6 and low-RAM phones benefit more from a flat plate than from a baked mask.
+        return@composed this.clip(shape).background(Palette.Glass)
+    }
     val frost = Wallpapers.frosted.takeIf { Wallpapers.backdrop != null }
     var at by remember { mutableStateOf(Offset.Zero) }
     var root by remember { mutableStateOf(IntSize.Zero) }
-    val shape = if (bottomCorners) RoundedCornerShape(corner) else RoundedCornerShape(topStart = corner, topEnd = corner)
     this
         .onGloballyPositioned { c ->
             at = c.positionInRoot()

@@ -1,6 +1,8 @@
 package app.orchard.tv.settings
 
 import android.content.Context
+import android.app.ActivityManager
+import android.os.Build
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -38,6 +40,15 @@ enum class UiSounds(val key: String) {
     }
 }
 
+/** Rendering cost policy. Auto keeps the full look unless Android reports a constrained device. */
+enum class RenderMode(val key: String) {
+    Auto("auto"), Full("full"), Lite("lite");
+
+    companion object {
+        fun of(key: String?) = entries.firstOrNull { it.key == key } ?: Auto
+    }
+}
+
 /** Aerial's own preferences. Compose state, written on the main thread only. */
 object AerialSettings {
     private const val PREFS = "settings"
@@ -45,6 +56,16 @@ object AerialSettings {
     private lateinit var app: Context
 
     var focusStyle by mutableStateOf(FocusStyle.HighContrast); private set
+
+    /** Full uses the tvOS material; Lite drops expensive glass and lifted shadows on weak devices. */
+    var renderMode by mutableStateOf(RenderMode.Auto); private set
+    val liteMode: Boolean
+        get() = when (renderMode) {
+            RenderMode.Lite -> true
+            RenderMode.Full -> false
+            RenderMode.Auto -> Build.VERSION.SDK_INT < 24 ||
+                (::app.isInitialized && (app.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager)?.isLowRamDevice == true)
+        }
 
 
     /** TV inputs pinned to Home as tiles, by TvInputInfo id. */
@@ -125,6 +146,7 @@ object AerialSettings {
         app = context.applicationContext
         val prefs = app.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         focusStyle = FocusStyle.of(prefs.getString("focus_style", null))
+        renderMode = RenderMode.of(prefs.getString("render_mode", null))
         pinnedSources = prefs.getStringSet("pinned_sources", null)?.toSet() ?: emptySet()
         bootSource = prefs.getString("boot_source", null)
         bootApp = prefs.getString("boot_app", null)
@@ -245,6 +267,11 @@ object AerialSettings {
     fun chooseFocusStyle(style: FocusStyle) {
         focusStyle = style
         app.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit { putString("focus_style", style.key) }
+    }
+
+    fun chooseRenderMode(mode: RenderMode) {
+        renderMode = mode
+        app.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit { putString("render_mode", mode.key) }
     }
 
 }

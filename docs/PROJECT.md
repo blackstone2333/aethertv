@@ -31,12 +31,15 @@ app/src/main/java/app/orchard/tv/
 ├── ui/home/                        首页、焦点、长按菜单和屏保入口
 ├── ui/control/                     控制中心、系统输入和音量亮度
 ├── wallpaper/                      壁纸、屏保和手机 Web 服务
+├── live/                           IPTV 模型、M3U/XMLTV 解析、缓存、回退和源配置
 ├── guard/                          开机复活、桌面守护和同步适配器
 ├── system/                         厂商能力检测和信号源适配
 └── update/                         应用内升级
 ```
 
 Roadmap 的新功能必须沿现有依赖方向接入：入口/状态 → 功能模块 → 系统适配。IPTV、NAS 和 Lite 先做独立边界，再由首页消费稳定的只读状态接口，不能把网络失败带入 `HomeViewModel.reload()` 或 HomeGuard 链路。
+
+IPTV 第一版只提供离线可用的源契约和手机配置入口：`live/repo/LiveSources` 保存源配置，`LiveFeedRepository` 负责网络/缓存回退，`M3uParser` 和 `XmlTvParser` 只做纯数据解析。Media3 全屏播放器、首页预览和 NAS Dock 继续由后续工作包接入。
 
 ## 当前工作前沿
 

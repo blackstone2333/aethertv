@@ -1,13 +1,13 @@
 # AERIAL-20261026-roadmap-phase2
 
-Status: active
+Status: complete
 Owner: main model / integration owner
 
 ## Spec
 
 - 目标用户/系统：当贝 F3（Android 6/API 23）上的 AetherTV 家庭影音桌面。
-- 必须可观察的结果：项目有可执行的 Goldilocks 协作规则；Phase 2 有稳定的品牌、中文化、包名和 Lite 架构基线；后续 IPTV/NAS/打包矩阵有独立边界和验收入口。
-- 范围：协作规则初始化、Phase 2 实施顺序、模块接口与风险约束、后续子工作包拆分。
+- 必须可观察的结果：项目有可执行的 Goldilocks 协作规则；第一版有稳定的品牌、中文化、包名和 Lite 架构基线；IPTV 已有独立配置/解析/缓存边界，NAS/打包矩阵有独立验收入口。
+- 范围：协作规则初始化、品牌/Lite 基线、IPTV 第一版契约和手机配置入口、模块接口与风险约束。
 - 非目标：本单元不直接接入真实 IPTV/NAS，不重写首页，不停用原厂桌面，不更换 `applicationId` 或 namespace，不宣称未上真机功能完成。
 - 约束：`com.dangbei.tvlauncher`、`app.orchard.tv`、Java 17、minSdk 21/Android 5/6 兼容、五语言资源、保留当贝原厂桌面和现有无障碍服务。
 - 验收条件：规则预检可运行；工作包/交接模板可被后续 Agent 使用；Plan 明确 Phase 2→IPTV→NAS→矩阵的依赖和最小验证；当前源码未提交改动不被覆盖。
@@ -33,20 +33,22 @@ Owner: main model / integration owner
 
 ## Status
 
-- 已完成：读取外部当贝交接、AetherTV 规则和 Roadmap；确认当前包名/namespace/Java 17 基线；建立本项目 Goldilocks 规则、工作包入口和五个子包；完成基线构建与 APK 静态检查。
-- 当前动作：等待 Phase 2 子包 Owner 按文件范围实施，先完成品牌和 Lite 基线。
-- 阻塞：当前没有新的当贝 F3 真机证据；AetherTV 工作树已有未提交迁移和品牌资产改动，不能覆盖或整体 merge 上游。
-- 精确下一步：为 Phase 2、Lite、IPTV、NAS、flavor-matrix 子包指定唯一 Owner，然后只从 Phase 2 品牌资源开始修改。
+- 已完成：读取外部当贝交接、AetherTV 规则和 Roadmap；完成品牌中文化、Lite 渲染/内存回收、IPTV 解析/缓存/手机配置、双 flavor 构建和 APK 静态检查。
+- 当前动作：第一版进入交接，等待设备证据和下一轮 NAS/播放器需求。
+- 阻塞：Redmi K40S 已配对但 MIUI 拒绝 ADB 安装，需要设备端打开“通过 ADB 安装/安装 via USB”；没有新的当贝 F3 真机证据。
+- 精确下一步：完成手机端安装授权后安装 standard release，保存一个源并验证刷新/离线回退；随后再拆 Media3 全屏和 NAS Dock。
 - 不重复：不重复已通过的上游兼容修复和无关设备矩阵；不把上游 v1.49 整体 merge 到当前工作树。
 
 ## Evidence
 
 - `ROADMAP.md`、`AGENTS.md`、`PROJECT.md`、`BRANDING.md`、`docs/HANDOFF.md`、`docs/ARCHITECTURE.md` 已读取。
 - Hermes 外部交接 `codex_aerial_handover.md` 已读取，原文件不进入公开仓库。
-- 当前基线：`main` 落后 `origin/main` 6 个提交；已有包名、脚本、首屏布局等未提交改动，详见 `git status --short --branch`。
+- 当前基线：`main` 继承 Phase 2 基线，当前变更待提交，详见 `git status --short --branch`。
 - `JAVA_HOME=/opt/homebrew/opt/openjdk@17 ./tools/check-project-rules.sh`：通过。
-- `ANDROID_HOME=<Android SDK> ANDROID_SDK_ROOT=<Android SDK> JAVA_HOME=<Java 17> ./gradlew testStandardReleaseUnitTest assembleStandardRelease assembleGuardRelease`：通过。
+- `ANDROID_HOME=/Users/black/Library/Android/sdk ANDROID_SDK_ROOT=/Users/black/Library/Android/sdk JAVA_HOME=/opt/homebrew/opt/openjdk@17 ./gradlew testStandardReleaseUnitTest testGuardReleaseUnitTest assembleStandardRelease assembleGuardRelease --no-daemon`：通过（测试和双 Release 分开执行，均成功）。
 - `aapt2 dump badging/xmltree`：标准版和守护版均为 `com.dangbei.tvlauncher`，版本 `101 / 1.0.1-dangbei`，标准版包含 `CATEGORY_HOME`，配置 action 为 `com.dangbei.tvlauncher.CONFIG`；守护版未包含 HOME 过滤器。
+- `node --check /tmp/aethertv-web.js`、`git diff --check`：通过。
+- 真机：Redmi K40S 无线调试配对成功，Android 14 / `munch`；standard APK 被 MIUI 以 `INSTALL_FAILED_USER_RESTRICTED` 拒绝，未启动；当贝 F3 专属接管/黑屏/遥控器/HDMI/硬解码均未验证。
 
 ## Deferred
 

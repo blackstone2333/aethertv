@@ -58,6 +58,9 @@ private val bakes = object : LinkedHashMap<List<Any>, Any>(16, 0.75f, true) {
 @Suppress("UNCHECKED_CAST")
 fun <T : Any> baked(key: List<Any>, make: () -> T): T = synchronized(bakes) { bakes.getOrPut(key, make) as T }
 
+/** Drops CPU-baked masks and shadows after the UI is hidden on a constrained device. */
+fun clearBakes() = synchronized(bakes) { bakes.clear() }
+
 /** Adds [rect] with continuous corners, clockwise from the top left, as a closed contour. */
 fun Path.addSmoothRect(rect: Rect, radius: Float, bottomRadius: Float = radius, smoothing: Float = AppleSmoothing) {
     val budget = min(rect.width, rect.height) / 2f

@@ -145,6 +145,29 @@ object Wallpapers {
     }
 
     /**
+     * Drops decoded wallpaper data when Home is no longer visible. The source files and the baked
+     * boot backdrop stay on disk, so the next foreground transition can rebuild the same picture.
+     * This is deliberately separate from [init]: Android can call onTrimMemory more than once.
+     */
+    fun releaseTransientCaches() {
+        if (!started) return
+        backdropJob?.cancel()
+        backdropJob = null
+        synchronized(thumbs) {
+            thumbs.values.forEach { bitmap -> if (!bitmap.isRecycled) bitmap.recycle() }
+            thumbs.clear()
+        }
+        backdrop = null
+        frosted = null
+    }
+
+    /** Rehydrates the foreground-only wallpaper data after a trim or a killed background process. */
+    fun restoreTransientCaches() {
+        if (!started || selectedId == AUTO) return
+        if (backdrop == null || frosted == null) rebuildBackdrop()
+    }
+
+    /**
      * Uploads pass through temp files in the cache folder (ours, CustomIcons', and NanoHTTPD's for
      * each part), deleted when the upload ends. One cut off midway, or the process dying, leaves
      * its file behind, and those piled up (#193). Only those, and only an hour old: the aerial

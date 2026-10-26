@@ -51,6 +51,7 @@ import app.orchard.tv.apps.SourceLooks
 import app.orchard.tv.apps.TileArtFactory
 import app.orchard.tv.guard.GuardSetup
 import app.orchard.tv.guard.HomeGuardService
+import app.orchard.tv.ui.components.clearBakes
 import app.orchard.tv.ui.home.HomeScreen
 import app.orchard.tv.ui.home.LiveFilm
 import app.orchard.tv.ui.home.asFocusedTile
@@ -170,6 +171,7 @@ class MainActivity : ComponentActivity() {
         val fresh = savedInstanceState == null
         TileArtFactory.useCanvasDensity(canvasDensity(resources.displayMetrics))
         Wallpapers.init(this)
+        Wallpapers.restoreTransientCaches()
         Weather.init(this)
         Updates.init(this)
         CustomIcons.init(this)
@@ -258,6 +260,18 @@ class MainActivity : ComponentActivity() {
         if (locked) runCatching { unregisterReceiver(unlocked) }
         runCatching { unregisterReceiver(screenOnReceiver) }
         super.onDestroy()
+    }
+
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        if (level >= android.content.ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN) {
+            // Home may be backgrounded while a media app owns the only decoder and most of the
+            // available heap. Keep disk-backed assets, but release decoded wallpaper and Compose
+            // masks so returning to Home can rebuild them on demand.
+            Wallpapers.releaseTransientCaches()
+            clearBakes()
+            DiagLog.i("trim memory $level: released wallpaper and UI caches")
+        }
     }
 
     // ---- The input the TV starts on (issue #25) ----

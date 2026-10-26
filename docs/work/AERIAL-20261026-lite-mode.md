@@ -1,7 +1,7 @@
 # AERIAL-20261026-lite-mode
 
-Status: pending
-Owner: lite owner
+Status: complete
+Owner: main model / integration owner
 
 ## Spec
 
@@ -19,15 +19,16 @@ Owner: lite owner
 
 ## Status
 
-- 已完成：范围和 Android 5/6 约束定义。
-- 当前动作：等待 Owner 接管。
-- 阻塞：暂无；真实性能数字须设备证据。
-- Exact next action：盘点现有可回收缓存和 `LiquidGlass` 调用点，提出最小接口。
+- 已完成：`RenderMode.Auto/Full/Lite` 设置持久化；Lite 跳过 LiquidGlass 实时材质和磁贴抬升阴影；`onTrimMemory(TRIM_MEMORY_UI_HIDDEN)` 释放壁纸缩略图、模糊图和 Compose 烘焙遮罩，回到前台按需重建。
+- 当前动作：发布验收完成。
+- 阻塞：真实性能数字须设备证据；Redmi 已连接但 APK 安装被 MIUI 拒绝。
+- Exact next action：在低内存手机或当贝 F3 上记录冷启动/回前台和播放时内存曲线。
 
 ## Evidence
 
-- 事实依据：`docs/ARCHITECTURE.md`、`app/src/main/java/app/orchard/tv/ui/components/LiquidGlass.kt`。
-- 真机：未验证。
+- `AerialSettings.kt`、`LiquidGlass.kt`、`AppTile.kt`、`Wallpapers.kt`、`MainActivity.kt`、`SmoothCorners.kt`。
+- 标准/守护 Release 与共享单测：通过；规则预检：通过。
+- 真机：未验证；未把 0.4 秒冷启动目标写成完成条件。
 
 ## Deferred
 
