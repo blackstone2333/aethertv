@@ -36,7 +36,7 @@ Work unit: `AERIAL-20261026-roadmap-phase2`
 
 ## Exact next action
 
-在 Redmi K40S 开启“无线调试”并完成配对，取得当前 adbd 端口后执行：
+在 Redmi K40S 解锁屏幕，并在 MIUI 开发者选项开启“通过 USB 安装 / Install via USB”（必要时同时开启“USB 调试（安全设置）”）；无线调试已完成配对，取得当前 adbd 端口后执行：
 
 ```text
 adb connect <手机地址>:<当前端口>
