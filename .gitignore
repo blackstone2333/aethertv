@@ -14,5 +14,8 @@ site/download/
 site/tools/
 site/install.sh
 
+# Local build/evidence outputs. Public source repository should not carry APK artifacts.
+artifacts/
+
 # Wrangler state and the account cache (account id, e-mail).
 .wrangler/

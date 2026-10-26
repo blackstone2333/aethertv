@@ -725,11 +725,11 @@ class MainActivity : ComponentActivity() {
         /** How often an open Control Center looks again at what it shows. */
         private const val PANEL_REFRESH_MS = 3_000L
 
-        /** `adb shell am start -a app.orchard.tv.PREVIEW_SCREENSAVER -n app.orchard.tv/.MainActivity` */
-        const val ACTION_PREVIEW_SCREENSAVER = "app.orchard.tv.PREVIEW_SCREENSAVER"
+        /** `adb shell am start -a com.dangbei.tvlauncher.PREVIEW_SCREENSAVER -n com.dangbei.tvlauncher/.MainActivity` */
+        const val ACTION_PREVIEW_SCREENSAVER = "com.dangbei.tvlauncher.PREVIEW_SCREENSAVER"
 
         /** Set by Home Guard when it brings Aerial back after standby or a boot. */
-        const val EXTRA_WOKE = "app.orchard.tv.WOKE"
+        const val EXTRA_WOKE = "com.dangbei.tvlauncher.WOKE"
 
         /** How long after the key that woke a screensaver other keys are still taken as waking it. */
         const val WAKE_QUIET_MS = 400L

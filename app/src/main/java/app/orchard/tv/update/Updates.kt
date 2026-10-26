@@ -146,7 +146,7 @@ object Updates {
     }
 
     /** The official package. Copies renamed for one firmware (OPPO, see docs/devices) cannot update from the release. */
-    private const val PACKAGE = "app.orchard.tv"
+    private const val PACKAGE = "com.dangbei.tvlauncher"
 
     /** Whether this copy can update itself from the release at all. */
     fun canInstall(context: Context): Boolean = context.packageName == PACKAGE

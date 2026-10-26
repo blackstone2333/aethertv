@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 620">
+<defs>
+ <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0B1222"/><stop offset=".55" stop-color="#23304C"/><stop offset="1" stop-color="#0B0E1E"/></linearGradient>
+ <radialGradient id="sun"><stop stop-color="#B9A4FF" stop-opacity=".6"/><stop offset="1" stop-color="#B9A4FF" stop-opacity="0"/></radialGradient>
+ <linearGradient id="line"><stop stop-color="#6FE7D4" stop-opacity="0"/><stop offset=".5" stop-color="#6FE7D4"/><stop offset="1" stop-color="#B9A4FF" stop-opacity="0"/></linearGradient>
+</defs>
+<rect width="1600" height="620" fill="url(#sky)"/>
+<circle cx="1120" cy="140" r="320" fill="url(#sun)"/>
+<path d="M0 470C260 380 440 530 740 420s500-40 860 30v170H0Z" fill="#0B1020" opacity=".7"/>
+<g fill="none" stroke="url(#line)" opacity=".7"><ellipse cx="1120" cy="250" rx="470" ry="180" transform="rotate(-22 1120 250)"/><ellipse cx="1120" cy="250" rx="370" ry="130" transform="rotate(-22 1120 250)"/></g>
+<g transform="translate(150 175)"><text fill="#F7FAFF" font-family="Avenir Next, Helvetica Neue, sans-serif" font-size="76" font-weight="700" letter-spacing="12">AETHERTV</text><text y="70" fill="#6FE7D4" font-family="Avenir Next, Helvetica Neue, sans-serif" font-size="22" letter-spacing="9">A QUIET SPACE FOR THE BIG SCREEN</text></g>
+</svg>

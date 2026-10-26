@@ -20,6 +20,8 @@ source local/tvs.env && BUILD=1 KEEP_ADB=1 TV=$XIAOMI_TV tools/install.sh   # BU
 - 在电视上测试一律用 release 版并执行 `cmd package compile -m speed -f app.orchard.tv`，debug 版在电视上会卡。
 - 发 TCL 版本前先给 `versionCode` 加 1。
 
+测试不要求每次都连接电视。解析器、布局、配置、手机 Web 控制台和普通 Compose/Media3 逻辑先用单元测试、Android 模拟器或 Android 手机验证；手机通过只能记为“手机验证”。当贝包名白名单、HOME 接管、原厂桌面心跳、防黑屏、HomeGuard、遥控器、HDMI、音量、多任务和 MStar 硬解码必须在当贝 F3 Release 真机上验收，未验收一律写“未验证”。
+
 ## 代码约定
 
 - 注释和标识符用英文，界面文字放 `res/values`（英文）、`res/values-zh`（中文）、`res/values-ru`（俄语）、`res/values-uk`（乌克兰语）、`res/values-kk`（哈萨克语），五份都要加，占位符要一致。手机设置页 `assets/web/index.html` 的文字在 `KEYS` / `TEXTS` 表里，同样五种语言，脚本里不要写死文字。

@@ -1,0 +1,44 @@
+# AetherTV 项目地图
+
+## 权威入口
+
+- `AGENTS.md`：仓库级安全、代码、构建和设备操作约束。
+- `docs/AGENT_WORKFLOW.md`：Goldilocks 风格的 Owner/Worker/Reviewer、工作包和交接规则。
+- `docs/work/`：每个可验收工作单元的 Spec、Plan、Status 和证据。
+- `docs/handoffs/`：只有发生真实所有权或会话转移时才创建的交接包。
+- `docs/HANDOFF.md`、`docs/ARCHITECTURE.md`、`docs/devices/`：上游 Aerial 的行为和设备资料。
+- 外部设备约束：Hermes 交接目录中的 `codex_aerial_handover.md`（不复制到公开仓库）。
+- 产品目标：`ROADMAP.md`；视觉身份：`BRANDING.md`。
+
+发生冲突时，安全边界和设备禁忌以 `AGENTS.md` 及外部当贝交接为准；当前源码和构建产物决定事实状态，旧文档不能覆盖新证据。
+
+## 固定边界
+
+- Android `applicationId` 必须是 `com.dangbei.tvlauncher`。
+- Kotlin namespace 必须保持 `app.orchard.tv`；外部组件使用白名单包名加完整源码类名。
+- 构建和测试必须使用 Java 17；Compose/Media3 依赖保持 Android 5/6 兼容线。
+- 当贝原厂桌面 `com.dangbei.leard.leradlauncher` 保持启用，不得卸载或停用。
+- 不覆盖现有无障碍服务，不修改 `local/`、签名密钥、IP、凭据或户主数据。
+- 没有当贝 F3 真机证据的行为只能标记为“未验证”。
+
+## 当前结构
+
+```text
+app/src/main/java/app/orchard/tv/
+├── MainActivity.kt                 生命周期、HOME 入口和覆盖层
+├── HomeViewModel.kt                应用目录、布局和首页状态
+├── apps/                           应用发现、磁贴、布局和文件夹
+├── ui/home/                        首页、焦点、长按菜单和屏保入口
+├── ui/control/                     控制中心、系统输入和音量亮度
+├── wallpaper/                      壁纸、屏保和手机 Web 服务
+├── guard/                          开机复活、桌面守护和同步适配器
+├── system/                         厂商能力检测和信号源适配
+└── update/                         应用内升级
+```
+
+Roadmap 的新功能必须沿现有依赖方向接入：入口/状态 → 功能模块 → 系统适配。IPTV、NAS 和 Lite 先做独立边界，再由首页消费稳定的只读状态接口，不能把网络失败带入 `HomeViewModel.reload()` 或 HomeGuard 链路。
+
+## 当前工作前沿
+
+- `AERIAL-20261025-dangbei-home`：迁移和首屏基线已在工作树中，真机仍未验证。
+- `AERIAL-20261026-roadmap-phase2`：本次 Roadmap 实施总包，先建立 Phase 2 基线和后续独立子包。

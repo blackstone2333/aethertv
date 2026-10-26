@@ -188,11 +188,16 @@ class LayoutStore(context: Context) {
 /** First-run arrangement: streaming apps first, the TV's own utilities last. */
 private object Defaults {
     private val preferred = listOf(
+        // Dangbei F3 family-media layout. Keep these first so the first row is useful on a
+        // fresh install while leaving the user's later arrangement untouched.
+        "com.netease.filmlytv",            // 网易 Filmly
+        "com.xiaodianshi.tv.yst",          // 云视听小电视
+        "org.moontechlab.selenetv",        // OrionTV / MoonTV
+        "com.dangbei.leard.settings",      // 当贝系统设置
         "com.ktcp.video",                  // 云视听极光
         "com.gitvdemo.video",              // 银河奇异果
         "com.cibn.tv",                     // CIBN 酷喵
         "com.hunantv.license",             // 芒果 TV
-        "com.xiaodianshi.tv.yst",          // 云视听小电视
         "com.netflix.ninja",
         "com.google.android.youtube.tv",
         "com.apple.atve.androidtv.appletv",
@@ -205,6 +210,8 @@ private object Defaults {
     )
 
     private val utilities = listOf(
+        "com.dangbei.leard.leradlauncher",
+        "com.dangbei.leard.settings",
         "com.xiaomi.mitv.settings",
         "com.android.tv.settings",
         "com.xiaomi.mitv.tvmanager",
@@ -223,5 +230,11 @@ private object Defaults {
     fun hidden(installed: Set<String>): Set<String> = buildSet {
         // Xiaomi's own settings app covers everything AOSP settings does, and more.
         if ("com.xiaomi.mitv.settings" in installed) add("com.android.tv.settings")
+        // Dangbei's settings app is the supported entry point on the F3. Hide duplicate AOSP
+        // settings tiles on that firmware, while keeping the behavior unchanged elsewhere.
+        if ("com.dangbei.leard.settings" in installed) {
+            add("com.android.settings")
+            add("com.android.tv.settings")
+        }
     }
 }
