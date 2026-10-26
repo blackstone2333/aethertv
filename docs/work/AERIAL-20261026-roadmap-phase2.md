@@ -43,7 +43,7 @@ Owner: main model / integration owner
 
 - `ROADMAP.md`、`AGENTS.md`、`PROJECT.md`、`BRANDING.md`、`docs/HANDOFF.md`、`docs/ARCHITECTURE.md` 已读取。
 - Hermes 外部交接 `codex_aerial_handover.md` 已读取，原文件不进入公开仓库。
-- 当前基线：`main` 继承 Phase 2 基线，当前变更待提交，详见 `git status --short --branch`。
+- 当前基线：`main` 已提交并同步公开仓库；实现提交为 `3a811f4`，直播契约测试提交为 `dfc6758`，工作树清洁。
 - `JAVA_HOME=/opt/homebrew/opt/openjdk@17 ./tools/check-project-rules.sh`：通过。
 - `ANDROID_HOME=/Users/black/Library/Android/sdk ANDROID_SDK_ROOT=/Users/black/Library/Android/sdk JAVA_HOME=/opt/homebrew/opt/openjdk@17 ./gradlew testStandardReleaseUnitTest testGuardReleaseUnitTest assembleStandardRelease assembleGuardRelease --no-daemon`：通过（测试和双 Release 分开执行，均成功）。
 - `aapt2 dump badging/xmltree`：标准版和守护版均为 `com.dangbei.tvlauncher`，版本 `101 / 1.0.1-dangbei`，标准版包含 `CATEGORY_HOME`，配置 action 为 `com.dangbei.tvlauncher.CONFIG`；守护版未包含 HOME 过滤器。

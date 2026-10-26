@@ -24,6 +24,7 @@ Work unit: `AERIAL-20261026-roadmap-phase2`
 - `ANDROID_HOME=/Users/black/Library/Android/sdk ANDROID_SDK_ROOT=/Users/black/Library/Android/sdk JAVA_HOME=/opt/homebrew/opt/openjdk@17 ./gradlew testStandardReleaseUnitTest testGuardReleaseUnitTest --no-daemon`：通过。
 - `assembleStandardRelease assembleGuardRelease`：通过；`aapt2 dump badging/xmltree` 确认包名 `com.dangbei.tvlauncher`、namespace `app.orchard.tv`、versionCode 101、standard 含 HOME、guard 不含 HOME、两者含 CONFIG action。
 - `node --check /tmp/aethertv-web.js`、`git diff --check`：通过。
+- 公开仓库：`https://github.com/blackstone2333/aethertv`；`main` 已同步至 `dfc6758`，包含实现与 6 个 IPTV 契约测试文件。
 - 真机：Redmi K40S 无线调试配对成功，识别为 Android 14 / `munch` / 1080×2400；standard APK 安装被 MIUI 拒绝为 `INSTALL_FAILED_USER_RESTRICTED: Install canceled by user`，尚未启动应用；当贝 F3 所有专属行为均为“未验证”。
 
 ## Risks and authority
