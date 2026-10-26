@@ -277,6 +277,15 @@
     <button class="item" role="radio" data-style="standard"><span class="txt"><span data-i18n="focus_standard"></span><span class="sub" data-i18n="focus_hint_standard"></span></span><svg class="tick" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>
   </div>
 
+  <h2 data-i18n="render_h"></h2>
+  <div class="list" id="renderMode" role="radiogroup" data-i18n-aria-label="render_h">
+    <button class="item" role="radio" data-render="auto"><span class="txt" data-i18n="render_auto"></span><svg class="tick" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>
+    <button class="item" role="radio" data-render="full"><span class="txt" data-i18n="render_full"></span><svg class="tick" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>
+    <button class="item" role="radio" data-render="lite"><span class="txt" data-i18n="render_lite"></span><svg class="tick" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>
+  </div>
+  <p class="foot" data-i18n="render_hint"></p>
+  <p class="foot" id="renderActive"></p>
+
   <h2 data-i18n="live_h"></h2>
   <p class="foot" data-i18n="live_hint"></p>
   <form class="list" id="liveForm">
@@ -337,7 +346,7 @@ let state = null, stateJson = '';
 
 // The language: ?lang=ru in the address, else the one picked under More (kept on the phone), else the
 // first of the phone's preferred languages that has a table, else English. Keys are in KEYS, one array of texts per language.
-const KEYS = ["screensaver", "screensaver_short", "ss_aerial", "ss_photos", "ss_clock", "focus", "focus_high", "focus_standard", "weather", "city_ph", "set", "upload_label", "feedback_h", "feedback_hint", "diag_show", "diag_copy", "diag_github", "hint_aerial", "hint_photos", "hint_clock", "g_live", "g_live_sub", "g_daily", "g_daily_sub", "g_photo", "g_builtin", "g_auto", "toast_wallpaper", "aria_delete", "confirm_delete", "wx_clear", "wx_partlycloudy", "wx_cloudy", "wx_fog", "wx_rain", "wx_snow", "wx_thunder", "wx_chosen", "wx_auto_btn", "toast_auto", "wx_guessed", "wx_none", "tag_source", "aria_rename", "toast_renamed", "toast_name_reset", "toast_rename_fail", "aria_reset_icon", "toast_icon_reset", "focus_hint_standard", "focus_hint_high", "daily_title", "daily_caption", "rotate_title", "rotate_caption", "empty_photos", "add_second", "toast_tv_updated", "sending_n", "toast_added", "toast_no_photos", "toast_send_fail", "toast_city_set", "toast_city_nf", "toast_set_fail", "toast_sending_icon", "toast_icon_set", "toast_icon_bad", "diag_collecting", "toast_diag_fail", "toast_copied", "toast_copy_manual", "language", "hint_follows", "ss_videos", "hint_videos", "videos_h", "videos_upload", "videos_hint", "videos_empty", "confirm_video_delete", "toast_videos_added", "toast_video_bad", "sending_video", "hint_system", "tab_home", "tab_more", "current_wp", "cancel", "save", "name_ph", "rename_hint", "change_icon", "this_tv", "folder_count", "folder_ph", "inputs_h", "inputs_hint", "rename_hint_app", "was_named", "arrange_hint", "arrange_unready", "hidden_h", "hidden_none", "hidden_locked", "show_app", "hide_app", "to_folder", "new_folder", "out_of_folder", "ungroup", "ungroup_confirm", "folder_hint", "toast_hidden", "toast_shown", "toast_in_folder", "toast_out_folder", "toast_ungrouped", "tab_looks", "looks_title", "show_on_home", "source_device", "source_plain", "source_device_hint", "tv_model", "live_h", "live_hint", "live_id_ph", "live_m3u_ph", "live_epg_ph", "live_priority_ph", "live_save", "live_refresh", "live_delete", "live_empty", "live_saved", "live_refreshed", "live_failed"];
+const KEYS = ["screensaver", "screensaver_short", "ss_aerial", "ss_photos", "ss_clock", "focus", "focus_high", "focus_standard", "weather", "city_ph", "set", "upload_label", "feedback_h", "feedback_hint", "diag_show", "diag_copy", "diag_github", "hint_aerial", "hint_photos", "hint_clock", "g_live", "g_live_sub", "g_daily", "g_daily_sub", "g_photo", "g_builtin", "g_auto", "toast_wallpaper", "aria_delete", "confirm_delete", "wx_clear", "wx_partlycloudy", "wx_cloudy", "wx_fog", "wx_rain", "wx_snow", "wx_thunder", "wx_chosen", "wx_auto_btn", "toast_auto", "wx_guessed", "wx_none", "tag_source", "aria_rename", "toast_renamed", "toast_name_reset", "toast_rename_fail", "aria_reset_icon", "toast_icon_reset", "focus_hint_standard", "focus_hint_high", "daily_title", "daily_caption", "rotate_title", "rotate_caption", "empty_photos", "add_second", "toast_tv_updated", "sending_n", "toast_added", "toast_no_photos", "toast_send_fail", "toast_city_set", "toast_city_nf", "toast_set_fail", "toast_sending_icon", "toast_icon_set", "toast_icon_bad", "diag_collecting", "toast_diag_fail", "toast_copied", "toast_copy_manual", "language", "hint_follows", "ss_videos", "hint_videos", "videos_h", "videos_upload", "videos_hint", "videos_empty", "confirm_video_delete", "toast_videos_added", "toast_video_bad", "sending_video", "hint_system", "tab_home", "tab_more", "current_wp", "cancel", "save", "name_ph", "rename_hint", "change_icon", "this_tv", "folder_count", "folder_ph", "inputs_h", "inputs_hint", "rename_hint_app", "was_named", "arrange_hint", "arrange_unready", "hidden_h", "hidden_none", "hidden_locked", "show_app", "hide_app", "to_folder", "new_folder", "out_of_folder", "ungroup", "ungroup_confirm", "folder_hint", "toast_hidden", "toast_shown", "toast_in_folder", "toast_out_folder", "toast_ungrouped", "tab_looks", "looks_title", "show_on_home", "source_device", "source_plain", "source_device_hint", "tv_model", "live_h", "live_hint", "live_id_ph", "live_m3u_ph", "live_epg_ph", "live_priority_ph", "live_save", "live_refresh", "live_delete", "live_empty", "live_saved", "live_refreshed", "live_failed", "render_h", "render_hint", "render_auto", "render_full", "render_lite", "render_active_full", "render_active_lite", "live_counts", "live_cache", "live_unchecked"];
 const TEXTS = {
  "zh": [
   "屏幕保护程序",
@@ -477,7 +486,17 @@ const TEXTS = {
   "还没有直播源。",
   "已保存",
   "已刷新",
-  "刷新失败"
+  "刷新失败",
+  "渲染模式",
+  "自动模式会根据设备选择；Lite 减少毛玻璃和阴影，适合老设备。",
+  "自动",
+  "Full · 完整效果",
+  "Lite · 轻量模式",
+  "当前使用完整效果",
+  "当前使用轻量模式",
+  "{channels} 个频道 · {programs} 个节目",
+  "离线缓存",
+  "尚未刷新"
  ],
  "en": [
   "Screensaver",
@@ -617,7 +636,17 @@ const TEXTS = {
   "No live sources yet.",
   "Saved",
   "Refreshed",
-  "Refresh failed"
+  "Refresh failed",
+  "Rendering mode",
+  "Auto adapts to the device. Lite reduces glass and shadows for older devices.",
+  "Auto",
+  "Full · All effects",
+  "Lite · Lightweight",
+  "Full effects are active",
+  "Lite is active",
+  "{channels} channels · {programs} programmes",
+  "Offline cache",
+  "Not refreshed yet"
  ],
  "ru": [
   "Заставка",
@@ -757,7 +786,17 @@ const TEXTS = {
   "Источников прямого эфира пока нет.",
   "Сохранено",
   "Обновлено",
-  "Не удалось обновить"
+  "Не удалось обновить",
+  "Режим отображения",
+  "Авто учитывает возможности устройства. Lite уменьшает размытие и тени.",
+  "Авто",
+  "Full · Все эффекты",
+  "Lite · Облегчённый",
+  "Активны все эффекты",
+  "Активен режим Lite",
+  "Каналы: {channels} · Программы: {programs}",
+  "Офлайн-кэш",
+  "Ещё не обновлено"
  ],
  "uk": [
   "Заставка",
@@ -897,7 +936,17 @@ const TEXTS = {
   "Джерел наживо ще немає.",
   "Збережено",
   "Оновлено",
-  "Не вдалося оновити"
+  "Не вдалося оновити",
+  "Режим відображення",
+  "Авто враховує можливості пристрою. Lite зменшує розмиття та тіні.",
+  "Авто",
+  "Full · Усі ефекти",
+  "Lite · Полегшений",
+  "Активні всі ефекти",
+  "Активний режим Lite",
+  "Канали: {channels} · Програми: {programs}",
+  "Офлайн-кеш",
+  "Ще не оновлено"
  ],
  "kk": [
   "Экран қорғаушы",
@@ -1037,7 +1086,17 @@ const TEXTS = {
   "Тікелей эфир көздері әлі жоқ.",
   "Сақталды",
   "Жаңартылды",
-  "Жаңарту сәтсіз аяқталды"
+  "Жаңарту сәтсіз аяқталды",
+  "Көрсету режимі",
+  "Авто құрылғыға бейімделеді. Lite бұлыңғырлық пен көлеңкелерді азайтады.",
+  "Авто",
+  "Full · Барлық әсерлер",
+  "Lite · Жеңіл режим",
+  "Барлық әсерлер қосулы",
+  "Lite режимі қосулы",
+  "{channels} арна · {programs} бағдарлама",
+  "Офлайн кэш",
+  "Әлі жаңартылмаған"
  ]
 };
 const LANGS = Object.keys(TEXTS);
@@ -1330,8 +1389,8 @@ function renderLive() {
   for (const source of sources) {
     const row = el('div', 'item');
     const txt = el('span', 'txt', source.id);
-    const counts = `${source.channels || 0} ch · ${source.epgPrograms || 0} EPG`;
-    const sub = el('span', 'sub', source.error ? source.error : source.stale ? `${counts} · ${t('live_refreshed')} (cache)` : counts);
+    const counts = t('live_counts', { channels: source.channels || 0, programs: source.epgPrograms || 0 });
+    const sub = el('span', 'sub', source.error ? t('live_failed') : !source.lastRefreshMillis ? t('live_unchecked') : source.stale ? `${counts} · ${t('live_cache')}` : counts);
     txt.appendChild(sub); row.appendChild(txt);
     const refresh = el('button', 'link', t('live_refresh')); refresh.onclick = async () => {
       refresh.disabled = true;
@@ -1352,6 +1411,8 @@ function renderLive() {
   }
 }
 function renderMore() {
+  document.querySelectorAll('#renderMode [data-render]').forEach(b => b.setAttribute('aria-checked', b.dataset.render === state.renderMode ? 'true' : 'false'));
+  $('#renderActive').textContent = t(state.liteMode ? 'render_active_lite' : 'render_active_full');
   document.querySelectorAll('#focus [data-style]').forEach(b => b.setAttribute('aria-checked', b.dataset.style === state.focusStyle ? 'true' : 'false'));
   renderLive();
   const w = state.weather || {};
@@ -1389,6 +1450,13 @@ function renderInputs() {
 document.querySelectorAll('#focus [data-style]').forEach(b => b.onclick = async () => {
   if (b.dataset.style === state.focusStyle) return;
   try { take(await api('api/focus', { style: b.dataset.style })); toast(t('toast_tv_updated')); } catch (e) { toast(t('toast_set_fail')); }
+});
+document.querySelectorAll('#renderMode [data-render]').forEach(b => b.onclick = async () => {
+  if (b.dataset.render === state.renderMode) return;
+  b.disabled = true;
+  try { take(await api('api/render-mode', { mode: b.dataset.render })); toast(t('toast_tv_updated')); }
+  catch (e) { toast(t('toast_set_fail')); }
+  finally { b.disabled = false; }
 });
 $('#liveForm').onsubmit = async e => {
   e.preventDefault();

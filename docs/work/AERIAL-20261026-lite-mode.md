@@ -12,23 +12,24 @@ Owner: main model / integration owner
 
 ## Plan
 
-1. 定义 `RenderMode` 和设置来源，默认沿用 Full。
+1. 定义 `RenderMode` 和设置来源，默认 Auto，按设备能力选择。
 2. 将 LiquidGlass、TileArt 阴影/视差和壁纸缓存改为策略读取。
 3. 在 Activity/Application 生命周期接入 trim 回收并记录诊断。
-4. 用受影响单测和性能 probe 验收，最后再接手机配置页。
+4. 接手机配置页并完成 L0/L1；性能量化与 F3 L3 留待后续。
 
 ## Status
 
-- 已完成：`RenderMode.Auto/Full/Lite` 设置持久化；Lite 跳过 LiquidGlass 实时材质和磁贴抬升阴影；`onTrimMemory(TRIM_MEMORY_UI_HIDDEN)` 释放壁纸缩略图、模糊图和 Compose 烘焙遮罩，回到前台按需重建。
-- 当前动作：发布验收完成。
-- 阻塞：真实性能数字须设备证据；Redmi 已连接但 APK 安装被 MIUI 拒绝。
-- Exact next action：在低内存手机或当贝 F3 上记录冷启动/回前台和播放时内存曲线。
+- 已完成：Auto/Full/Lite 持久化和手机可见开关，Lite 跳过玻璃与磁贴高负载效果；Home 隐藏时释放图片，回前台先读本地烘焙图；系统屏保持有图片期间保留共享缓存。
+- Redmi K40S L1：三种策略状态、Lite 设置保留、后台释放日志与回前台相同画面均通过；系统屏保/F3 仍未验证。
 
 ## Evidence
 
-- `AerialSettings.kt`、`LiquidGlass.kt`、`AppTile.kt`、`Wallpapers.kt`、`MainActivity.kt`、`SmoothCorners.kt`。
-- 标准/守护 Release 与共享单测：通过；规则预检：通过。
-- 真机：未验证；未把 0.4 秒冷启动目标写成完成条件。
+- Java 17 双 Release、预检通过，详见 [手机验收](AERIAL-20261026-phone-acceptance.md)。
+- 手机未测统一冷启动基准；没有将 0.4 秒或帧率目标写成已达成。
+
+## Exact next action
+
+收集视觉反馈；在 F3 记录低内存、屏保与播放共存时的内存和恢复行为。
 
 ## Deferred
 

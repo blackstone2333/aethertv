@@ -44,4 +44,6 @@ IPTV 第一版只提供离线可用的源契约和手机配置入口：`live/rep
 ## 当前工作前沿
 
 - `AERIAL-20261025-dangbei-home`：迁移和首屏基线已在工作树中，真机仍未验证。
-- `AERIAL-20261026-roadmap-phase2`：本次 Roadmap 实施总包，先建立 Phase 2 基线和后续独立子包。
+- `AERIAL-20261026-roadmap-phase2`：v0.1 品牌、Lite、手机配置和直播数据基线总包。
+- `AERIAL-20261026-phone-acceptance`：Redmi K40S L1 验收与运行时修复，最新设备证据入口。
+- 后续按独立工作包推进 Media3 直播播放、NAS Dock 和 F3 L3；历史设备记录不能作为当前验收证据。

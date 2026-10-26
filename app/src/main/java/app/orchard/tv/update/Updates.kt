@@ -28,20 +28,16 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 /**
- * Whether a newer release is out (issues #24, #76). Most owners stay on the version they installed
- * and report bugs fixed long ago. At most once a day Aerial reads the latest release's tag from the
- * website (reachable in China, unlike GitHub); Control Center then names the new version and says
- * how to update. Nothing is downloaded or installed in the background: only when the owner picks
- * "Download and Install" does Aerial fetch the new APK and hand it to the system installer
- * ([install]).
- *
- * Every three hours, not once a day: several releases can come out in one day, and a TV that had
- * checked in the morning kept offering nothing until the next day (1.22 to 1.25 on 2026-10-22).
+ * Checks the fork's version manifest every three hours. APKs only come from this fork's releases;
+ * an upstream Aerial release must never replace the customized package. Downloads and installation
+ * still require the owner to select the update action, with package/signature checks below.
  */
 object Updates {
     private const val TAG = "AerialUpdates"
-    private const val PREFS = "updates"
-    private const val VERSION_URL = "https://aerial.qust.me/download/version.txt"
+    private const val PREFS = "updates_aethertv"
+    private const val VERSION_URL = "https://raw.githubusercontent.com/blackstone2333/aethertv/main/updates/version.txt"
+    const val RELEASES_URL = "https://github.com/blackstone2333/aethertv/releases"
+    const val SETUP_URL = "https://github.com/blackstone2333/aethertv/blob/main/docs/INSTALL.md"
     private const val CHECK_EVERY_MS = 3 * 60 * 60 * 1000L
     private const val RETRY_MS = 10 * 60 * 1000L
 
@@ -221,7 +217,7 @@ object Updates {
      */
     @Volatile var testApk: File? = null
 
-    /** The website first (reachable in China), then GitHub. Returns the APK's info once it parses. */
+    /** Only the fork's own release artifacts may update this build. */
     private suspend fun downloadFrom(context: Context, file: File): PackageInfo? {
         testApk?.takeIf { it.isFile }?.let { test ->
             file.parentFile?.mkdirs()
@@ -229,10 +225,9 @@ object Updates {
             if (Build.VERSION.SDK_INT < 24) file.setReadable(true, false)
             return verify(context, file)
         }
-        val name = "aerial-${BuildConfig.FLAVOR}.apk"
+        val name = "aethertv-${BuildConfig.FLAVOR}.apk"
         val sources = listOf(
-            "https://aerial.qust.me/download/$name",
-            "https://github.com/pengchujin/aerial-tv/releases/latest/download/$name",
+            "$RELEASES_URL/latest/download/$name",
         )
         for (url in sources) {
             val ok = runCatching { download(url, file) }

@@ -6,7 +6,7 @@
 #   KEEP_ADB=1 TV=<tv-ip> tools/install.sh    # also switch ADB back on whenever the TV turns it off
 #   TV=<tv-ip> tools/install.sh repair        # Home went back to the TV's launcher: restart Home Guard
 #
-# The APK comes from the latest release (aerial.qust.me's copy, else GitHub), so only adb is needed
+# The APK comes only from this fork's latest GitHub release, so only adb is needed
 # (and python3 on TCL TVs).
 #   BUILD=1        build it from this checkout instead (JDK 17 + Android SDK)
 #   APK_FILE=<apk> install this file instead
@@ -29,12 +29,13 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 : "${TV:?set TV to the TV IP address, e.g. TV=<tv-ip> $0}"
-REPO=pengchujin/aerial-tv
+REPO=blackstone2333/aethertv
 command -v adb >/dev/null || { echo "adb not found. macOS: brew install android-platform-tools; Linux: install android-tools / adb." >&2; exit 1; }
 FLAVOR="${1:-standard}"
 case "$FLAVOR" in standard|guard|repair) ;; *) echo "flavor must be standard or guard (or repair)" >&2; exit 1 ;; esac
 PKG=com.dangbei.tvlauncher
-GUARD="$PKG/$PKG.guard.HomeGuardService"
+NS=app.orchard.tv
+GUARD="$PKG/$NS.guard.HomeGuardService"
 
 export ANDROID_HOME="${ANDROID_HOME:-$HOME/Library/Android/sdk}"
 if [ "${BUILD:-0}" = 1 ]; then
@@ -60,7 +61,7 @@ fi
 # MiTV-MFTP0 (Android 9) kept the entry while system_server still pointed at the old APK directory
 # and never bound it (issue #72).
 # Some firmwares show the class name where the label goes (Xiaomi MiTV-ASTP0, Android 9, issue #183).
-guard_bound() { adb shell dumpsys accessibility 2>/dev/null | grep -q -E "label=(Aerial|app\.orchard\.tv|com\.dangbei\.tvlauncher)"; }
+guard_bound() { adb shell dumpsys accessibility 2>/dev/null | grep -q -E "label=(AetherTV|以太桌面|Aerial|app\.orchard\.tv|com\.dangbei\.tvlauncher)"; }
 
 wait_guard() {
   for _ in $(seq 1 "$1"); do sleep 1; guard_bound && return 0; done
@@ -72,7 +73,7 @@ wait_guard() {
 restart_aerial() {
   adb shell am force-stop "$PKG"
   sleep 3
-  adb shell am start -W -n "$PKG/.MainActivity" >/dev/null 2>&1 || true
+  adb shell am start -W -n "$PKG/$NS.MainActivity" >/dev/null 2>&1 || true
 }
 
 if [ "$FLAVOR" = repair ]; then
@@ -93,13 +94,12 @@ build() {
     ./gradlew -q --console=plain "$task"
     echo "app/build/outputs/apk/$flavor/release/app-$flavor-release.apk"
   else
-    local out="${TMPDIR:-/tmp}/aerial-$flavor.apk" url
-    for url in "https://aerial.qust.me/download/aerial-$flavor.apk" \
-               "https://github.com/$REPO/releases/latest/download/aerial-$flavor.apk"; do
+    local out="${TMPDIR:-/tmp}/aethertv-$flavor.apk" url
+    for url in "https://github.com/$REPO/releases/latest/download/aethertv-$flavor.apk"; do
       echo "Downloading $url" >&2
       if curl -fL --progress-bar --connect-timeout 10 -o "$out" "$url"; then echo "$out"; return; fi
     done
-    echo "Could not download aerial-$flavor.apk" >&2
+    echo "No AetherTV release APK available; use BUILD=1 or APK_FILE for a local build" >&2
     return 1
   fi
 }
@@ -196,10 +196,10 @@ adb shell appops set "$PKG" REQUEST_INSTALL_PACKAGES allow 2>/dev/null || true  
 # Android 5 knows the op only by this name.
 adb shell appops set "$PKG" GET_USAGE_STATS allow 2>/dev/null || true
 adb shell appops set "$PKG" android:get_usage_stats allow 2>/dev/null || true
-adb shell cmd notification allow_listener "$PKG/$PKG.guard.RevivalListener" 2>/dev/null || true  # come back after a kill
+adb shell cmd notification allow_listener "$PKG/$NS.guard.RevivalListener" 2>/dev/null || true  # come back after a kill
 # Android 9 on Xiaomi MiTV-MFTP0 reports success but never binds it (issue #72): low-RAM devices
 # get no notification listeners at all. Aerial's sync adapter brings it back there instead, later.
-if ! adb shell dumpsys notification 2>/dev/null | grep -q "$PKG/$PKG.guard.RevivalListener"; then
+if ! adb shell dumpsys notification 2>/dev/null | grep -q "$PKG/$NS.guard.RevivalListener"; then
   echo "Note: this TV refuses notification listeners. After the TV stops Aerial (Xiaomi does at standby)," >&2
   echo "Aerial comes back through Android's sync service about 30-60 seconds later, not at once: after a" >&2
   echo "short standby the TV's launcher can show for up to a minute. Keep auto-sync on. If Home ever stays" >&2
@@ -210,9 +210,9 @@ adb shell cmd package compile -m speed -f "$PKG" >/dev/null 2>&1 || true
 # TVs on Android's standard screensaver (TCL's carries a membership upsell) get Aerial's instead,
 # so it also starts while another app sits idle. Xiaomi uses its own; Aerial covers it from Home.
 if [ "$(adb shell settings get secure screensaver_enabled | tr -d '\r')" = 1 ]; then
-  adb shell settings put secure screensaver_components "$PKG/$PKG.dream.AerialDream"
+  adb shell settings put secure screensaver_components "$PKG/$NS.dream.AerialDream"
   # Some firmwares (TCL) put their own back on every boot; Aerial restores it when it starts.
-  adb shell am broadcast -a "$PKG.CONFIG" -n "$PKG/.guard.ConfigReceiver" --ez own_screensaver true >/dev/null
+  adb shell am broadcast -a "$PKG.CONFIG" -n "$PKG/$NS.guard.ConfigReceiver" --ez own_screensaver true >/dev/null
   echo "Aerial's screensaver is now the TV's screensaver."
 fi
 # TCL's 自启动管理 (TclAppBootManager in system_server) refuses to start or bind third-party apps
@@ -221,11 +221,11 @@ fi
 adb shell appops set "$PKG" APP_AUTO_START allow >/dev/null 2>&1 || true
 adb shell appops set "$PKG" APP_ASSOC_START allow >/dev/null 2>&1 || true
 if [ "${KEEP_ADB:-0}" = 1 ]; then
-  adb shell am broadcast -a "$PKG.CONFIG" -n "$PKG/.guard.ConfigReceiver" --ez keep_adb true >/dev/null
+  adb shell am broadcast -a "$PKG.CONFIG" -n "$PKG/$NS.guard.ConfigReceiver" --ez keep_adb true >/dev/null
   echo "Aerial will switch ADB debugging back on whenever the TV turns it off."
 fi
 
-if ! adb shell am start -W -n "$PKG/.MainActivity" | grep -q "Status: ok"; then
+if ! adb shell am start -W -n "$PKG/$NS.MainActivity" | grep -q "Status: ok"; then
   echo "Aerial did not start; Home was left untouched." >&2
   exit 1
 fi
@@ -246,7 +246,7 @@ if [ "$FLAVOR" = standard ]; then
     echo "Hisense: Home now opens Aerial instead of $VT_HOME."
   fi
   adb shell cmd role add-role-holder --user 0 android.app.role.HOME "$PKG" >/dev/null 2>&1 \
-    || adb shell cmd package set-home-activity --user 0 "$PKG/.MainActivity" >/dev/null 2>&1 || true
+    || adb shell cmd package set-home-activity --user 0 "$PKG/$NS.MainActivity" >/dev/null 2>&1 || true
   HOME_NOW=$(resolve_home)
   case "$HOME_NOW" in
     "$PKG"/*)
@@ -254,6 +254,12 @@ if [ "$FLAVOR" = standard ]; then
       exit 0 ;;
   esac
   echo "The firmware still sends Home to $HOME_NOW; turning on Aerial Home Guard."
+fi
+
+# Dangbei F3 omits the accessibility framework. Do not attempt guard settings there.
+if ! adb shell service check accessibility 2>/dev/null | grep -q ': found'; then
+  echo "This firmware has no accessibility service. Home takeover was not verified; use its native HOME settings." >&2
+  exit 1
 fi
 
 # Aerial switches the guard on itself when it starts (it has WRITE_SECURE_SETTINGS by now). Do it

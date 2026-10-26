@@ -164,7 +164,10 @@ object Wallpapers {
     /** Rehydrates the foreground-only wallpaper data after a trim or a killed background process. */
     fun restoreTransientCaches() {
         if (!started || selectedId == AUTO) return
-        if (backdrop == null || frosted == null) rebuildBackdrop()
+        if (backdrop == null || frosted == null) {
+            loadBaked()
+            rebuildBackdrop()
+        }
     }
 
     /**

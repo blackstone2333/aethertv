@@ -5,10 +5,6 @@ import app.orchard.tv.live.model.EpgProgram
 import app.orchard.tv.live.model.M3uPlaylist
 import app.orchard.tv.live.parser.M3uParser
 import app.orchard.tv.live.parser.XmlTvParser
-import java.io.ByteArrayOutputStream
-import java.io.IOException
-import java.net.HttpURLConnection
-import java.net.URL
 
 data class FeedError(val message: String, val cause: Throwable? = null)
 
@@ -27,45 +23,6 @@ data class EpgResult(
 sealed interface FeedLoad<out T> {
     data class Success<T>(val value: T, val fromCache: Boolean, val stale: Boolean) : FeedLoad<T>
     data class Failure(val error: FeedError) : FeedLoad<Nothing>
-}
-
-fun interface LiveHttpFetcher {
-    fun fetch(url: String, timeoutMillis: Int, headers: Map<String, String>): ByteArray
-}
-
-class UrlConnectionFetcher(private val maxBytes: Long = 64L * 1024 * 1024) : LiveHttpFetcher {
-    override fun fetch(url: String, timeoutMillis: Int, headers: Map<String, String>): ByteArray {
-        val connection = URL(url).openConnection() as? HttpURLConnection
-            ?: throw IOException("unsupported URL: $url")
-        try {
-            connection.connectTimeout = timeoutMillis.coerceAtLeast(1)
-            connection.readTimeout = timeoutMillis.coerceAtLeast(1)
-            connection.instanceFollowRedirects = true
-            connection.useCaches = false
-            headers.forEach { (key, value) -> connection.setRequestProperty(key, value) }
-            val code = connection.responseCode
-            if (code !in 200..299) throw IOException("HTTP $code for $url")
-            val declared = connection.contentLengthLong
-            if (declared > maxBytes) throw IOException("response too large")
-            return connection.inputStream.use { it.readBounded(maxBytes) }
-        } finally {
-            connection.disconnect()
-        }
-    }
-
-    private fun java.io.InputStream.readBounded(limit: Long): ByteArray {
-        val out = ByteArrayOutputStream()
-        val buffer = ByteArray(8192)
-        var total = 0L
-        while (true) {
-            val count = read(buffer)
-            if (count < 0) break
-            total += count
-            if (total > limit) throw IOException("response too large")
-            out.write(buffer, 0, count)
-        }
-        return out.toByteArray()
-    }
 }
 
 /** Fetches feeds on a worker thread chosen by the caller and falls back to stale disk data. */

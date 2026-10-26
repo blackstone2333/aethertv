@@ -1,5 +1,7 @@
 # 交接说明
 
+> AetherTV 定制版当前入口：先读 [PROJECT.md](PROJECT.md)、[AGENT_WORKFLOW.md](AGENT_WORKFLOW.md) 和 [手机验收工作包](work/AERIAL-20261026-phone-acceptance.md)。以下正文是上游历史；其中 `app.orchard.tv` 是 namespace，当前应用包名为 `com.dangbei.tvlauncher`，历史电视结果不代表本定制版已验收。安装使用 [INSTALL.md](INSTALL.md)。
+
 写给接手 Aerial 的人或 AI。先读这份，再读 [ARCHITECTURE.md](ARCHITECTURE.md) 和 [devices/](devices/)。
 
 ## 现状（2026-10-25）

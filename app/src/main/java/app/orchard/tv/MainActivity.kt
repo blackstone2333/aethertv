@@ -60,6 +60,7 @@ import app.orchard.tv.ui.theme.canvasDensity
 import app.orchard.tv.settings.AerialSettings
 import app.orchard.tv.wallpaper.Wallpapers
 import app.orchard.tv.system.DiagLog
+import app.orchard.tv.dream.AerialDream
 import app.orchard.tv.wallpaper.ScreensaverMode
 import app.orchard.tv.system.SystemScreensaver
 import app.orchard.tv.system.Diagnostics
@@ -171,7 +172,6 @@ class MainActivity : ComponentActivity() {
         val fresh = savedInstanceState == null
         TileArtFactory.useCanvasDensity(canvasDensity(resources.displayMetrics))
         Wallpapers.init(this)
-        Wallpapers.restoreTransientCaches()
         Weather.init(this)
         Updates.init(this)
         CustomIcons.init(this)
@@ -264,7 +264,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
-        if (level >= android.content.ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN) {
+        if (level >= android.content.ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN &&
+            !lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED) && !AerialDream.isAttached) {
             // Home may be backgrounded while a media app owns the only decoder and most of the
             // available heap. Keep disk-backed assets, but release decoded wallpaper and Compose
             // masks so returning to Home can rebuild them on demand.
@@ -603,6 +604,7 @@ class MainActivity : ComponentActivity() {
     /** What onStart does once the user is unlocked; also run by a start that was locked before. */
     private fun startWork() {
         DiagLog.i("onStart")
+        Wallpapers.restoreTransientCaches()
         GuardSetup.ensureEnabled(this)
         idleHandler.postDelayed({ GuardSetup.rebindIfStalled(this) }, 5_000)
         vm.reloadIfPackagesChanged()
@@ -684,6 +686,13 @@ class MainActivity : ComponentActivity() {
         super.onStop()
         if (locked) return
         DiagLog.i("onStop")
+        // A bound guard may keep the process above Android's background trim threshold. Release
+        // Home-only images here as well, without waiting for a trim callback that may never arrive.
+        if (!AerialDream.isAttached) {
+            Wallpapers.releaseTransientCaches()
+            clearBakes()
+            DiagLog.i("Home hidden: released wallpaper and UI caches")
+        }
         unregisterReceiver(packageReceiver)
         unregisterReceiver(volumeReceiver)
         unregisterReceiver(dayReceiver)

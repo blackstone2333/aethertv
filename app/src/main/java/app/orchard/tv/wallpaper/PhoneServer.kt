@@ -19,6 +19,7 @@ import app.orchard.tv.settings.AerialSettings
 import app.orchard.tv.system.Diagnostics
 import app.orchard.tv.system.currentNetwork
 import app.orchard.tv.settings.FocusStyle
+import app.orchard.tv.settings.RenderMode
 import app.orchard.tv.live.model.LiveSourceConfig
 import app.orchard.tv.live.model.LiveSourceKind
 import app.orchard.tv.live.repo.LiveSources
@@ -75,6 +76,12 @@ class PhoneServer private constructor(private val context: Context, private val 
                 session.method == Method.POST && path == "/api/focus" -> {
                     val style = FocusStyle.of(form(session)["style"])
                     onMain { AerialSettings.chooseFocusStyle(style) }
+                    json(state())
+                }
+                session.method == Method.POST && path == "/api/render-mode" -> {
+                    val mode = form(session)["mode"]
+                    if (RenderMode.entries.none { it.key == mode }) return text(Response.Status.BAD_REQUEST, "invalid render mode")
+                    runBlocking(Dispatchers.Main) { AerialSettings.chooseRenderMode(RenderMode.of(mode)) }
                     json(state())
                 }
                 session.method == Method.POST && path == "/api/delete" -> {
@@ -188,6 +195,8 @@ class PhoneServer private constructor(private val context: Context, private val 
                 ScreensaverVideos.all(context).forEach { put(JSONObject().put("id", it.id).put("name", it.name)) }
             })
             .put("focusStyle", AerialSettings.focusStyle.key)
+            .put("renderMode", AerialSettings.renderMode.key)
+            .put("liteMode", AerialSettings.liteMode)
             .put("wallpapers", list)
             .put("apps", JSONArray().apply {
                 // Pinned inputs first, then apps by the name Home shows. [default] is the name a

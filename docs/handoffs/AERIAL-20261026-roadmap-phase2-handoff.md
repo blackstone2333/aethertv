@@ -3,49 +3,43 @@
 Status: review
 From: main model / integration owner
 To: next AetherTV implementation session
-Repository: `/Users/black/Library/CloudStorage/SynologyDrive-air/NIE/vibecoding/AetherTV`
 Work unit: `AERIAL-20261026-roadmap-phase2`
 
 ## Current state
 
-- 已完成：AetherTV 品牌中文化基线、Lite Full/Auto/Lite 渲染策略、后台内存回收、IPTV M3U/XMLTV/XMLTV.gz 解析、磁盘 TTL/容量缓存、离线陈旧回退、源优先级规划和手机源配置页。
-- 未完成：Media3 IPTV 全屏播放、首页画中画预览、NAS/MoonTV/Selene/OrionTV Dock、真实局域网源质量和当贝 F3 电视专属验收。
-- 明确非目标：不更换 `com.dangbei.tvlauncher` 或 `app.orchard.tv`，不卸载/停用 `com.dangbei.leard.leradlauncher`，不覆盖无障碍服务，不把网络请求加入 `HomeViewModel.reload()`。
+- v0.1 完成：可见品牌文案、Auto/Full/Lite、后台图片回收/恢复、手机控制台、IPTV 源配置/解析/缓存和数据层优先级规划。
+- 最新证据以 [手机验收工作包](../work/AERIAL-20261026-phone-acceptance.md) 为准。Redmi 安装限制已解决，当前 USB 安装及无线启动均通过，不要再按旧安装阻塞排查。
+- 未交付：Media3 IPTV 全屏播放、首页预览、NAS/MoonTV/Selene/OrionTV Dock、SMB/WebDAV/NFS、真实源质量与 F3 L3。
 
 ## Changed surfaces
 
-- 文件范围：`app/src/main/java/app/orchard/tv/live/**`、`app/src/test/java/app/orchard/tv/live/**`、`PhoneServer.kt`、`assets/web/index.html`、Lite 生命周期和渲染组件、五语言品牌资源、项目工作包文档。
-- 共享接口：`LiveSources`、`LiveFeedRepository`、`M3uParser`、`XmlTvParser`、`FailoverPlanner`；手机 API 为 `api/live/state`、`api/live/source`、`api/live/source/delete`、`api/live/refresh`。
-- 依赖方向：手机 Web → `PhoneServer` → `LiveSources` → 解析/缓存；首页暂不依赖直播网络状态。
+- `live/model|parser|repo` 与单测，`PhoneServer`、Web 五语言、Lite 渲染/生命周期、品牌资源/控制中心、定制版更新来源、项目规则和安装说明。
+- API：`api/live/state|source|source/delete|refresh`；`api/render-mode` 接受 `auto/full/lite`，状态返回 `renderMode/liteMode`。
+- `LiveHttpFetcher` 的 HTTP 例外只用于配置的直播源；全局 cleartext 仍受限，HTTPS 证书检查保留，跨 origin 清除自定义头，禁止降级重定向。
+- Home 和系统时钟屏保共用壁纸缓存；清理缓存时必须考虑 `AerialDream.isAttached`，不能在屏保用图时清空。
+- 更新 manifest 为本仓库 `updates/version.txt`，下载本仓库 Releases 的 `aethertv-<flavor>.apk`；目前无公开 Release，manifest 不可提前提高。
 
 ## Evidence
 
-- `JAVA_HOME=/opt/homebrew/opt/openjdk@17 ./tools/check-project-rules.sh`：通过。
-- `ANDROID_HOME=/Users/black/Library/Android/sdk ANDROID_SDK_ROOT=/Users/black/Library/Android/sdk JAVA_HOME=/opt/homebrew/opt/openjdk@17 ./gradlew testStandardReleaseUnitTest testGuardReleaseUnitTest --no-daemon`：通过。
-- `assembleStandardRelease assembleGuardRelease`：通过；`aapt2 dump badging/xmltree` 确认包名 `com.dangbei.tvlauncher`、namespace `app.orchard.tv`、versionCode 101、standard 含 HOME、guard 不含 HOME、两者含 CONFIG action。
-- `node --check /tmp/aethertv-web.js`、`git diff --check`：通过。
-- 公开仓库：`https://github.com/blackstone2333/aethertv`；`main` 已同步至 `806ed74`，包含实现与 6 个 IPTV 契约测试文件。
-- 真机：Redmi K40S 无线调试配对成功，识别为 Android 14 / `munch` / 1080×2400；standard APK 安装被 MIUI 拒绝为 `INSTALL_FAILED_USER_RESTRICTED: Install canceled by user`，尚未启动应用；当贝 F3 所有专属行为均为“未验证”。
+- Java 17 双 flavor Release：成功；每个 flavor 41 项测试、0 失败。
+- `aapt2`：`com.dangbei.tvlauncher` / `app.orchard.tv`，101，standard 有 HOME、guard 无 HOME，CONFIG 正确。
+- 预检、Web JS/五语言表、安装/还原脚本语法及 diff 检查通过。
+- Redmi K40S Android 14 standard：安装、运行、手机网页源保存/刷新、HTTP M3U/EPG.gz、离线及重新启动后的磁盘缓存、Lite 切换/持久化、后台恢复通过。
+- 临时源、服务和转发已清理，设置恢复 Auto；截图与令牌未进仓库。
+- F3 所有专属行为和脚本电视接管/还原流程仍未验证，见工作包 Deferred。
 
 ## Risks and authority
 
-- 始终保持 `applicationId = com.dangbei.tvlauncher`、namespace `app.orchard.tv`、Java 17、minSdk 21/Android 5/6 兼容线。
-- 当贝 F3 的原厂桌面必须保持启用；禁止使用无障碍监听替代已有系统链路。
-- IPTV URL 由手机页配置并存入应用私有存储；不要把真实 URL、令牌、凭据或设备 IP 写入仓库文档。
-- 回滚路径：按本工作包提交回退 live/PhoneServer/Lite/品牌资源；不回滚上游 Aerial 兼容修复或 `local/`。
+- 必须保持 `com.dangbei.tvlauncher`、`app.orchard.tv`、Java 17、minSdk 21。
+- 不停用或卸载 `com.dangbei.leard.leradlauncher`；F3 不使用无障碍接管，不覆盖其他服务，不删除用户数据。
+- 所有真实 URL、凭据、IP、令牌和签名密钥保留本机；搜索只针对具体项目目录。
+- 安装指南使用显式包名/完整类名；旧上游文档中的相对组件写法不能直接套用。
+- 回滚：逐提交回退本工作单元，保留用户私有配置、签名、包名与当贝安全边界；不通过卸载回滚。
 
 ## Exact next action
 
-在 Redmi K40S 解锁屏幕，并在 MIUI 开发者选项开启“通过 USB 安装 / Install via USB”（必要时同时开启“USB 调试（安全设置）”）；无线调试已完成配对，取得当前 adbd 端口后执行：
-
-```text
-adb connect <手机地址>:<当前端口>
-adb install -r -g app/build/outputs/apk/standard/release/app-standard-release.apk
-adb shell monkey -p com.dangbei.tvlauncher -c android.intent.category.LAUNCHER 1
-```
-
-然后扫描 AetherTV 手机页二维码，保存一个局域网 M3U/EPG 源，刷新一次并断网确认陈旧缓存仍可浏览；记录设备型号、APK flavor、版本和结果，再决定是否拆 Media3 全屏播放工作包。
+接管先读 AGENTS、PROJECT、目标工作包并检查 `git status --short --branch`。从用户试用反馈确定下一单元；优先独立 Media3 全屏直播和真实家庭源，然后 NAS 卡片。不要把 v0.1 当作 Roadmap 全部完成。
 
 ## Completion condition
 
-下一次接管完成后，手机 L1 证据应包含安装、启动、手机页源保存/刷新/离线回退；若进入电视 L3，还需单列 HOME 接管、原厂桌面心跳、黑屏、遥控器、HDMI、硬解码和待机复活证据。
+当前 v0.1 的 L0/L1 已完成。后续单元各自定义可观察验收；F3 HOME/黑屏/遥控器/HDMI/音量/多任务/待机/硬解码只凭目标 Release 实机证据关闭。

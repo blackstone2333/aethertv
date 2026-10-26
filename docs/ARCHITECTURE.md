@@ -1,6 +1,12 @@
 # Aerial 架构
 
-单模块 Android 应用（`app/`），Kotlin + Jetpack Compose（没有用 androidx.tv 和 Material，全部自绘）。包名 `app.orchard.tv`（产品名是 Aerial，包名沿用旧名 Orchard：改包名会让电视把它当成新 App，丢掉户主数据和全部授权），minSdk 21（Android 5.0），targetSdk 34，compileSdk 36。Compose 固定在 1.9.x（BOM 2025.11.01）：1.10 起要求 Android 6.0。比 Android 5.0 新的接口都要按 `Build.VERSION.SDK_INT` 判断，`./gradlew lintStandardRelease` 的 NewApi 检查能找出漏掉的地方。
+单模块 Android 应用（`app/`），Kotlin + Jetpack Compose（自绘界面）。当前定制版产品名为 AetherTV / 以太桌面，`applicationId = com.dangbei.tvlauncher`，namespace 为 `app.orchard.tv`；外部组件必须使用白名单包名加完整源码类名，例如 `com.dangbei.tvlauncher/app.orchard.tv.MainActivity`。minSdk 21、targetSdk 34、compileSdk 36，使用 Java 17。Compose 保持 1.9.x、Media3 保持 1.8.1，以兼容 Android 5/6。以下保留了上游的历史设计和设备记录；定制版当前验收以 `docs/work/` 为准。
+
+## v0.1 接口和生命周期
+
+- 手机 `POST api/render-mode` 接受 `auto/full/lite`，`api/state` 返回选择值和实际 Lite 状态；五语言文案统一在 Web `KEYS/TEXTS` 中。
+- `LiveHttpFetcher` 只处理显式配置的直播源。HTTP 使用有边界的 socket 请求，不改变全局 cleartext 策略；HTTPS 使用系统证书校验。重定向有次数上限，跨 origin 清除自定义请求头，禁止 HTTPS 降级。
+- Home 隐藏时释放壁纸解码图和 Compose 图片缓存；`onStart` 先恢复本地烘焙图，再按需重建。系统时钟屏保也使用壁纸，因此 `AerialDream` 持有窗口时保留共享图片，并在附着窗口时恢复缓存。
 
 ## 目录一览
 
@@ -39,11 +45,11 @@ app/src/main/java/app/orchard/tv/
 ├── live/
 │   ├── model/LiveModels.kt  直播源、频道、EPG 和播放状态契约
 │   ├── parser/               M3U EXTINF、XMLTV/XMLTV.gz 解析与输入上限
-│   └── repo/                 源配置、TTL/容量缓存、网络回退和优先级规划
+│   └── repo/                 源配置、限定于直播源的 HTTP/HTTPS、TTL/容量缓存和优先级规划
 ├── settings/
 │   └── AerialSettings.kt    Aerial 自己的偏好（SharedPreferences "settings"）：焦点样式 FocusStyle（默认高对比度）、固定到主屏幕的信号源、开机信号源、屏保开始时间、家长密码（SHA-256，解锁 10 分钟或按 HOME 重新上锁）
 ├── update/
-│   └── Updates.kt           每 3 小时读一次官网 download/version.txt，有新版时控制中心提示；点「下载并安装」才下载 APK 并交给系统安装器（见「升级」）
+│   └── Updates.kt           每 3 小时读取本仓库 updates/version.txt；只下载本仓库 Releases 的同 flavor APK，保留包名/签名检查；首次公开发行仍需独立验收
 ├── weather/
 │   └── Weather.kt           时钟旁的天气：Open-Meteo 实时天气，城市来自手机页或 IP 定位
 ├── system/

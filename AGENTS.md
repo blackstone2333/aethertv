@@ -1,12 +1,14 @@
-# Aerial：给 AI 代理的说明
+# AetherTV：给 AI 代理的说明
 
 tvOS 风格的 Android TV 桌面，面向国内电视（小米、TCL 等），Kotlin + Jetpack Compose。
 
 开始任何工作前先读：
-1. `docs/HANDOFF.md`：现状、操作方式，以及**必须遵守**的规则
-2. `docs/ARCHITECTURE.md`：代码结构
-3. `docs/devices/*.md`：各台电视的限制和解决办法
-4. `local/TVS.md`（如果存在）：电视的 IP、每台电视上改过的设置、户主的数据。这些是本机信息，不要复制进版本库里的文件
+1. `docs/PROJECT.md` 和 `docs/AGENT_WORKFLOW.md`：当前项目边界和协作规则
+2. `docs/work/` 中目标工作包及相关交接：当前验收目标和执行状态
+3. `docs/HANDOFF.md`：现状、操作方式，以及**必须遵守**的规则
+4. `docs/ARCHITECTURE.md`：代码结构
+5. `docs/devices/` 中目标机型文档：各台电视的限制和解决办法
+6. `local/TVS.md`（如果存在）：电视的 IP、每台电视上改过的设置、户主的数据。这些是本机信息，不要复制进版本库里的文件
 
 ## 命令
 
@@ -17,10 +19,15 @@ source local/tvs.env && BUILD=1 KEEP_ADB=1 TV=$XIAOMI_TV tools/install.sh   # BU
 ```
 
 - 连电视的命令（adb、curl 访问电视）需要关闭沙箱。
-- 在电视上测试一律用 release 版并执行 `cmd package compile -m speed -f app.orchard.tv`，debug 版在电视上会卡。
+- 在电视上测试一律用 release 版并执行 `cmd package compile -m speed -f com.dangbei.tvlauncher`，debug 版在电视上会卡。
 - 发 TCL 版本前先给 `versionCode` 加 1。
 
 测试不要求每次都连接电视。解析器、布局、配置、手机 Web 控制台和普通 Compose/Media3 逻辑先用单元测试、Android 模拟器或 Android 手机验证；手机通过只能记为“手机验证”。当贝包名白名单、HOME 接管、原厂桌面心跳、防黑屏、HomeGuard、遥控器、HDMI、音量、多任务和 MStar 硬解码必须在当贝 F3 Release 真机上验收，未验收一律写“未验证”。
+
+## 搜索范围
+
+- 只在明确的项目目录或目标子目录内搜索；禁止从 `/`、`/Users/black/` 或 `~/` 递归扫描。
+- 不盲扫 CloudStorage，以免触发 NAS 文件下载；跨项目查询须明确目标路径。
 
 ## 代码约定
 

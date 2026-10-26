@@ -7,14 +7,15 @@
 set -euo pipefail
 : "${TV:?set TV to the TV IP address}"
 PKG=com.dangbei.tvlauncher
-GUARD="$PKG/$PKG.guard.HomeGuardService"
+NS=app.orchard.tv
+GUARD="$PKG/$NS.guard.HomeGuardService"
 case "$TV" in *:*) SERIAL="$TV" ;; *) SERIAL="$TV:5555" ;; esac
 export ANDROID_SERIAL="$SERIAL"
 adb connect "$SERIAL" >/dev/null
 
 # First take away what lets Aerial switch the guard back on, or it would simply do so.
-adb shell am broadcast -a "$PKG.CONFIG" -n "$PKG/.guard.ConfigReceiver" --ez keep_adb false --ez own_screensaver false >/dev/null 2>&1 || true
-adb shell cmd notification disallow_listener "$PKG/$PKG.guard.RevivalListener" >/dev/null 2>&1 || true
+adb shell am broadcast -a "$PKG.CONFIG" -n "$PKG/$NS.guard.ConfigReceiver" --ez keep_adb false --ez own_screensaver false >/dev/null 2>&1 || true
+adb shell cmd notification disallow_listener "$PKG/$NS.guard.RevivalListener" >/dev/null 2>&1 || true
 adb shell pm revoke "$PKG" android.permission.WRITE_SECURE_SETTINGS >/dev/null 2>&1 || true
 adb shell appops set "$PKG" SYSTEM_ALERT_WINDOW default >/dev/null 2>&1 || true
 adb shell appops set "$PKG" REQUEST_INSTALL_PACKAGES default >/dev/null 2>&1 || true

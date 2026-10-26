@@ -33,6 +33,11 @@ import app.orchard.tv.wallpaper.Wallpapers
  * Xiaomi runs its own screensaver outside this mechanism; there Aerial's Home timer covers it.
  */
 class AerialDream : DreamService(), LifecycleOwner, SavedStateRegistryOwner {
+    companion object {
+        /** Home and the clock dream share decoded wallpaper data on the main thread. */
+        var isAttached = false; private set
+    }
+
     private val registry = LifecycleRegistry(this)
     private val savedState = SavedStateRegistryController.create(this)
     private val skips = ScreensaverSkips()
@@ -52,6 +57,7 @@ class AerialDream : DreamService(), LifecycleOwner, SavedStateRegistryOwner {
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
+        isAttached = true
         // Interactive so left / right can step through the films; every other key ends the dream
         // in dispatchKeyEvent, as a non-interactive dream would.
         isInteractive = true
@@ -59,6 +65,7 @@ class AerialDream : DreamService(), LifecycleOwner, SavedStateRegistryOwner {
         // Home's wallpaper film holds the decoder the dream's film needs (TCL MT5879).
         LiveFilm.onHome?.letDecoderGo()
         Wallpapers.init(this)
+        Wallpapers.restoreTransientCaches()
         Weather.init(this)
         val canvas = canvasDensity(resources.displayMetrics)
         setContentView(
@@ -104,6 +111,7 @@ class AerialDream : DreamService(), LifecycleOwner, SavedStateRegistryOwner {
     }
 
     override fun onDetachedFromWindow() {
+        isAttached = false
         registry.currentState = Lifecycle.State.DESTROYED
         super.onDetachedFromWindow()
     }
