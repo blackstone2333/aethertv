@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.os.Build
 import android.util.Log
 import androidx.core.content.getSystemService
@@ -510,8 +511,30 @@ class PhoneServer private constructor(private val context: Context, private val 
 
         fun lanAddress(context: Context): String? {
             val cm = context.getSystemService<ConnectivityManager>() ?: return null
-            val props = cm.getLinkProperties(cm.currentNetwork() ?: return null) ?: return null
-            return props.linkAddresses.map { it.address }.firstOrNull { it is Inet4Address && !it.isLoopbackAddress }?.hostAddress
+            val current = cm.currentNetwork()
+            // A VPN can be the default network while its tunnel address is unreachable from the
+            // phone (upstream #667). Prefer the physical LAN without changing the user's VPN.
+            val lan = runCatching { cm.allNetworks.toList() }.getOrDefault(emptyList()).filter { network ->
+                val caps = runCatching { cm.getNetworkCapabilities(network) }.getOrNull() ?: return@filter false
+                !caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN) &&
+                    (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) || caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET))
+            }.sortedByDescending { it == current }
+            // Keep the old fallback for firmware lacking transport capabilities, but never
+            // advertise a known VPN tunnel, even if it uses an ordinary private address.
+            val fallback = current?.takeUnless { network ->
+                runCatching { cm.getNetworkCapabilities(network)?.hasTransport(NetworkCapabilities.TRANSPORT_VPN) }.getOrNull() == true
+            }
+            return (lan + listOfNotNull(fallback)).distinct().firstNotNullOfOrNull { network ->
+                runCatching { cm.getLinkProperties(network) }.getOrNull()?.linkAddresses?.map { it.address }
+                    ?.firstOrNull { it is Inet4Address && !it.isLoopbackAddress && !it.isLinkLocalAddress &&
+                        !it.isAnyLocalAddress && !it.isMulticastAddress && !isBenchmark(it) }
+            }?.hostAddress
+        }
+
+        /** 198.18.0.0/15 is used for benchmarking and proxy tunnels, not a reachable home LAN. */
+        private fun isBenchmark(address: java.net.InetAddress): Boolean {
+            val bytes = address.address
+            return bytes.size == 4 && (bytes[0].toInt() and 0xff) == 198 && (bytes[1].toInt() and 0xfe) == 18
         }
 
         /** A QR code, dark modules on white, each module [scale] pixels square. */

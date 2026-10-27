@@ -51,6 +51,7 @@ IPTV 第一版只提供离线可用的源契约和手机配置入口：`live/rep
 
 ## 当前工作前沿
 
+- `AERIAL-20261027-upstream-network`：1.2.1 / 104 选择性适配上游二维码LAN/VPN选址修复；48项L0网络场景、双Release与APK契约通过，未安装设备，真实网络/手机/F3均未验证。其他上游条目继续由 `docs/UPSTREAM_SYNC.md` 逐项追踪。
 - `AERIAL-20261026-liquid-glass`：1.2.0 / 103 动态玻璃和控制中心内的电视管家，双 Release、受影响单测及 Redmi K40S L1 已验收；当贝 F3 L3 仍未验证，详细证据见对应工作包。
 - `AERIAL-20261026-desktop-personalization`：1.1.0 / 102 桌面定制与系统工具，双 Release 和 Redmi K40S L1 已验收；当前交付与限制见对应工作包。
 - `AERIAL-20261025-dangbei-home`：迁移和首屏基线已在工作树中，真机仍未验证。
