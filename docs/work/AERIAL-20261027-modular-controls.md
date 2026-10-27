@@ -18,9 +18,9 @@ Owner: main model
 
 ## Plan
 
-1. 持久化控件模型和有界网格排布，接独立玻璃卡片与遥控器编辑。
-2. 网络/设置内页与根页导航、个性化多卡片及缓存虚化背景。
-3. 受影响单测、Java17双Release、APK检查和手机验证；更新本次0.3.1测试包与证据，提交同步。
+1. 已完成：持久化控件模型和有界网格排布，接独立玻璃卡片与遥控器编辑。
+2. 已完成：网络/设置内页与根页导航、个性化多卡片、缓存虚化背景及渐变/可读性修正。
+3. L0/L1已完成：受影响单测、Java17双Release、APK检查和手机验证，更新0.3.1候选和证据并同步源码。L3留待F3开机验收。
 
 ## Status
 
@@ -38,10 +38,11 @@ Owner: main model
 - 渐变修正后Java17双Release再次成功，仅重跑受影响构建与视觉检查，未重复未受影响单测。命令为`JAVA_HOME=/opt/homebrew/opt/openjdk@17 ANDROID_HOME=/Users/black/Library/Android/sdk ./gradlew :app:assembleStandardRelease :app:assembleGuardRelease`，exit0；本地日志local/thin-feather-build.log。
 - 最新薄模糊个性化版本Redmi Lite冷进程、静态→航拍→菜单顺序，各3次PSS：静态/航拍/菜单中位数约207.3/239.5/241.4MiB；首样本航拍约294.6MiB，仍有分配/回收瞬态。菜单数据为个性化页；右侧渐变层未单独作性能结论，F3降幅与流畅度未验证。原始样本仅local/perf-thin-final.json，不作为同机型以外推断。
 - 最终已核对恢复原壁纸、渲染模式、菜单材质及明暗偏好，移除本轮ADB forward和手机占用锁，将手机释放给独立IPTV对话继续验收。截图和网络地址仅保留local。
+- 桌面UI与NAS选型文档检查点9f132e4已推送至origin/codex/aerial/aerial-20261027-lite-performance；仅提交本Owner范围，播放器拆分、MediaBridge调用等Worker差异保留在工作树，待其独立验收后集成。当前手机测试APK包含该协作工作树，未发布Release。
 
 ## Exact next action
 
-本包L0/L1修正已验收并进入review；提交同步桌面UI检查点，独立IPTV由另一对话继续。F3开机后补目标机遥控器、焦点、半屏渐变/个性化可读性及内存/航拍流畅度验收。
+本包L0/L1计划已结束，保持review等待F3目标机验收。独立IPTV由另一对话继续，后续按其工作包集成；F3开机后补遥控器、焦点、半屏渐变/个性化可读性及内存/航拍流畅度证据。
 
 ## Deferred
 
