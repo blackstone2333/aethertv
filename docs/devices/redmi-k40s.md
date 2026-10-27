@@ -7,6 +7,7 @@
 - 相同包名和签名覆盖安装，保留应用数据，执行 `cmd package compile -m speed -f com.dangbei.tvlauncher` 成功。
 - 4/8 列焦点伸展、方向光边缘、grid 名称、桌面/菜单独立材质与明暗、控件直达与 Back 来源、Lite/Full 切换、重启保存通过。
 - 使用本地临时信号源观察 HLS 与 chunked TS 首帧、EPG、503 主源回退、换台和失败重试；测试源按创建 ID 删除，偏好恢复。
+- Redmi 上注入 `KEYCODE_MENU` 时观察到返回 MainActivity；电视菜单键行为仍未验证，不能用手机结论替代。
 - 真实遥控器、电视 HOME/守护/防黑屏、HDMI/音量、多任务、电视硬解码、真实家庭直播源长期播放均未验证。
 
 ## 本轮安装的 TV 客户端
