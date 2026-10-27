@@ -82,7 +82,7 @@ object AerialSettings {
     var directControls by mutableStateOf<Set<String>>(emptySet()); private set
     val allNames: Boolean get() = nameMode != "focused"
     val glassLight: Float get() = 0.70f + glassBrightness * 0.0048f
-    val menuGlassLight: Float get() = 0.24f + menuGlassBrightness * 0.005f
+    val menuGlassLight: Float get() = 0.78f + menuGlassBrightness * 0.0044f
     fun chooseMenuGlassStyle(value: String) { if (value in listOf("clear", "frosted")) { menuGlassStyle = value; save("menu_glass_style", value) } }
     fun chooseGlassBrightness(value: Int) { glassBrightness = value.coerceIn(0, 100); save("glass_brightness", glassBrightness) }
     fun chooseMenuGlassBrightness(value: Int) { menuGlassBrightness = value.coerceIn(0, 100); save("menu_glass_brightness", menuGlassBrightness) }

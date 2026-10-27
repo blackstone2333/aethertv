@@ -25,7 +25,7 @@ import app.orchard.tv.ui.theme.Motion
 fun ControlPanel(visible: Boolean, onClose: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
     val reduced = LocalReducedMotion.current
     AnimatedVisibility(visible, enter = fadeIn(tween(180)), exit = fadeOut(tween(140)), modifier = Modifier.fillMaxSize()) {
-        Box(Modifier.fillMaxSize().dismissOnTap(onClose).background(Color.Black.copy(alpha = .24f)))
+        Box(Modifier.fillMaxSize().dismissOnTap(onClose))
     }
     Box(Modifier.fillMaxSize().padding(top = 24.dp, end = 32.dp, bottom = 24.dp), contentAlignment = Alignment.TopEnd) {
         AnimatedVisibility(visible,

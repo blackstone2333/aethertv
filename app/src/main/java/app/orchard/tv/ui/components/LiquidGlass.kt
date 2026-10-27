@@ -1,5 +1,7 @@
 package app.orchard.tv.ui.components
 
+import app.orchard.tv.ui.home.LocalMenuScene
+import app.orchard.tv.ui.home.LocalMenuSurfaceLight
 import android.graphics.BitmapShader
 import android.graphics.LinearGradient
 import android.graphics.Matrix
@@ -53,10 +55,10 @@ fun Modifier.liquidGlass(corner: Dp, bottomCorners: Boolean = true): Modifier = 
     val shape = if (bottomCorners) RoundedCornerShape(corner) else RoundedCornerShape(topStart = corner, topEnd = corner)
     val lite = AerialSettings.liteMode
     val clear = AerialSettings.menuGlassStyle == "clear"
-    val frost = Wallpapers.frosted.takeIf { Wallpapers.backdrop != null }
-    val source = Wallpapers.backdrop
+    val frost = LocalMenuScene.current ?: Wallpapers.frosted.takeIf { Wallpapers.backdrop != null }
+    val source = LocalMenuScene.current ?: Wallpapers.backdrop
     val lensSource = if (clear) source else frost
-    val brightness = AerialSettings.menuGlassLight
+    val brightness = AerialSettings.menuGlassLight * LocalMenuSurfaceLight.current
     val density = LocalDensity.current.density
     var at by remember { mutableStateOf(Offset.Zero) }
     var root by remember { mutableStateOf(IntSize.Zero) }
@@ -104,7 +106,7 @@ fun Modifier.liquidGlass(corner: Dp, bottomCorners: Boolean = true): Modifier = 
                     drawImage(lens!!, dstSize = IntSize(w, h))
                 } else if (lite) {
                     drawImage(flat, dstSize = IntSize(w, h), colorFilter = ColorFilter.tint(
-                        Color.Black.copy(alpha = (0.90f - brightness * 0.22f).coerceIn(.65f, .90f))))
+                        Color.White.copy(alpha = .08f)))
                 } else if (shader == null || brush == null || root == IntSize.Zero) {
                     drawImage(flat, dstSize = IntSize(w, h), colorFilter = ColorFilter.tint(Palette.Glass))
                 } else {
@@ -118,7 +120,9 @@ fun Modifier.liquidGlass(corner: Dp, bottomCorners: Boolean = true): Modifier = 
                     // Mali-G31), and before Android 9 hardware drawing cannot compose two bitmaps.
                     drawContext.canvas.saveLayer(Rect(Offset.Zero, size), ComposePaint())
                     drawImage(flat, dstSize = IntSize(w, h))
-                    drawRect(brush, colorFilter = PanelTint, blendMode = BlendMode.SrcIn)
+                    drawRect(brush, colorFilter = ColorFilter.colorMatrix(ColorMatrix(floatArrayOf(
+                        brightness, 0f, 0f, 0f, 0f, 0f, brightness, 0f, 0f, 0f,
+                        0f, 0f, brightness, 0f, 0f, 0f, 0f, 0f, 1f, 0f))), blendMode = BlendMode.SrcIn)
                     drawContext.canvas.restore()
                 }
                 if (lens == null || (!clear && !lite)) drawImage(edge, dstSize = IntSize(w, h))
@@ -164,11 +168,3 @@ fun glassEdge(w: Int, h: Int, radius: Float, rim: Float, bottomCorners: Boolean 
         )
         bitmap.frozen().asImageBitmap()
     }
-
-/** Panels: the frosted picture at half its light, lifted a little, so white text reads on snow. */
-private val PanelTint = ColorFilter.colorMatrix(ColorMatrix(floatArrayOf(
-    0.42f, 0f, 0f, 0f, 8f,
-    0f, 0.42f, 0f, 0f, 8f,
-    0f, 0f, 0.42f, 0f, 8f,
-    0f, 0f, 0f, 1f, 0f,
-)))

@@ -58,6 +58,8 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -130,7 +132,7 @@ fun WallpaperSheet(
 
     AnimatedVisibility(visible = visible, enter = fadeIn(tween(220, easing = Motion.EaseOut)), exit = fadeOut(tween(180, easing = Motion.EaseOut)), modifier = Modifier.fillMaxSize()) {
         // A tap above the sheet closes it, back to Control Center as Back does.
-        Box(Modifier.fillMaxSize().dismissOnTap(onDismiss).background(Color.Black.copy(alpha = 0.25f)))
+        Box(Modifier.fillMaxSize().dismissOnTap(onDismiss))
     }
 
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
@@ -139,198 +141,202 @@ fun WallpaperSheet(
             enter = fadeIn(tween(200, easing = Motion.EaseOut)) + slideInVertically(tween(380, easing = Motion.Drawer)) { it / 3 },
             exit = fadeOut(tween(160, easing = Motion.EaseOut)) + slideOutVertically(tween(200, easing = Motion.EaseOut)) { it / 4 },
         ) {
-            Row(
+            Column(
                 Modifier
                     .fillMaxWidth()
                     .height(524.dp)
                     .consumeTaps()
                     .padding(horizontal = 32.dp, vertical = 16.dp),
             ) {
-                val scroll = rememberLazyListState()
-                val scope = rememberCoroutineScope()
-                LazyColumn(Modifier.weight(1f).fillMaxHeight().softEdges(start = { scroll.canScrollBackward }, end = { scroll.canScrollForward }), state = scroll,
-                    verticalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(6.dp)) {
-                    item { BasicText(stringResource(R.string.wp_title), style = Type.LargeTitle) }
-                    item {
-                        Column(Modifier.fillMaxWidth().liquidGlass(22.dp).padding(16.dp)) {
-                            SectionTitle(R.string.wp_wallpaper)
-                            WallpaperRows(firstWallpaper)
-                        }
-                    }
-
-                    item {
-                        Group { note ->
-                            Choices(R.string.aerial_category, null, note,
-                                listOf("all" to R.string.topic_all, "landscapes" to R.string.topic_nature, "cities" to R.string.topic_city,
-                                    "underwater" to R.string.topic_underwater, "space" to R.string.topic_space),
-                                AerialSettings.aerialCategory, AerialSettings::chooseAerialCategory, first = true)
-                            Choices(R.string.daily_theme, stringResource(R.string.daily_theme_hint), note,
-                                listOf("all" to R.string.topic_all, "nature" to R.string.topic_nature, "water" to R.string.topic_water,
-                                    "city" to R.string.topic_city), AerialSettings.dailyTheme, AerialSettings::chooseDailyTheme)
-                            Choices(R.string.daily_theme_more, null, note,
-                                listOf("animals" to R.string.topic_animals, "space" to R.string.topic_space, "other" to R.string.topic_other),
-                                AerialSettings.dailyTheme, AerialSettings::chooseDailyTheme)
-                        }
-                    }
-                    item { SectionTitle(R.string.st_home_layout) }
-                    // What is on Home and where; then the clock; then how the remote feels.
-                    item {
-                        Group { note ->
-                            Choices(
-                                R.string.st_layout, stringResource(R.string.st_home_layout_hint), note,
-                                listOf(true to R.string.st_home_one_row, false to R.string.st_home_standard),
-                                AerialSettings.oneRowHome, AerialSettings::chooseOneRowHome, first = true,
-                            )
-                            Choices(R.string.home_columns, null, note, (4..8).map { it to it.toString() },
-                                AerialSettings.homeColumns, AerialSettings::chooseHomeColumns)
-                            // Two rows show the second row whole; only one row has a peek to hide.
-                            if (AerialSettings.oneRowHome) Choices(
-                                R.string.st_peek, stringResource(R.string.st_peek_hint), note,
-                                listOf(true to R.string.st_peek_show, false to R.string.st_peek_hide),
-                                AerialSettings.peekNextRow, AerialSettings::choosePeekNextRow,
-                            )
-                            Choices(
-                                R.string.st_plate, stringResource(R.string.st_plate_hint), note,
-                                listOf(true to R.string.st_plate_glass, false to R.string.st_plate_none),
-                                AerialSettings.homePlate, AerialSettings::chooseHomePlate,
-                            )
-                            Choices(
-                                R.string.st_names, stringResource(R.string.st_names_hint), note,
-                                listOf("focused" to R.string.st_names_focused, "all" to R.string.st_names_all, "grid" to R.string.names_grid_only),
-                                AerialSettings.nameMode, AerialSettings::chooseNameMode,
-                            )
-                            // Apps taken off Home are kept with the rest of how Home looks.
-                            SettingRow(R.string.st_hidden_apps, stringResource(R.string.st_hidden_apps_hint), note) {
-                                ActionChip(
-                                    if (hiddenCount == 0) stringResource(R.string.st_hidden_none) else stringResource(R.string.st_hidden_count, hiddenCount),
-                                    Glyph.ChevronRight,
-                                    onHiddenApps,
-                                )
+                BasicText(stringResource(R.string.wp_title), style = Type.LargeTitle.copy(shadow = MenuTextShadow),
+                    modifier = Modifier.padding(horizontal = 6.dp))
+                Spacer(Modifier.height(12.dp))
+                Row(Modifier.fillMaxWidth().weight(1f)) {
+                    val scroll = rememberLazyListState()
+                    val scope = rememberCoroutineScope()
+                    LazyColumn(Modifier.weight(1f).fillMaxHeight().softEdges(start = { scroll.canScrollBackward }, end = { scroll.canScrollForward }), state = scroll,
+                        verticalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(6.dp)) {
+                        item {
+                            Column(Modifier.fillMaxWidth().liquidGlass(22.dp).padding(16.dp)) {
+                                SectionTitle(R.string.wp_wallpaper)
+                                WallpaperRows(firstWallpaper)
                             }
                         }
-                    }
-                    item {
-                        Group { note ->
-                            Choices(R.string.glass_material, stringResource(R.string.glass_hint), note,
-                                listOf("clear" to R.string.glass_clear, "frosted" to R.string.glass_frosted),
-                                AerialSettings.glassStyle, AerialSettings::chooseGlassStyle, first = true)
-                            Choices(R.string.desktop_glass_light, null, note, (0..100 step 25).map { it to "$it%" },
-                                AerialSettings.glassBrightness, AerialSettings::chooseGlassBrightness)
-                            Choices(R.string.menu_glass_material, null, note,
-                                listOf("clear" to R.string.glass_clear, "frosted" to R.string.glass_frosted),
-                                AerialSettings.menuGlassStyle, AerialSettings::chooseMenuGlassStyle)
-                            Choices(R.string.menu_glass_light, null, note, listOf(0, 25, 35, 50, 75, 100).map { it to "$it%" },
-                                AerialSettings.menuGlassBrightness, AerialSettings::chooseMenuGlassBrightness)
-                        }
-                    }
-                    item { SectionTitle(R.string.direct_controls) }
-                    item {
-                        Group { note ->
-                            listOf("care" to R.string.system_info, "inputs" to R.string.cc_inputs,
-                                "network" to R.string.cc_network, "settings" to R.string.cc_settings).forEach { (key, title) ->
-                                Choices(title, null, note, listOf(false to R.string.control_grouped, true to R.string.control_direct),
-                                    key in AerialSettings.directControls, { AerialSettings.chooseDirectControl(key, it) })
+
+                        item {
+                            Group { note ->
+                                Choices(R.string.aerial_category, null, note,
+                                    listOf("all" to R.string.topic_all, "landscapes" to R.string.topic_nature, "cities" to R.string.topic_city,
+                                        "underwater" to R.string.topic_underwater, "space" to R.string.topic_space),
+                                    AerialSettings.aerialCategory, AerialSettings::chooseAerialCategory, first = true)
+                                Choices(R.string.daily_theme, stringResource(R.string.daily_theme_hint), note,
+                                    listOf("all" to R.string.topic_all, "nature" to R.string.topic_nature, "water" to R.string.topic_water,
+                                        "city" to R.string.topic_city), AerialSettings.dailyTheme, AerialSettings::chooseDailyTheme)
+                                Choices(R.string.daily_theme_more, null, note,
+                                    listOf("animals" to R.string.topic_animals, "space" to R.string.topic_space, "other" to R.string.topic_other),
+                                    AerialSettings.dailyTheme, AerialSettings::chooseDailyTheme)
                             }
                         }
-                    }
-                    item {
-                        Group { note ->
-                            Choices(
-                                R.string.st_clock, stringResource(R.string.st_clock_hint), note,
-                                listOf(false to R.string.st_clock_left, true to R.string.st_clock_right),
-                                AerialSettings.clockRight, AerialSettings::chooseClockRight, first = true,
-                            )
-                            Choices(
-                                R.string.st_clock_size, stringResource(R.string.st_clock_size_hint), note,
-                                listOf(false to R.string.st_clock_small, true to R.string.st_clock_large),
-                                AerialSettings.largeClock, AerialSettings::chooseLargeClock,
-                            )
-                        }
-                    }
-                    item {
-                        Group { note ->
-                            Choices(
-                                R.string.st_focus_style,
-                                stringResource(if (AerialSettings.focusStyle == FocusStyle.HighContrast) R.string.st_focus_high_hint else R.string.st_focus_standard_hint),
-                                note,
-                                listOf(FocusStyle.HighContrast to R.string.st_focus_high, FocusStyle.Standard to R.string.st_focus_standard),
-                                AerialSettings.focusStyle, AerialSettings::chooseFocusStyle, first = true,
-                            )
-                            Choices(
-                                R.string.st_sounds,
-                                stringResource(if (AerialSettings.uiSounds == UiSounds.Tv) R.string.st_sounds_tv_hint else R.string.st_sounds_hint),
-                                note,
-                                listOf(UiSounds.Tv to R.string.st_sounds_tv, UiSounds.Aerial to R.string.st_sounds_aerial, UiSounds.Off to R.string.st_off),
-                                AerialSettings.uiSounds, { AerialSettings.chooseUiSounds(it); Sounds.prepare() },
-                            )
-                        }
-                    }
-
-                    item { SectionTitle(R.string.wp_screensaver) }
-                    item {
-                        Group { note ->
-                            SettingRow(
-                                R.string.ss_kind,
-                                when {
-                                    Wallpapers.screensaver == ScreensaverMode.Videos -> stringResource(R.string.ss_videos_hint)
-                                    Wallpapers.screensaver == ScreensaverMode.System -> stringResource(R.string.ss_system_hint)
-                                    Wallpapers.screensaverFollows -> stringResource(R.string.ss_follow_hint)
-                                    AerialSettings.backStartsScreensaver -> stringResource(R.string.ss_back_hint)
-                                    else -> null
-                                },
-                                note, first = true,
-                            ) { ScreensaverChoice(onStartScreensaver) }
-                            Choices(R.string.aerial_start, stringResource(R.string.aerial_start_hint), note,
-                                listOf(0 to R.string.aerial_immediate, 2 to "2 s", 10 to "10 s", 30 to "30 s"),
-                                AerialSettings.aerialDelaySeconds, AerialSettings::chooseAerialDelay)
-                            Choices(R.string.aerial_pause, stringResource(R.string.aerial_pause_hint), note,
-                                listOf(false to R.string.aerial_keep_playing, true to R.string.aerial_stop_input),
-                                AerialSettings.aerialPauseOnInput, AerialSettings::chooseAerialPause)
-                            // Only the qualities this TV can play; a 1080p-only TV has nothing to choose.
-                            val qualities = remember { AerialFormats.supported(context) }
-                            if (qualities.size > 1) {
+                        item { SectionTitle(R.string.st_home_layout) }
+                        // What is on Home and where; then the clock; then how the remote feels.
+                        item {
+                            Group { note ->
                                 Choices(
-                                    R.string.ss_quality, stringResource(R.string.ss_quality_hint), note,
-                                    listOf(AerialQuality.Auto to R.string.ss_quality_auto, AerialQuality.Hd to R.string.ss_quality_hd) +
-                                        listOf(AerialQuality.Uhd to R.string.ss_quality_uhd, AerialQuality.DolbyVision to R.string.ss_quality_dv)
-                                            .filter { it.first in qualities },
-                                    AerialSettings.aerialQuality, AerialSettings::chooseAerialQuality,
+                                    R.string.st_layout, stringResource(R.string.st_home_layout_hint), note,
+                                    listOf(true to R.string.st_home_one_row, false to R.string.st_home_standard),
+                                    AerialSettings.oneRowHome, AerialSettings::chooseOneRowHome, first = true,
+                                )
+                                Choices(R.string.home_columns, null, note, (4..8).map { it to it.toString() },
+                                    AerialSettings.homeColumns, AerialSettings::chooseHomeColumns)
+                                // Two rows show the second row whole; only one row has a peek to hide.
+                                if (AerialSettings.oneRowHome) Choices(
+                                    R.string.st_peek, stringResource(R.string.st_peek_hint), note,
+                                    listOf(true to R.string.st_peek_show, false to R.string.st_peek_hide),
+                                    AerialSettings.peekNextRow, AerialSettings::choosePeekNextRow,
+                                )
+                                Choices(
+                                    R.string.st_plate, stringResource(R.string.st_plate_hint), note,
+                                    listOf(true to R.string.st_plate_glass, false to R.string.st_plate_none),
+                                    AerialSettings.homePlate, AerialSettings::chooseHomePlate,
+                                )
+                                Choices(
+                                    R.string.st_names, stringResource(R.string.st_names_hint), note,
+                                    listOf("focused" to R.string.st_names_focused, "all" to R.string.st_names_all, "grid" to R.string.names_grid_only),
+                                    AerialSettings.nameMode, AerialSettings::chooseNameMode,
+                                )
+                                // Apps taken off Home are kept with the rest of how Home looks.
+                                SettingRow(R.string.st_hidden_apps, stringResource(R.string.st_hidden_apps_hint), note) {
+                                    ActionChip(
+                                        if (hiddenCount == 0) stringResource(R.string.st_hidden_none) else stringResource(R.string.st_hidden_count, hiddenCount),
+                                        Glyph.ChevronRight,
+                                        onHiddenApps,
+                                    )
+                                }
+                            }
+                        }
+                        item {
+                            Group { note ->
+                                Choices(R.string.glass_material, stringResource(R.string.glass_hint), note,
+                                    listOf("clear" to R.string.glass_clear, "frosted" to R.string.glass_frosted),
+                                    AerialSettings.glassStyle, AerialSettings::chooseGlassStyle, first = true)
+                                Choices(R.string.desktop_glass_light, null, note, (0..100 step 25).map { it to "$it%" },
+                                    AerialSettings.glassBrightness, AerialSettings::chooseGlassBrightness)
+                                Choices(R.string.menu_glass_material, null, note,
+                                    listOf("clear" to R.string.glass_clear, "frosted" to R.string.glass_frosted),
+                                    AerialSettings.menuGlassStyle, AerialSettings::chooseMenuGlassStyle)
+                                Choices(R.string.menu_glass_light, null, note, listOf(0, 25, 35, 50, 75, 100).map { it to "$it%" },
+                                    AerialSettings.menuGlassBrightness, AerialSettings::chooseMenuGlassBrightness)
+                            }
+                        }
+                        item { SectionTitle(R.string.direct_controls) }
+                        item {
+                            Group { note ->
+                                listOf("care" to R.string.system_info, "inputs" to R.string.cc_inputs,
+                                    "network" to R.string.cc_network, "settings" to R.string.cc_settings).forEach { (key, title) ->
+                                    Choices(title, null, note, listOf(false to R.string.control_grouped, true to R.string.control_direct),
+                                        key in AerialSettings.directControls, { AerialSettings.chooseDirectControl(key, it) })
+                                }
+                            }
+                        }
+                        item {
+                            Group { note ->
+                                Choices(
+                                    R.string.st_clock, stringResource(R.string.st_clock_hint), note,
+                                    listOf(false to R.string.st_clock_left, true to R.string.st_clock_right),
+                                    AerialSettings.clockRight, AerialSettings::chooseClockRight, first = true,
+                                )
+                                Choices(
+                                    R.string.st_clock_size, stringResource(R.string.st_clock_size_hint), note,
+                                    listOf(false to R.string.st_clock_small, true to R.string.st_clock_large),
+                                    AerialSettings.largeClock, AerialSettings::chooseLargeClock,
                                 )
                             }
-                            Choices(
-                                R.string.ss_delay, null, note,
-                                AerialSettings.screensaverChoices.map {
-                                    it to if (it == AerialSettings.NEVER) stringResource(R.string.ss_never) else stringResource(R.string.ss_minutes, it)
-                                },
-                                AerialSettings.screensaverMinutes, AerialSettings::chooseScreensaverMinutes,
-                            )
-                            Choices(
-                                R.string.ss_back, stringResource(R.string.ss_back_choice_hint), note,
-                                listOf(true to R.string.ss_back_on, false to R.string.ss_back_off),
-                                AerialSettings.backStartsScreensaver, AerialSettings::chooseBackStartsScreensaver,
-                            )
                         }
-                    }
-
-                    item { SectionTitle(R.string.wp_weather) }
-                    item {
-                        Group(stringResource(if (Weather.chosen) R.string.wp_weather_chosen else R.string.wp_weather_guessed)) { note ->
-                            SettingRow(R.string.wp_weather_city, null, note, first = true) { WeatherValue() }
+                        item {
+                            Group { note ->
+                                Choices(
+                                    R.string.st_focus_style,
+                                    stringResource(if (AerialSettings.focusStyle == FocusStyle.HighContrast) R.string.st_focus_high_hint else R.string.st_focus_standard_hint),
+                                    note,
+                                    listOf(FocusStyle.HighContrast to R.string.st_focus_high, FocusStyle.Standard to R.string.st_focus_standard),
+                                    AerialSettings.focusStyle, AerialSettings::chooseFocusStyle, first = true,
+                                )
+                                Choices(
+                                    R.string.st_sounds,
+                                    stringResource(if (AerialSettings.uiSounds == UiSounds.Tv) R.string.st_sounds_tv_hint else R.string.st_sounds_hint),
+                                    note,
+                                    listOf(UiSounds.Tv to R.string.st_sounds_tv, UiSounds.Aerial to R.string.st_sounds_aerial, UiSounds.Off to R.string.st_off),
+                                    AerialSettings.uiSounds, { AerialSettings.chooseUiSounds(it); Sounds.prepare() },
+                                )
+                            }
                         }
-                    }
 
-                    // One row says what it is; a title over it would only repeat it.
-                    item {
-                        Group(stringResource(R.string.st_pin_hint)) { note ->
-                            SettingRow(R.string.st_pin, null, note, first = true) {
-                                // The last row that takes focus: bring the note under it into view too.
-                                PinChoice(onPin, onFocused = { scope.launch { scroll.animateScrollToItem((scroll.layoutInfo.totalItemsCount - 1).coerceAtLeast(0)) } })
+                        item { SectionTitle(R.string.wp_screensaver) }
+                        item {
+                            Group { note ->
+                                SettingRow(
+                                    R.string.ss_kind,
+                                    when {
+                                        Wallpapers.screensaver == ScreensaverMode.Videos -> stringResource(R.string.ss_videos_hint)
+                                        Wallpapers.screensaver == ScreensaverMode.System -> stringResource(R.string.ss_system_hint)
+                                        Wallpapers.screensaverFollows -> stringResource(R.string.ss_follow_hint)
+                                        AerialSettings.backStartsScreensaver -> stringResource(R.string.ss_back_hint)
+                                        else -> null
+                                    },
+                                    note, first = true,
+                                ) { ScreensaverChoice(onStartScreensaver) }
+                                Choices(R.string.aerial_start, stringResource(R.string.aerial_start_hint), note,
+                                    listOf(0 to R.string.aerial_immediate, 2 to "2 s", 10 to "10 s", 30 to "30 s"),
+                                    AerialSettings.aerialDelaySeconds, AerialSettings::chooseAerialDelay)
+                                Choices(R.string.aerial_pause, stringResource(R.string.aerial_pause_hint), note,
+                                    listOf(false to R.string.aerial_keep_playing, true to R.string.aerial_stop_input),
+                                    AerialSettings.aerialPauseOnInput, AerialSettings::chooseAerialPause)
+                                // Only the qualities this TV can play; a 1080p-only TV has nothing to choose.
+                                val qualities = remember { AerialFormats.supported(context) }
+                                if (qualities.size > 1) {
+                                    Choices(
+                                        R.string.ss_quality, stringResource(R.string.ss_quality_hint), note,
+                                        listOf(AerialQuality.Auto to R.string.ss_quality_auto, AerialQuality.Hd to R.string.ss_quality_hd) +
+                                            listOf(AerialQuality.Uhd to R.string.ss_quality_uhd, AerialQuality.DolbyVision to R.string.ss_quality_dv)
+                                                .filter { it.first in qualities },
+                                        AerialSettings.aerialQuality, AerialSettings::chooseAerialQuality,
+                                    )
+                                }
+                                Choices(
+                                    R.string.ss_delay, null, note,
+                                    AerialSettings.screensaverChoices.map {
+                                        it to if (it == AerialSettings.NEVER) stringResource(R.string.ss_never) else stringResource(R.string.ss_minutes, it)
+                                    },
+                                    AerialSettings.screensaverMinutes, AerialSettings::chooseScreensaverMinutes,
+                                )
+                                Choices(
+                                    R.string.ss_back, stringResource(R.string.ss_back_choice_hint), note,
+                                    listOf(true to R.string.ss_back_on, false to R.string.ss_back_off),
+                                    AerialSettings.backStartsScreensaver, AerialSettings::chooseBackStartsScreensaver,
+                                )
+                            }
+                        }
+
+                        item { SectionTitle(R.string.wp_weather) }
+                        item {
+                            Group(stringResource(if (Weather.chosen) R.string.wp_weather_chosen else R.string.wp_weather_guessed)) { note ->
+                                SettingRow(R.string.wp_weather_city, null, note, first = true) { WeatherValue() }
+                            }
+                        }
+
+                        // One row says what it is; a title over it would only repeat it.
+                        item {
+                            Group(stringResource(R.string.st_pin_hint)) { note ->
+                                SettingRow(R.string.st_pin, null, note, first = true) {
+                                    // The last row that takes focus: bring the note under it into view too.
+                                    PinChoice(onPin, onFocused = { scope.launch { scroll.animateScrollToItem((scroll.layoutInfo.totalItemsCount - 1).coerceAtLeast(0)) } })
+                                }
                             }
                         }
                     }
+                    Spacer(Modifier.width(20.dp))
+                    Box(Modifier.padding(top = 6.dp)) { PhoneCard(phoneUrl, qr) }
                 }
-                Spacer(Modifier.width(20.dp))
-                PhoneCard(phoneUrl, qr)
             }
         }
     }
@@ -379,7 +385,7 @@ private fun WallpaperRows(first: FocusRequester) {
         }
     }
     Box(Modifier.height(42.dp).padding(start = 4.dp, top = 8.dp)) {
-        note?.let { BasicText(it, style = Type.Caption.copy(color = Palette.TertiaryLabel), maxLines = 2, overflow = TextOverflow.Ellipsis) }
+        note?.let { BasicText(it, style = Type.Caption.copy(color = MenuDetailColor, shadow = MenuTextShadow), maxLines = 2, overflow = TextOverflow.Ellipsis) }
     }
 }
 
@@ -438,7 +444,7 @@ private fun WallpaperCard(wp: Wallpaper, focusRequester: FocusRequester?, onFocu
             Spacer(Modifier.height(6.dp))
             BasicText(
                 wp.title, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                style = Type.Caption.copy(color = if (state.focused) Palette.Label else Palette.SecondaryLabel),
+                style = Type.Caption.copy(color = if (state.focused) Palette.Label else MenuDetailColor, shadow = MenuTextShadow),
             )
         }
     }
@@ -446,7 +452,7 @@ private fun WallpaperCard(wp: Wallpaper, focusRequester: FocusRequester?, onFocu
 
 @Composable
 private fun SectionTitle(title: Int) {
-    BasicText(stringResource(title), style = Type.Headline, modifier = Modifier.padding(start = 4.dp))
+    BasicText(stringResource(title), style = Type.Headline.copy(shadow = MenuTextShadow), modifier = Modifier.padding(start = 4.dp))
     Spacer(Modifier.height(10.dp))
 }
 
@@ -464,7 +470,7 @@ private fun Group(note: String? = null, rows: @Composable ColumnScope.(note: (St
         if (note != null || (inside && focusedNote != null)) {
             Box(Modifier.height(38.dp).padding(start = 16.dp, end = 16.dp, top = 7.dp)) {
                 (if (inside) focusedNote ?: note else note)?.let {
-                    BasicText(it, style = Type.Caption.copy(color = Palette.SecondaryLabel), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    BasicText(it, style = Type.Caption.copy(color = MenuDetailColor, shadow = MenuTextShadow), maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
             }
         }
@@ -473,7 +479,8 @@ private fun Group(note: String? = null, rows: @Composable ColumnScope.(note: (St
 
 /** One row: the setting's name on the left, its control on the right, a hairline above all but the first. */
 @Composable
-private fun SettingRow(label: Int, hint: String?, note: (String?) -> Unit, first: Boolean = false, control: @Composable () -> Unit) {
+private fun SettingRow(label: Int, hint: String?, note: (String?) -> Unit, first: Boolean = false,
+    wideOptions: Boolean = false, control: @Composable () -> Unit) {
     if (!first) Box(Modifier.padding(start = 18.dp).fillMaxWidth().height(1.dp).background(Palette.Hairline))
     Row(
         Modifier
@@ -483,8 +490,10 @@ private fun SettingRow(label: Int, hint: String?, note: (String?) -> Unit, first
             .onFocusChanged { if (it.hasFocus) note(hint) },
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        BasicText(stringResource(label), style = Type.Body, modifier = Modifier.weight(1f), maxLines = 1)
-        control()
+        BasicText(stringResource(label), style = Type.Body.copy(shadow = MenuTextShadow),
+            modifier = if (wideOptions) Modifier.width(128.dp).padding(end = 12.dp) else Modifier.weight(1f),
+            maxLines = if (wideOptions) 2 else 1, overflow = TextOverflow.Ellipsis)
+        if (wideOptions) Box(Modifier.weight(1f)) { control() } else control()
     }
 }
 
@@ -499,8 +508,8 @@ private fun <T> Choices(
     choose: (T) -> Unit,
     first: Boolean = false,
 ) {
-    SettingRow(label, hint, note, first) {
-        Row(Modifier.widthIn(max = 370.dp).let { viewport -> val edgeScroll = rememberScrollState(); viewport.softScrollEdges(edgeScroll, horizontal = true).horizontalScroll(edgeScroll) }, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+    SettingRow(label, hint, note, first, wideOptions = true) {
+        Row(Modifier.fillMaxWidth().let { viewport -> val edgeScroll = rememberScrollState(); viewport.softScrollEdges(edgeScroll, horizontal = true).horizontalScroll(edgeScroll) }, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             options.forEach { (value, text) ->
                 Chip(if (text is Int) stringResource(text) else text.toString(), on = current == value) { choose(value) }
             }
@@ -630,15 +639,19 @@ private fun PhoneCard(url: String?, qr: ImageBitmap?) {
             }
         }
         Spacer(Modifier.height(14.dp))
-        BasicText(stringResource(R.string.wp_phone_title), style = Type.Headline)
+        BasicText(stringResource(R.string.wp_phone_title), style = Type.Headline.copy(shadow = MenuTextShadow))
         Spacer(Modifier.height(4.dp))
         BasicText(
             stringResource(if (url != null) R.string.wp_phone_body else R.string.wp_phone_offline),
-            style = Type.Caption.copy(textAlign = androidx.compose.ui.text.style.TextAlign.Center),
+            style = Type.Caption.copy(color = MenuDetailColor, shadow = MenuTextShadow, textAlign = androidx.compose.ui.text.style.TextAlign.Center),
         )
         if (url != null) {
             Spacer(Modifier.height(6.dp))
-            BasicText(url.removePrefix("http://").substringBefore('/') , style = Type.Caption.copy(color = Palette.TertiaryLabel))
+            BasicText(url.removePrefix("http://").substringBefore('/') , style = Type.Caption.copy(color = MenuDetailColor, shadow = MenuTextShadow))
         }
     }
 }
+
+// Keep small text readable over bright Home art without darkening the scene behind the cards.
+private val MenuTextShadow = Shadow(Color.Black.copy(alpha = .72f), Offset(0f, 1f), 3f)
+private val MenuDetailColor = Palette.Label.copy(alpha = .88f)

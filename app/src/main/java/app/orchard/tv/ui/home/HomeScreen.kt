@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -103,7 +104,7 @@ private val PlateMarginBottom = 30.dp
 private val PlateNameRoom = 28.dp
 
 /** Grid geometry for the screen at hand. On a 1080p TV this is a 960×540 dp canvas. */
-private class GridMetrics(screenW: Dp, screenH: Dp, oneRow: Boolean, plateNames: Boolean, peek: Boolean, plate: Boolean, val columns: Int) {
+internal class GridMetrics(screenW: Dp, screenH: Dp, oneRow: Boolean, plateNames: Boolean, peek: Boolean, plate: Boolean, val columns: Int) {
     val margin = 56.dp
     val gap = if (columns >= 7) 20.dp else 28.dp
     val tileW = (screenW - margin * 2 - gap * (columns - 1)) / columns
@@ -426,13 +427,20 @@ fun HomeScreen(
         val openFolder = (overlay as? Overlay.Folder)?.id ?: (overlay as? Overlay.AppMenu)?.inFolder
         val folderOpen = overlay is Overlay.HiddenApps || openFolder != null
         val ccOpen = overlay is Overlay.ControlCenter
-        // The cached diffuse backdrop separates floating controls from the Home grid.
+        val menuOpen = ccOpen || overlay is Overlay.Wallpaper
+        var fullMenuBackdrop by remember { mutableStateOf(false) }
+        LaunchedEffect(menuOpen, ccOpen) {
+            if (menuOpen) fullMenuBackdrop = !ccOpen
+        }
+        val menuScene = rememberMenuScene(menuOpen, apps, metrics, maxWidth.value, maxHeight.value,
+            with(density) { scroll.value.toDp().value }, now)
+        // A single small scene preserves the wallpaper and icon silhouettes behind the controls.
         val backdropFrost by animateFloatAsState(
-            if (folderOpen || ccOpen || overlay is Overlay.Wallpaper) 1f else 0f,
+            if (folderOpen) 1f else 0f,
             tween(320, easing = Motion.EaseOut), label = "backdrop-frost",
         )
         val backdropVeil by animateFloatAsState(
-            if (ccOpen) 1f else 0f,
+            if (menuOpen) 1f else 0f,
             tween(320, easing = Motion.EaseOut), label = "backdrop-veil",
         )
 
@@ -458,7 +466,8 @@ fun HomeScreen(
                 .graphicsLayer {
                     // Under the frost once it is whole, Home is not drawn at all: on MFTR0 the
                     // picture, plate and tiles cost the GPU as much again as the panel over them.
-                    alpha = if (backdropFrost > 0.999f) 0f else 1f
+                    alpha = if (backdropFrost > 0.999f ||
+                        (overlay is Overlay.Wallpaper && backdropVeil > 0.999f && menuScene != null)) 0f else 1f
                 },
         ) {
             // The glass plate under the top row (tvOS 26), the row's full width however few apps
@@ -622,7 +631,9 @@ fun HomeScreen(
         }
         }
 
-        PanelBackdrop(Wallpapers.frosted.takeIf { Wallpapers.backdrop != null }, { backdropFrost }, { backdropVeil })
+        PanelBackdrop(Wallpapers.frosted.takeIf { Wallpapers.backdrop != null }, { backdropFrost }, { backdropVeil }, menuScene,
+            menuStart = { if (!fullMenuBackdrop) with(density) { (maxWidth - 480.dp).coerceAtLeast(0.dp).toPx() } else 0f },
+            menuShade = if (fullMenuBackdrop) .12f else 0f)
 
         // Rows that scroll up under the status pill fade out instead of colliding with it.
         Canvas(
@@ -725,6 +736,7 @@ fun HomeScreen(
             )
         }
 
+        CompositionLocalProvider(LocalMenuScene provides menuScene) {
         ControlCenter(
             visible = overlay is Overlay.ControlCenter,
             page = (overlay as? Overlay.ControlCenter)?.page ?: CcPage.Main,
@@ -736,6 +748,8 @@ fun HomeScreen(
             },
             onClose = { vm.overlay = Overlay.None },
         )
+
+        }
 
         FolderView(
             name = openFolder?.let { id -> apps.firstOrNull { it.folder?.id == id }?.label },
@@ -818,6 +832,7 @@ fun HomeScreen(
             onDismiss = { vm.overlay = Overlay.Wallpaper },
         )
 
+        CompositionLocalProvider(LocalMenuScene provides menuScene, LocalMenuSurfaceLight provides .82f) {
         WallpaperSheet(
             visible = overlay is Overlay.Wallpaper,
             onDismiss = { vm.overlay = personalizeOrigin },
@@ -832,6 +847,8 @@ fun HomeScreen(
                 else vm.whenUnlocked { AerialSettings.choosePin(null); vm.overlay = Overlay.Wallpaper }
             },
         )
+
+        }
 
 
         val pin = overlay as? Overlay.Pin

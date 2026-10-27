@@ -55,7 +55,8 @@ IPTV 由 `LiveSources` 保存源配置、`LiveFeedRepository` 负责网络/缓�
 
 ## 当前工作前沿
 
-- `AERIAL-20261027-modular-controls`：独立玻璃控件、遥控器编辑顺序/尺寸/显隐、网络/设置内页、个性化独立分组与缓存虚化背景；Java17双Release、每flavor92项测试与Redmi L1，F3未验证。
+- `AERIAL-20261027-modular-controls`：独立玻璃控件、遥控器编辑顺序/尺寸/显隐、网络/设置内页；个性化适度压暗、宽选项和手机卡片对齐，控制中心仅右侧渐变虚化。Java17双Release与Redmi L1通过；首版每flavor92测试，直播拆分工作树桌面各70测试，F3未验证。
+- NAS独立播放器候选及只读桌面接口见[选型方案](NAS_PLAYER_PLAN.md)：优先Jellyfin的Java17兼容基线，Android6和实际媒体库尚待原型验证；当前上游JDK21不能直接采用。
 
 - `AERIAL-20261027-lite-performance`：0.3.1 / 106，Lite缓冲与解码减负、静态玻璃/视频边缘光、图片字节限额及视口附近磁贴绘制缓存。双 Release、每 flavor 88 项单测和 Redmi L1 对照；静态/航拍/菜单 PSS 中位数约下降17%/15%/22%，F3降幅和流畅度未验证。
 - `AERIAL-20261027-liquid-controls`：0.3.0 / 105，定向玻璃边缘、焦点伸展、独立菜单材质/明暗、溢出渐隐、应用菜单名称、四个可选独立控件及前台直播；双 Release、单测和 Redmi L1 验收，F3 L3 未验证。

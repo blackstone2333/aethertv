@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -451,24 +452,36 @@ private fun bakePlate(glass: ImageBitmap, screen: Size, plate: Rect, radius: Flo
     return out.frozen().asImageBitmap()
 }
 
-/**
- * What Home shows behind panels. Folders and Hidden Apps open on Home frosted, as on tvOS: the
- * grid's frosted background fading over it [frost] of the way, one full-screen draw of a small
- * picture (in "Follow App" mode, which has none, a dark veil). Control Center keeps Home sharp
- * under a dark [veil], its own panel the glass (1.41 frosted all of Home behind it too, which
- * owners took for everything gone blurry).
- */
+/** Folders use a dark diffusion; floating controls use the light, cached Home scene. */
 @Composable
-fun PanelBackdrop(frosted: ImageBitmap?, frost: () -> Float, veil: () -> Float) {
+fun PanelBackdrop(frosted: ImageBitmap?, frost: () -> Float, veil: () -> Float,
+    menuScene: ImageBitmap? = null, menuStart: () -> Float = { 0f }, menuShade: Float = 0f) {
     val dark = remember(frosted) { frosted?.let { darkened(it, GRID_SHADE) } }
     Canvas(Modifier.fillMaxSize()) {
+        val full = IntSize(size.width.roundToInt(), size.height.roundToInt())
         val f = frost()
-        if (f >= 0.01f) {
-            if (dark == null) drawRect(Color.Black, alpha = 0.55f * f)
-            else drawImage(dark, dstSize = IntSize(size.width.roundToInt(), size.height.roundToInt()), filterQuality = FilterQuality.Low, alpha = f)
+        if (f >= .01f) {
+            if (dark == null) drawRect(Color.Black, alpha = .55f * f)
+            else drawImage(dark, dstSize = full, filterQuality = FilterQuality.Low, alpha = f)
         }
         val v = veil()
-        if (v >= 0.01f) drawRect(Color.Black, alpha = 0.45f * v)
+        val scene = menuScene ?: frosted
+        if (v >= .01f && scene != null) {
+            val start = menuStart().coerceIn(0f, size.width)
+            val feather = 64.dp.toPx().coerceAtMost(start)
+            val left = start - feather
+            clipRect(left = left) {
+                // The bounded layer fades diffusion into the sharp Home scene, with no dark strip.
+                if (feather > 0f) drawContext.canvas.saveLayer(Rect(left, 0f, size.width, size.height), androidx.compose.ui.graphics.Paint())
+                drawImage(scene, dstSize = full, filterQuality = FilterQuality.Medium, alpha = v)
+                if (menuShade > 0f) drawRect(Color.Black, alpha = menuShade * v)
+                if (feather > 0f) {
+                    drawRect(Brush.horizontalGradient(listOf(Color.Transparent, Color.White), left, start),
+                        blendMode = androidx.compose.ui.graphics.BlendMode.DstIn)
+                    drawContext.canvas.restore()
+                }
+            }
+        }
     }
 }
 
