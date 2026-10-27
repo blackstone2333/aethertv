@@ -16,7 +16,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
-import androidx.compose.foundation.background
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
@@ -32,7 +31,6 @@ import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.asAndroidPath
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
@@ -47,31 +45,35 @@ import kotlin.math.roundToInt
 
 /**
  * Shared control material: a refractive lens or cached diffusion sampled from the wallpaper.
- * Android 5/6 use the same geometry with the Lite fill. Layout/background changes rebuild the
+ * Lite uses a smaller baked texture with the same geometry. Layout/background changes rebuild the
  * lens off the main thread; animation frames reuse it. No second decoder or frame readback.
  * [bottomCorners] is false for a sheet that meets the bottom of the screen.
  */
 fun Modifier.liquidGlass(corner: Dp, bottomCorners: Boolean = true): Modifier = composed {
     val shape = if (bottomCorners) RoundedCornerShape(corner) else RoundedCornerShape(topStart = corner, topEnd = corner)
-    if (AerialSettings.liteMode) {
-        // Android 5/6 and low-RAM phones benefit more from a flat plate than from a baked mask.
-        return@composed this.clip(shape).background(Palette.Glass)
-    }
+    val lite = AerialSettings.liteMode
     val clear = AerialSettings.menuGlassStyle == "clear"
     val frost = Wallpapers.frosted.takeIf { Wallpapers.backdrop != null }
     val source = Wallpapers.backdrop
+    val lensSource = if (clear) source else frost
     val brightness = AerialSettings.menuGlassLight
     val density = LocalDensity.current.density
     var at by remember { mutableStateOf(Offset.Zero) }
     var root by remember { mutableStateOf(IntSize.Zero) }
     var extent by remember { mutableStateOf(IntSize.Zero) }
     // Rebuild only after layout/background/settings change; never capture or blur video each frame.
-    val lens by produceState<ImageBitmap?>(null, source, root, at, extent, brightness, clear) {
-        value = if (!clear || source == null || root == IntSize.Zero || extent == IntSize.Zero) null else
+    val lens by produceState<ImageBitmap?>(null, lensSource, root, at, extent, brightness, clear, lite, corner, bottomCorners, density) {
+        value = null
+        // Coalesce a sheet's entering layout into one bake; its fill and edge answer immediately.
+        if (lite) kotlinx.coroutines.delay(80)
+        value = if ((!clear && !lite) || lensSource == null || root == IntSize.Zero || extent == IntSize.Zero) null else
             withContext(Dispatchers.Default) {
-                refractivePlate(source, Size(root.width.toFloat(), root.height.toFloat()),
-                    Rect(at, Size(extent.width.toFloat(), extent.height.toFloat())), corner.value * density,
-                    1.2f * density, brightness, density)
+                val screen = Size(root.width.toFloat(), root.height.toFloat())
+                val plate = Rect(at, Size(extent.width.toFloat(), extent.height.toFloat()))
+                if (clear) refractivePlate(lensSource, screen, plate, corner.value * density,
+                    1.2f * density, brightness, density, if (lite) 768 else 1600, bottomCorners)
+                else diffusePlate(lensSource, screen, plate, corner.value * density,
+                    1.2f * density, brightness, bottomCorners = bottomCorners)
             }
     }
     this
@@ -88,12 +90,21 @@ fun Modifier.liquidGlass(corner: Dp, bottomCorners: Boolean = true): Modifier = 
             val radius = corner.toPx()
             val w = size.width.roundToInt().coerceAtLeast(1)
             val h = size.height.roundToInt().coerceAtLeast(1)
-            val mask = smoothMask(w, h, radius, if (bottomCorners) radius else 0f)
+            val scale = if (lite) minOf(1f, 768f / maxOf(w, h)) else 1f
+            val tw = (w * scale).roundToInt().coerceAtLeast(1)
+            val th = (h * scale).roundToInt().coerceAtLeast(1)
+            val mask = smoothMask(tw, th, radius * scale, if (bottomCorners) radius * scale else 0f)
+            // Hold the edge beside the draw cache. Global LRU eviction must not cause a bake
+            // on each animation frame while this panel is still visible.
+            val edge = glassEdge(tw, th, radius * scale, 1.2.dp.toPx() * scale, bottomCorners)
             val brush = shader?.let { ShaderBrush(it) }
             val flat = mask.asImageBitmap()
             onDrawBehind {
-                if (clear && lens != null) {
+                if ((clear || lite) && lens != null) {
                     drawImage(lens!!, dstSize = IntSize(w, h))
+                } else if (lite) {
+                    drawImage(flat, dstSize = IntSize(w, h), colorFilter = ColorFilter.tint(
+                        Color.Black.copy(alpha = (0.90f - brightness * 0.22f).coerceIn(.65f, .90f))))
                 } else if (shader == null || brush == null || root == IntSize.Zero) {
                     drawImage(flat, dstSize = IntSize(w, h), colorFilter = ColorFilter.tint(Palette.Glass))
                 } else {
@@ -110,20 +121,9 @@ fun Modifier.liquidGlass(corner: Dp, bottomCorners: Boolean = true): Modifier = 
                     drawRect(brush, colorFilter = PanelTint, blendMode = BlendMode.SrcIn)
                     drawContext.canvas.restore()
                 }
-                if (!clear || lens == null) drawGlassEdge(size, radius, bottomCorners)
+                if (lens == null || (!clear && !lite)) drawImage(edge, dstSize = IntSize(w, h))
             }
         }
-}
-
-/**
- * The lit edge of a piece of glass: a sheen inside the top, and a rim bright where light falls on
- * it along the top and bottom, with neutral grey side walls.
- */
-private fun DrawScope.drawGlassEdge(size: Size, radius: Float, bottomCorners: Boolean) {
-    val w = size.width.roundToInt()
-    val h = size.height.roundToInt()
-    if (w <= 0 || h <= 0) return
-    drawImage(glassEdge(w, h, radius, 1.2.dp.toPx(), bottomCorners), dstSize = IntSize(w, h))
 }
 
 /** The lit edge of a [w]×[h] piece of glass at full strength, white with alpha; made once per size. */

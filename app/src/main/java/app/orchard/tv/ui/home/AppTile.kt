@@ -150,14 +150,17 @@ fun AppTile(
     showName: Boolean = true,
     /** The name sits on the glass plate, which ends just under it: it does not step down past the focus frame. */
     nameOnPlate: Boolean = false,
+    /** Offscreen focus nodes stay in the grid without retaining two rasterized faces per app. */
+    rasterize: Boolean = true,
 ) {
     val reduced = LocalReducedMotion.current
-    // The tile's face at its drawn size, made on first draw and kept while the artwork lasts.
-    val faceFor = remember(app.art) { arrayOfNulls<Pair<IntSize, ImageBitmap>>(2) }
     val scope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
 
     var focused by remember { mutableStateOf(false) }
+    val paintArt = rasterize || focused || moving
+    // Drop only the derived faces on leaving the viewport. The source art and focus node remain.
+    val faceFor = remember(app.art, paintArt) { arrayOfNulls<Pair<IntSize, ImageBitmap>>(2) }
     var pressed by remember { mutableStateOf(false) }
     var bounds by remember { mutableStateOf<Rect?>(null) }
     var longPressJob by remember { mutableStateOf<Job?>(null) }
@@ -393,6 +396,7 @@ fun AppTile(
                 .focusable(enabled),
         ) {
             Spacer(Modifier.fillMaxSize().drawWithCache {
+                if (!paintArt) return@drawWithCache onDrawBehind { }
                 val art = app.art
                 val w = size.width.roundToInt()
                 val h = size.height.roundToInt()
@@ -553,7 +557,7 @@ private fun tileRim(w: Int, h: Int, radius: Float, width: Float, alpha: Float = 
 }
 
 /** A tile's shadow, soft black under its continuous outline; [ext] px of it lie outside the tile on each side. */
-private class TileShadow(val image: ImageBitmap, val ext: Float)
+private class TileShadow(override val image: ImageBitmap, val ext: Float) : app.orchard.tv.ui.components.BakedImage
 
 private fun tileShadow(w: Int, h: Int, corner: Float, blur: Float): TileShadow = baked(listOf("shadow", w, h, corner, blur)) {
     val ext = ceil(blur * 1.5f)
@@ -572,7 +576,7 @@ private fun tileShadow(w: Int, h: Int, corner: Float, blur: Float): TileShadow =
 }
 
 /** The high-contrast frame at its full gap; [ext] px of the picture lie outside the tile on each side. */
-private class RingFrame(val image: ImageBitmap, val ext: Float)
+private class RingFrame(override val image: ImageBitmap, val ext: Float) : app.orchard.tv.ui.components.BakedImage
 
 private fun ringFrame(w: Int, h: Int, corner: Float, gap: Float, width: Float, dp: Float): RingFrame =
     baked(listOf("ring", w, h, corner, gap, width, dp)) {

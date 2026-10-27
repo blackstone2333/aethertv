@@ -115,24 +115,26 @@ fun ControlCenter(
 ) {
     val context = LocalContext.current
     val care = rememberCareSnapshot(visible)
-    var focusCare by remember { mutableStateOf(false) }
+    var mainFocus by remember { mutableStateOf("inputs") }
+    var settingsFocus by remember { mutableStateOf<CcPage?>(null) }
     var careFocus by remember { mutableStateOf(CareFocus.Clean) }
-    fun openNetwork() {
-        vm.whenUnlocked {
-            val pages = SystemProbe.networkSettingsIntents(context, ethernet = vm.network.kind == NetKind.Ethernet)
-            LaunchFallback.arm(pages.drop(1))
-            onOpen(pages.first())
-        }
+    val parents = remember { mutableMapOf<CcPage, CcPage>() }
+    fun go(next: CcPage) {
+        if (page == CcPage.Settings) settingsFocus = next
+        parents[next] = page
+        val root = (vm.overlay as? Overlay.ControlCenter)?.root ?: CcPage.Main
+        vm.overlay = Overlay.ControlCenter(next, root)
     }
+    fun openNetwork() = go(CcPage.Network)
     BackHandler(enabled = visible) {
-        if (page == (vm.overlay as? Overlay.ControlCenter)?.root) { onClose(); return@BackHandler }
-        when (page) {
-            CcPage.Main -> onClose()
-            CcPage.Inputs -> vm.overlay = Overlay.ControlCenter(CcPage.Main)
-            CcPage.InputSettings -> vm.overlay = Overlay.ControlCenter(CcPage.Inputs, (vm.overlay as? Overlay.ControlCenter)?.root ?: CcPage.Main)
-            CcPage.Update, CcPage.Setup, CcPage.Care -> vm.overlay = Overlay.ControlCenter(CcPage.Main)
-            CcPage.CareDetails, CcPage.Exchange -> vm.overlay = Overlay.ControlCenter(CcPage.Care, (vm.overlay as? Overlay.ControlCenter)?.root ?: CcPage.Main)
+        val root = (vm.overlay as? Overlay.ControlCenter)?.root ?: CcPage.Main
+        if (page == root) { onClose(); return@BackHandler }
+        val parent = parents[page] ?: when (page) {
+            CcPage.InputSettings -> CcPage.Inputs
+            CcPage.CareDetails, CcPage.Exchange -> CcPage.Care
+            else -> CcPage.Main
         }
+        vm.overlay = Overlay.ControlCenter(parent, root)
     }
 
     LaunchedEffect(visible) { if (visible) Updates.checkIfStale(maxAgeMs = Updates.CONTROL_CENTER_MAX_AGE_MS) }
@@ -153,134 +155,38 @@ fun ControlCenter(
             // Closing sets the page back to Main while the panel fades out; that page must
             // not take focus from the tile Home has just put it back on.
             when (p) {
-                CcPage.Main -> MainPage(vm, now, visible, care, focusCare, onCare = {
-                    focusCare = true; careFocus = CareFocus.Clean
-                    vm.whenUnlocked { vm.overlay = Overlay.ControlCenter(CcPage.Care) }
-                }, onNetwork = { focusCare = false; openNetwork() }, onOpen = onOpen)
-                CcPage.Inputs -> InputsPage(vm, visible, onOpen)
-                CcPage.InputSettings -> InputSettingsPage(vm, visible)
-                CcPage.Update -> UpdatePage(vm, visible)
-                CcPage.Setup -> SetupPage(vm, visible, onOpen)
+                CcPage.Main -> MainPage(vm, now, visible, care, mainFocus, onSelect = { kind ->
+                    mainFocus = kind.key
+                    when (kind) {
+                        app.orchard.tv.settings.ControlKind.Inputs -> go(CcPage.Inputs)
+                        app.orchard.tv.settings.ControlKind.Network -> go(CcPage.Network)
+                        app.orchard.tv.settings.ControlKind.Settings -> go(CcPage.Settings)
+                        app.orchard.tv.settings.ControlKind.Care -> vm.whenUnlocked { careFocus = CareFocus.Clean; go(CcPage.Care) }
+                        app.orchard.tv.settings.ControlKind.Personalize -> vm.overlay = Overlay.Wallpaper
+                        app.orchard.tv.settings.ControlKind.Live -> onOpen(android.content.Intent(context, app.orchard.tv.live.LiveActivity::class.java))
+                        else -> Unit
+                    }
+                }, onEdit = { mainFocus = "edit"; go(CcPage.EditControls) })
+                CcPage.Network -> NetworkPage(vm, care, visible, ::go, onOpen)
+                CcPage.Settings -> SettingsPage(vm, visible, settingsFocus, onPage = ::go, onOpen = onOpen)
+                CcPage.EditControls -> ControlEditor(visible)
                 CcPage.Care -> CarePage(care, visible, careFocus, onPage = { next, origin ->
-                    careFocus = origin; vm.overlay = Overlay.ControlCenter(next, (vm.overlay as? Overlay.ControlCenter)?.root ?: CcPage.Main)
-                }, onNetwork = { openNetwork() }, onOpen = { intent ->
-                    vm.whenUnlocked { onOpen(if (intent.resolveActivity(context.packageManager) != null) intent else SystemProbe.settingsIntent(context)) }
-                })
-                CcPage.CareDetails -> CareDetails(care, visible)
-                CcPage.Exchange -> ExchangePage(visible)
+                            careFocus = origin; go(next)
+                        }, onNetwork = { openNetwork() }, onOpen = { intent ->
+                            vm.whenUnlocked { onOpen(if (intent.resolveActivity(context.packageManager) != null) intent else SystemProbe.settingsIntent(context)) }
+                        })
+                else -> ControlSurface {
+                    when (p) {
+                        CcPage.Inputs -> InputsPage(vm, visible, onOpen)
+                        CcPage.InputSettings -> InputSettingsPage(vm, visible)
+                        CcPage.Update -> UpdatePage(vm, visible)
+                        CcPage.Setup -> SetupPage(vm, visible, onOpen)
+                        CcPage.CareDetails -> CareDetails(care, visible)
+                        CcPage.Exchange -> ExchangePage(visible)
+                        else -> Unit
+                    }
+                }
             }
-        }
-    }
-}
-
-@Composable
-private fun MainPage(vm: HomeViewModel, now: LocalDateTime, takeFocus: Boolean, care: JSONObject, focusCare: Boolean,
-                     onCare: () -> Unit, onNetwork: () -> Unit, onOpen: (android.content.Intent) -> Unit) {
-    val context = LocalContext.current
-    val first = remember { FocusRequester() }
-    val careEntry = remember { FocusRequester() }
-    // Firmwares that list their inputs late (see HomeViewModel.refreshSources): look again while
-    // the page is open and still empty. One provider or TvInputManager query every 3 s.
-    LaunchedEffect(Unit) {
-        while (vm.sources.isEmpty()) {
-            vm.refreshSources()
-            delay(3000)
-        }
-    }
-    LaunchedEffect(Unit) {
-        if (!takeFocus) return@LaunchedEffect
-        withFrameNanos { }
-        runCatching { (if (focusCare) careEntry else first).requestFocus() }
-    }
-
-    Column(Modifier.let { viewport -> val edgeScroll = rememberScrollState(); viewport.softScrollEdges(edgeScroll).verticalScroll(edgeScroll) }) {
-        Row(verticalAlignment = Alignment.Bottom) {
-            Column(Modifier.weight(1f)) {
-                BasicText(timeText(now), style = Type.SmallClock.copy(fontSize = Type.LargeTitle.fontSize * 1.05f))
-                BasicText(dateText(now), style = Type.Callout)
-            }
-            val net = vm.network
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                GlyphIcon(
-                    when (net.kind) { NetKind.Wifi -> Glyph.Wifi; NetKind.Ethernet -> Glyph.Ethernet; NetKind.Offline -> Glyph.Offline },
-                    Palette.SecondaryLabel, 14.dp, level = net.level,
-                )
-                BasicText(
-                    when (net.kind) {
-                        NetKind.Wifi -> net.name ?: stringResource(R.string.net_wifi)
-                        NetKind.Ethernet -> stringResource(R.string.net_ethernet)
-                        NetKind.Offline -> stringResource(R.string.net_offline)
-                    },
-                    style = Type.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.widthIn(max = 110.dp),
-                )
-            }
-        }
-
-        Spacer(Modifier.height(12.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            RoundButton(Glyph.Input, stringResource(R.string.cc_inputs), focusRequester = first) {
-                // TCL lists no inputs to Android; its own input panel is the next best thing.
-                vm.overlay = if (vm.sources.isEmpty() && SystemProbe.openInputPicker(context)) Overlay.None
-                else Overlay.ControlCenter(CcPage.Inputs)
-            }
-            RoundButton(
-                when (vm.network.kind) { NetKind.Ethernet -> Glyph.Ethernet; NetKind.Offline -> Glyph.Offline; else -> Glyph.Wifi },
-                stringResource(R.string.cc_network),
-            ) { onNetwork() }
-            RoundButton(Glyph.Gear, stringResource(R.string.cc_settings)) { vm.whenUnlocked { onOpen(SystemProbe.settingsIntent(context)) } }
-        }
-
-        Spacer(Modifier.height(12.dp))
-        CareOverview(care, careEntry, onCare)
-        Spacer(Modifier.height(8.dp))
-        VolumeRow(vm)
-        Spacer(Modifier.height(6.dp))
-        BrightnessRow(vm)
-
-        Spacer(Modifier.height(6.dp))
-        MenuRow(Glyph.Antenna, stringResource(R.string.live_watch), onClick = {
-            onOpen(android.content.Intent(context, app.orchard.tv.live.LiveActivity::class.java))
-        })
-        // How Home looks (wallpaper, screensaver, focus style, hidden apps, weather) lives in one place.
-        MenuRow(
-            Glyph.Photo,
-            stringResource(R.string.cc_personalize),
-            onClick = { vm.overlay = Overlay.Wallpaper },
-        )
-        // What the TV opens when switched on: easy to forget, and puzzling when it happens.
-        vm.bootTargetLabel()?.let { name ->
-            MenuRow(
-                Glyph.Power,
-                stringResource(R.string.cc_boot),
-                onClick = { vm.overlay = Overlay.ControlCenter(CcPage.InputSettings) },
-                trailing = "$name ›",
-            )
-        }
-        Updates.available?.let { latest ->
-            MenuRow(
-                Glyph.Info,
-                stringResource(R.string.cc_update_available, latest),
-                onClick = { vm.overlay = Overlay.ControlCenter(CcPage.Update) },
-            )
-        }
-
-        // Installed from the APK alone: how to finish, on the TV or with a computer.
-        if (vm.homeStatus == HomeStatus.NotDefault) {
-            MenuRow(Glyph.Shield, stringResource(R.string.cc_setup_title), onClick = { vm.overlay = Overlay.ControlCenter(CcPage.Setup) }, trailing = "›")
-        }
-
-        Spacer(Modifier.height(8.dp))
-        val (dot, text) = when (vm.homeStatus) {
-            HomeStatus.Default -> Palette.Green to stringResource(R.string.cc_home_default)
-            HomeStatus.Guarded -> Palette.Green to stringResource(R.string.cc_home_guarded)
-            HomeStatus.NotDefault -> Palette.Orange to stringResource(R.string.cc_home_not_default)
-        }
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 14.dp)) {
-            Box(Modifier.size(7.dp).clip(CircleShape).background(dot))
-            Spacer(Modifier.width(8.dp))
-            BasicText(text, style = Type.Caption, modifier = Modifier.weight(1f))
-            BasicText(stringResource(R.string.cc_update_title, Updates.current), style = Type.Caption.copy(color = Palette.TertiaryLabel), modifier = Modifier.padding(end = 14.dp))
         }
     }
 }
@@ -432,6 +338,7 @@ private fun SliderRow(
     steps: Int,
     onStep: (Int) -> Unit,
     onClick: () -> Unit,
+    focusRequester: FocusRequester? = null,
 ) {
     // Each step ticks, as focus does; a step past either end bumps instead. Read through state:
     // the drag handler below is made once and outlives this composition's values.
@@ -444,6 +351,7 @@ private fun SliderRow(
     val stepCount by rememberUpdatedState(steps.coerceAtLeast(1))
     Pressable(
         onClick = onClick,
+        focusRequester = focusRequester,
         focusedScale = 1.03f,
         modifier = Modifier.fillMaxWidth(),
         onKey = { e ->
@@ -491,7 +399,7 @@ private fun SliderRow(
 }
 
 @Composable
-private fun VolumeRow(vm: HomeViewModel) {
+internal fun VolumeRow(vm: HomeViewModel, requester: FocusRequester? = null) {
     val volume = vm.volume
     SliderRow(
         glyph = if (volume.muted) Glyph.SpeakerMuted else Glyph.Speaker,
@@ -500,6 +408,7 @@ private fun VolumeRow(vm: HomeViewModel) {
         steps = volume.max,
         onStep = vm::adjustVolume,
         onClick = vm::toggleMute,
+        focusRequester = requester,
     )
 }
 
@@ -508,14 +417,14 @@ private fun VolumeRow(vm: HomeViewModel) {
  * says so: a bare "Brightness" with no slider read as broken (Vidda 85V1F-S, FFalcon, issue #130).
  */
 @Composable
-private fun BrightnessRow(vm: HomeViewModel) {
+internal fun BrightnessRow(vm: HomeViewModel, requester: FocusRequester? = null) {
     val context = LocalContext.current
     val level = vm.brightness
     if (level == null) {
-        MenuRow(Glyph.Sun, stringResource(R.string.cc_brightness), onClick = {
+        MenuRow(Glyph.Sun, stringResource(R.string.cc_settings), focusRequester = requester, onClick = {
             vm.overlay = Overlay.None
             SystemProbe.openPictureSettings(context)
-        }, trailing = stringResource(R.string.cc_brightness_in_settings) + " ›")
+        }, trailing = "›")
     } else {
         SliderRow(
             glyph = Glyph.Sun,
@@ -525,6 +434,7 @@ private fun BrightnessRow(vm: HomeViewModel) {
             steps = 20,
             onStep = vm::adjustBrightness,
             onClick = {},
+            focusRequester = requester,
         )
     }
 }

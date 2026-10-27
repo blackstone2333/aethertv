@@ -3,9 +3,11 @@ package app.orchard.tv.ui.components
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
+import android.util.LruCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asAndroidPath
 import androidx.core.graphics.createBitmap
 import kotlin.math.PI
@@ -49,17 +51,27 @@ fun smoothMask(w: Int, h: Int, radius: Float, bottomRadius: Float = radius): Bit
  */
 fun Bitmap.frozen(): Bitmap = copy(Bitmap.Config.ARGB_8888, false).also { recycle() }
 
-private val bakes = object : LinkedHashMap<List<Any>, Any>(16, 0.75f, true) {
-    // Sizes come and go with layout (a panel opens, the screen rotates); a few dozen is plenty.
-    override fun removeEldestEntry(eldest: MutableMap.MutableEntry<List<Any>, Any>?) = size > 32
+/** Wrappers keep geometry beside an image, whose storage still counts towards the shared budget. */
+interface BakedImage { val image: ImageBitmap }
+
+internal const val BAKE_CACHE_BYTES = 8 * 1024 * 1024
+private val bakes = object : LruCache<List<Any>, Any>(BAKE_CACHE_BYTES) {
+    override fun sizeOf(key: List<Any>, value: Any): Int = when (value) {
+        is Bitmap -> value.allocationByteCount
+        is ImageBitmap -> value.width * value.height * 4
+        is BakedImage -> value.image.width * value.image.height * 4
+        else -> error("Unbudgeted bake: ${value.javaClass.simpleName}")
+    }
 }
 
 /** A drawing made once per [key] (its kind and sizes) and kept while it is in use. */
 @Suppress("UNCHECKED_CAST")
-fun <T : Any> baked(key: List<Any>, make: () -> T): T = synchronized(bakes) { bakes.getOrPut(key, make) as T }
+fun <T : Any> baked(key: List<Any>, make: () -> T): T = synchronized(bakes) {
+    (bakes.get(key) ?: make().also { bakes.put(key, it) }) as T
+}
 
 /** Drops CPU-baked masks and shadows after the UI is hidden on a constrained device. */
-fun clearBakes() = synchronized(bakes) { bakes.clear() }
+fun clearBakes() = synchronized(bakes) { bakes.evictAll() }
 
 /** Adds [rect] with continuous corners, clockwise from the top left, as a closed contour. */
 fun Path.addSmoothRect(rect: Rect, radius: Float, bottomRadius: Float = radius, smoothing: Float = AppleSmoothing) {

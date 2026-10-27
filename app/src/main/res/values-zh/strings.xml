@@ -303,4 +303,16 @@
     <string name="live_next">下一频道</string>
     <string name="live_previous">上一频道</string>
     <string name="live_source_settings">直播源设置</string>
+
+    <string name="controls_edit">编辑控件</string>
+    <string name="controls_reset">恢复默认布局</string>
+    <string name="controls_visible">显示</string>
+    <string name="controls_hidden">隐藏</string>
+    <string name="controls_compact">小</string>
+    <string name="controls_wide">宽</string>
+    <string name="controls_large">大</string>
+    <string name="controls_earlier">向前移</string>
+    <string name="controls_later">向后移</string>
+    <string name="network_connections">网络连接</string>
+    <string name="system_settings_open">系统设置</string>
 </resources>

@@ -6,6 +6,7 @@ import android.os.Build
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Log
+import android.util.LruCache
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -85,7 +86,10 @@ object Wallpapers {
     private val photoDir by lazy { File(app.filesDir, "photos").apply { mkdirs() } }
     private val liveFrame by lazy { File(app.filesDir, "live-frame.jpg") }
     private val bakedDir by lazy { File(app.filesDir, "backdrop").apply { mkdirs() } }
-    private val thumbs = HashMap<String, Bitmap>()
+    private val thumbs = object : LruCache<String, Bitmap>(4 * 1024 * 1024) {
+        override fun sizeOf(key: String, value: Bitmap) = value.allocationByteCount
+        // A picker may still draw an evicted thumbnail: only drop our reference, never recycle it.
+    }
 
     var items by mutableStateOf<List<Wallpaper>>(emptyList()); private set
     var selectedId by mutableStateOf(LATEST_DAILY); private set
@@ -155,8 +159,7 @@ object Wallpapers {
         backdropJob?.cancel()
         backdropJob = null
         synchronized(thumbs) {
-            thumbs.values.forEach { bitmap -> if (!bitmap.isRecycled) bitmap.recycle() }
-            thumbs.clear()
+            thumbs.evictAll()
         }
         backdrop = null
         frosted = null
@@ -257,7 +260,7 @@ object Wallpapers {
         synchronized(thumbs) { thumbs[id] }?.let { return it }
         val wp = (if (id == LATEST_DAILY || id == ROTATE_PHOTOS) resolve(id) else items.firstOrNull { it.id == id }) ?: return null
         val b = if (wp.kind == WallpaperKind.Auto) Gradients.render(Gradients.autoThumb, 384, 216) else picture(wp, 384, 216)
-        if (b != null) synchronized(thumbs) { thumbs[id] = b }
+        if (b != null) synchronized(thumbs) { thumbs.put(id, b) }
         return b
     }
 
@@ -407,7 +410,7 @@ object Wallpapers {
         if (selectedId == LIVE && before != null) frosted = before
     }
 
-    fun clearThumbnailCache() = synchronized(thumbs) { thumbs.clear() }
+    fun clearThumbnailCache() = synchronized(thumbs) { thumbs.evictAll() }
 
     fun preferredDaily(): List<Wallpaper> = items.filter {
         it.kind == WallpaperKind.Daily && (AerialSettings.dailyTheme == "all" || PhotoThemes.of(it.title, it.caption.orEmpty()) == AerialSettings.dailyTheme)

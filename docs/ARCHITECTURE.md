@@ -18,7 +18,8 @@
 - `LiveActivity` 为非导出横屏入口，960dp 画布；配置页仍由 MainActivity 的显式 `LIVE_SETTINGS` action 打开。首页只新增独立天线按钮，不重排用户磁贴。
 - `live/playback/mergeStations` 按源优先级和 EPG ID（无 ID 时按名称）合并备用地址，保留源请求头。`LivePlaybackSession` 使用一个 Media3 1.8.1 播放器；首帧/缓冲超时或错误递进下一地址，耗尽后等待用户重试。`onPause` 同步释放，首页航拍分配解码器前有明确所有权交接。
 - `LiveStreamDataSource` 对自定义 IPTV 的 HTTP 使用局部 socket 流；支持 chunked、Range 与跨源请求头隔离。HTTPS 仍用平台证书/主机校验，不改变全局网络安全策略。
-- `liquidGlass` 按独立菜单设置选择缓存折射或 regular 扩散；静态采样只在背景/布局/亮度变化时重建，不采集逐帧视频。Dock GL 同帧采样视频，焦点几何以临界阻尼弹簧伸展；静态底板缓存两个几何端态。
+- `liquidGlass` 按独立菜单设置选择缓存折射或 regular 扩散；静态采样只在背景/布局/亮度变化时重建，不采集逐帧视频。Dock GL 同帧采样视频，焦点几何以临界阻尼弹簧伸展；静态底板缓存两个几何端态。Lite使用768px上限的静态材质，视频播放时只叠透明底板和方向光；不打开MediaMetadataRetriever，Android6无法复制视频平面时先保持暂停平面，面板打开后渐隐回已有壁纸并释放解码器。
+- `AerialStream.loadControl` 保持Full缓冲，Lite的1080p/4K/Dolby分别为8/12/16MiB，以字节阈值优先限制读取；不更改用户画质选择。Lite面板停留时不保留航拍解码器和全屏Home截图。`AppTile`的派生face缓存只在视口附近保留，完整源图/应用/焦点节点仍在；共享bakes与缩略图分别限制8/4MiB，UI存活引用不受全局LRU上限替代。
 - `softEdges` 在有滚动溢出时使用局部透明渐隐；不以实色遮挡卡片。`nameMode=grid` 只在向下应用菜单显示名称；旧名称偏好迁移保留。
 - 控制中心 Overlay 保存 `root`；独立管家/输入页直接退出到原控件，子页返回保留根页。网络和设置复用既有系统路径。
 
@@ -273,3 +274,7 @@ NanoHTTPD 监听 8790 端口，路径前缀是 8 位随机令牌（每次打开�
 - 依赖：Compose BOM 2026.02.01、activity-compose、lifecycle-viewmodel-compose、core-ktx、NanoHTTPD 2.3.1、ZXing core 3.5.3。
 - 航拍目录由 Apple 的 `resources-16.tar` 生成（生成方法见 HANDOFF.md）。
 - 信号源磁贴的 Apple TV、PlayStation 标志：Simple Icons 16.35.0（CC0），只用来标明接的是什么设备。
+
+## 模块化控制层（0.3.1候选）
+
+`ControlPanel`仅负责锚点/动画/遮罩，透明外壳；`ControlCards`负责独立材质控件、网络/设置内页与遥控器编辑。`ControlLayout`保存稳定ID、顺序、尺寸和显隐，四列占位排布避免重叠。编辑入口不参与显隐。个性化使用LazyColumn独立分组，按需合成玻璃。打开控制中心/个性化时复用已有小图虚化壁纸，隐藏清晰网格，不再抓取全屏Home截图。

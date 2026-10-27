@@ -296,4 +296,16 @@
     <string name="live_next">Следующий канал</string>
     <string name="live_previous">Предыдущий канал</string>
     <string name="live_source_settings">Настройки источников</string>
+
+    <string name="controls_edit">Изменить элементы</string>
+    <string name="controls_reset">Восстановить раскладку</string>
+    <string name="controls_visible">Виден</string>
+    <string name="controls_hidden">Скрыт</string>
+    <string name="controls_compact">Малый</string>
+    <string name="controls_wide">Широкий</string>
+    <string name="controls_large">Большой</string>
+    <string name="controls_earlier">Раньше</string>
+    <string name="controls_later">Позже</string>
+    <string name="network_connections">Подключения</string>
+    <string name="system_settings_open">Системные настройки</string>
 </resources>

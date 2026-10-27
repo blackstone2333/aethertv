@@ -20,7 +20,7 @@ import app.orchard.tv.ui.components.liquidGlass
 import app.orchard.tv.ui.theme.LocalReducedMotion
 import app.orchard.tv.ui.theme.Motion
 
-/** The shared tvOS control layer: same anchor, material, spacing and focus-sized content. */
+/** Transparent navigation host. Each child control owns its material and focus clearance. */
 @Composable
 fun ControlPanel(visible: Boolean, onClose: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
     val reduced = LocalReducedMotion.current
@@ -31,7 +31,7 @@ fun ControlPanel(visible: Boolean, onClose: () -> Unit, content: @Composable Col
         AnimatedVisibility(visible,
             enter = fadeIn(tween(200, easing = Motion.EaseOut)) + scaleIn(tween(if (reduced) 0 else 280, easing = Motion.Drawer), initialScale = .94f, transformOrigin = TransformOrigin(1f, 0f)),
             exit = fadeOut(tween(150)) + scaleOut(tween(if (reduced) 0 else 150), targetScale = .98f, transformOrigin = TransformOrigin(1f, 0f))) {
-            Column(Modifier.width(300.dp).heightIn(max = 492.dp).consumeTaps().liquidGlass(24.dp).padding(16.dp), content = content)
+            Column(Modifier.width(448.dp).heightIn(max = 492.dp).consumeTaps().padding(8.dp), content = content)
         }
     }
 }

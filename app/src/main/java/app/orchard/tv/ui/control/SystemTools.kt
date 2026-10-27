@@ -37,6 +37,7 @@ import app.orchard.tv.R
 import app.orchard.tv.system.SystemMonitor
 import app.orchard.tv.system.TransferStore
 import app.orchard.tv.ui.components.Pressable
+import app.orchard.tv.ui.components.liquidGlass
 import app.orchard.tv.ui.home.MenuRow
 import app.orchard.tv.ui.theme.Glyph
 import app.orchard.tv.ui.theme.GlyphIcon
@@ -131,7 +132,7 @@ fun CarePage(info: JSONObject, takeFocus: Boolean, initial: CareFocus, onPage: (
         Spacer(Modifier.height(8.dp))
         Pressable(onNetwork, focusedScale = 1.03f, modifier = Modifier.fillMaxWidth()) { state ->
             val fg = if (state.focused) Palette.OnFocus else Palette.Label
-            Row(Modifier.fillMaxWidth().height(48.dp).background(if (state.focused) Palette.Focus else Palette.Fill, RoundedCornerShape(14.dp)).padding(horizontal = 12.dp),
+            Row(Modifier.fillMaxWidth().height(48.dp).liquidGlass(18.dp).background(if (state.focused) Palette.Focus else Color.Transparent, RoundedCornerShape(18.dp)).padding(horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
                 val kind = info.optString("network")
                 GlyphIcon(when (kind) { "Wifi" -> Glyph.Wifi; "Ethernet" -> Glyph.Ethernet; else -> Glyph.Offline },
@@ -156,7 +157,7 @@ fun CarePage(info: JSONObject, takeFocus: Boolean, initial: CareFocus, onPage: (
             }
         }, focusRequester = clean, focusedScale = 1.03f, modifier = Modifier.fillMaxWidth()) { state ->
             val fg = if (state.focused) Palette.OnFocus else Palette.Label
-            Row(Modifier.fillMaxWidth().height(44.dp).background(if (state.focused) Palette.Focus else Palette.FillStrong, RoundedCornerShape(14.dp)).padding(horizontal = 14.dp),
+            Row(Modifier.fillMaxWidth().height(44.dp).liquidGlass(18.dp).background(if (state.focused) Palette.Focus else Color.Transparent, RoundedCornerShape(18.dp)).padding(horizontal = 14.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 GlyphIcon(if (result != null && !busy) Glyph.Check else Glyph.Trash, fg, 19.dp)
                 BasicText(result ?: stringResource(if (busy) R.string.care_cleaning else R.string.care_clean), style = Type.Headline.copy(color = fg), maxLines = 1,
@@ -164,18 +165,20 @@ fun CarePage(info: JSONObject, takeFocus: Boolean, initial: CareFocus, onPage: (
             }
         }
         Spacer(Modifier.height(6.dp))
-        MenuRow(Glyph.Switches, stringResource(R.string.care_background), onClick = {
+        MenuRow(Glyph.Switches, modifier = Modifier.liquidGlass(18.dp), text = stringResource(R.string.care_background), onClick = {
             onOpen(Intent(Settings.ACTION_MANAGE_APPLICATIONS_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         }, trailing = "›")
-        MenuRow(Glyph.Info, stringResource(R.string.system_info), onClick = { onPage(CcPage.CareDetails, CareFocus.Details) }, focusRequester = details, trailing = "›")
-        MenuRow(Glyph.Usb, stringResource(R.string.transfer_title), onClick = { onPage(CcPage.Exchange, CareFocus.Exchange) }, focusRequester = exchange, trailing = "›")
+        Spacer(Modifier.height(8.dp))
+        MenuRow(Glyph.Info, modifier = Modifier.liquidGlass(18.dp), text = stringResource(R.string.system_info), onClick = { onPage(CcPage.CareDetails, CareFocus.Details) }, focusRequester = details, trailing = "›")
+        Spacer(Modifier.height(8.dp))
+        MenuRow(Glyph.Usb, modifier = Modifier.liquidGlass(18.dp), text = stringResource(R.string.transfer_title), onClick = { onPage(CcPage.Exchange, CareFocus.Exchange) }, focusRequester = exchange, trailing = "›")
     }
 }
 
 @Composable
 private fun UsageGauge(title: String, fraction: Float?, warning: Boolean, modifier: Modifier) {
     val label = "$title ${percent(fraction)}"
-    Column(modifier.background(Palette.Fill, RoundedCornerShape(14.dp)).padding(10.dp).semantics(mergeDescendants = true) { contentDescription = label }) {
+    Column(modifier.liquidGlass(18.dp).padding(10.dp).semantics(mergeDescendants = true) { contentDescription = label }) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Canvas(Modifier.size(29.dp)) {
                 val stroke = Stroke(3.dp.toPx(), cap = StrokeCap.Round)

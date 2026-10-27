@@ -2,7 +2,6 @@ package app.orchard.tv.ui.home
 
 import android.content.Intent
 import android.content.res.Configuration
-import android.os.Build
 import android.view.KeyEvent as NativeKeyEvent
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -45,7 +44,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Offset
@@ -53,8 +51,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.layer.drawLayer
-import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
@@ -164,12 +160,6 @@ private class GridMetrics(screenW: Dp, screenH: Dp, oneRow: Boolean, plateNames:
 /** How long the screensaver waits for the wallpaper's film to move before playing its own. */
 private const val FILM_SAVER_WAIT_MS = 10_000L
 
-/** How long Control Center takes to come in before a picture of Home stands in for it. */
-private const val HOME_SHOT_AFTER_MS = 450L
-
-/** How often that picture is taken again while Control Center stays open, for the clock. */
-private const val HOME_SHOT_EVERY_MS = 30_000L
-
 @Composable
 fun HomeScreen(
     vm: HomeViewModel,
@@ -182,6 +172,8 @@ fun HomeScreen(
     val columns = AerialSettings.homeColumns
     val apps = vm.apps
     val overlay = vm.overlay
+    var personalizeOrigin by remember { mutableStateOf(Overlay.ControlCenter()) }
+    LaunchedEffect(overlay) { if (overlay is Overlay.ControlCenter) personalizeOrigin = overlay }
     val moving = vm.movingKey
     val reduced = LocalReducedMotion.current
     val density = LocalDensity.current
@@ -434,33 +426,15 @@ fun HomeScreen(
         val openFolder = (overlay as? Overlay.Folder)?.id ?: (overlay as? Overlay.AppMenu)?.inFolder
         val folderOpen = overlay is Overlay.HiddenApps || openFolder != null
         val ccOpen = overlay is Overlay.ControlCenter
-        // Folders open on Home frosted, as on tvOS; Control Center keeps Home sharp, dimmed.
+        // The cached diffuse backdrop separates floating controls from the Home grid.
         val backdropFrost by animateFloatAsState(
-            if (folderOpen) 1f else 0f,
+            if (folderOpen || ccOpen || overlay is Overlay.Wallpaper) 1f else 0f,
             tween(320, easing = Motion.EaseOut), label = "backdrop-frost",
         )
         val backdropVeil by animateFloatAsState(
             if (ccOpen) 1f else 0f,
             tween(320, easing = Motion.EaseOut), label = "backdrop-veil",
         )
-        // With Control Center open, Home is still: once the panel is in, a picture of it stands in
-        // for it, one full-screen image a frame instead of every tile again under the panel
-        // (MiTV-MFTR0: GPU 18-21 ms a frame drawing Home under it, as against 9-15 ms frosted).
-        // Taken again now and then for the clock. Not before Android 7: on Android 6 the picture's
-        // ImageReader surface leaves a RenderNode that the finalizer thread later frees together
-        // with GPU layers, and hwui aborts with "Wrong thread!" (MiTV4-ANSM0, Android 6.0.1,
-        // issue #466: the reporter rebuilt the same steps in a small app and got the same 16 frames).
-        val homeLayer = rememberGraphicsLayer()
-        var homeShot by remember { mutableStateOf<ImageBitmap?>(null) }
-        LaunchedEffect(ccOpen) {
-            homeShot = null
-            if (!ccOpen || Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return@LaunchedEffect
-            delay(HOME_SHOT_AFTER_MS)
-            while (true) {
-                homeShot = runCatching { homeLayer.toImageBitmap() }.getOrNull()
-                delay(HOME_SHOT_EVERY_MS)
-            }
-        }
 
         val ambientApp = apps.getOrNull(focusedIndex) ?: apps.firstOrNull()
 
@@ -484,14 +458,7 @@ fun HomeScreen(
                 .graphicsLayer {
                     // Under the frost once it is whole, Home is not drawn at all: on MFTR0 the
                     // picture, plate and tiles cost the GPU as much again as the panel over them.
-                    alpha = if (backdropFrost > 0.999f || homeShot != null) 0f else 1f
-                }
-                // Recorded while Control Center is open, for the picture that stands in for Home.
-                .drawWithContent {
-                    if (ccOpen && Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                        homeLayer.record { this@drawWithContent.drawContent() }
-                        drawLayer(homeLayer)
-                    } else drawContent()
+                    alpha = if (backdropFrost > 0.999f) 0f else 1f
                 },
         ) {
             // The glass plate under the top row (tvOS 26), the row's full width however few apps
@@ -575,6 +542,15 @@ fun HomeScreen(
                             spring(dampingRatio = 0.86f, stiffness = Spring.StiffnessMediumLow),
                             label = "slot",
                         )
+                        // Keep a row of overscan for focus zoom, shadows and fast scrolling.
+                        // This changes only raster caches; offscreen focus/navigation nodes stay.
+                        val rasterize by remember(slot, metrics, density) {
+                            derivedStateOf {
+                                val top = slot.value.y - scroll.value
+                                val margin = with(density) { (metrics.tileH + 56.dp).toPx() }
+                                top > -margin && top < with(density) { metrics.screenH.toPx() } + margin
+                            }
+                        }
                         AppTile(
                             app = app,
                             width = metrics.tileW,
@@ -638,6 +614,7 @@ fun HomeScreen(
                             // the focused one alone there, but it sat oddly on the glass).
                             showName = if (AerialSettings.nameMode == "grid") (focusedRow > 0 || pastShelf) else plate == null || index >= columns || plateNames,
                             nameOnPlate = plate != null && index < columns,
+                            rasterize = rasterize,
                         )
                     }
                 }
@@ -645,7 +622,6 @@ fun HomeScreen(
         }
         }
 
-        homeShot?.let { shot -> Canvas(Modifier.fillMaxSize()) { drawImage(shot) } }
         PanelBackdrop(Wallpapers.frosted.takeIf { Wallpapers.backdrop != null }, { backdropFrost }, { backdropVeil })
 
         // Rows that scroll up under the status pill fade out instead of colliding with it.
@@ -665,7 +641,7 @@ fun HomeScreen(
             Modifier
                 .align(Alignment.TopEnd)
                 .padding(top = 28.dp, end = metrics.margin - 14.dp)
-                .graphicsLayer { alpha = if (overlay is Overlay.ControlCenter) 0f else 1f },
+                .graphicsLayer { alpha = if (overlay is Overlay.ControlCenter || overlay is Overlay.Wallpaper) 0f else 1f },
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (!AerialSettings.largeClock && AerialSettings.clockRight) {
@@ -691,8 +667,8 @@ fun HomeScreen(
                                 when (key) {
                                     "care" -> vm.overlay = Overlay.ControlCenter(CcPage.Care, CcPage.Care)
                                     "inputs" -> { vm.overlay = if (vm.sources.isEmpty() && SystemProbe.openInputPicker(appContext)) Overlay.None else Overlay.ControlCenter(CcPage.Inputs, CcPage.Inputs) }
-                                    "network" -> { val intents = SystemProbe.networkSettingsIntents(appContext, ethernet = vm.network.kind == app.orchard.tv.system.NetKind.Ethernet); app.orchard.tv.system.LaunchFallback.arm(intents.drop(1)); onOpen(intents.first()) }
-                                    else -> onOpen(SystemProbe.settingsIntent(appContext))
+                                    "network" -> vm.overlay = Overlay.ControlCenter(CcPage.Network, CcPage.Network)
+                                    else -> vm.overlay = Overlay.ControlCenter(CcPage.Settings, CcPage.Settings)
                                 }
                             }
                         })
@@ -755,7 +731,7 @@ fun HomeScreen(
             vm = vm,
             now = now,
             onOpen = {
-                if ((vm.overlay as? Overlay.ControlCenter)?.page != CcPage.Care) vm.overlay = Overlay.None
+                if ((vm.overlay as? Overlay.ControlCenter)?.page !in setOf(CcPage.Care, CcPage.Network, CcPage.Settings)) vm.overlay = Overlay.None
                 onOpen(it)
             },
             onClose = { vm.overlay = Overlay.None },
@@ -844,7 +820,7 @@ fun HomeScreen(
 
         WallpaperSheet(
             visible = overlay is Overlay.Wallpaper,
-            onDismiss = { vm.overlay = Overlay.ControlCenter() },
+            onDismiss = { vm.overlay = personalizeOrigin },
             hiddenCount = vm.hiddenApps.size,
             onHiddenApps = { vm.whenUnlocked { vm.overlay = Overlay.HiddenApps } },
             onStartScreensaver = {

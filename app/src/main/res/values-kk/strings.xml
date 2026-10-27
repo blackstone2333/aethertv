@@ -296,4 +296,16 @@
     <string name="live_next">Келесі арна</string>
     <string name="live_previous">Алдыңғы арна</string>
     <string name="live_source_settings">Арна көздерін баптау</string>
+
+    <string name="controls_edit">Басқару элементтері</string>
+    <string name="controls_reset">Бастапқы орналасу</string>
+    <string name="controls_visible">Көрсету</string>
+    <string name="controls_hidden">Жасыру</string>
+    <string name="controls_compact">Кіші</string>
+    <string name="controls_wide">Кең</string>
+    <string name="controls_large">Үлкен</string>
+    <string name="controls_earlier">Алға жылжыту</string>
+    <string name="controls_later">Артқа жылжыту</string>
+    <string name="network_connections">Қосылымдар</string>
+    <string name="system_settings_open">Жүйе баптаулары</string>
 </resources>

@@ -67,6 +67,12 @@ object AerialSettings {
         }
 
 
+    var controlLayout by mutableStateOf(ControlLayout.defaults()); private set
+    fun chooseControlLayout(value: List<ControlSpec>) {
+        controlLayout = ControlLayout.decode(ControlLayout.encode(value))
+        save("control_layout", ControlLayout.encode(controlLayout))
+    }
+
     var homeColumns by mutableStateOf(5); private set
     var glassStyle by mutableStateOf("clear"); private set
     var menuGlassStyle by mutableStateOf("clear"); private set
@@ -180,6 +186,7 @@ object AerialSettings {
         started = true
         app = context.applicationContext
         val prefs = app.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        controlLayout = ControlLayout.decode(prefs.getString("control_layout", null))
         homeColumns = prefs.getInt("home_columns", 5).coerceIn(4, 8)
         glassStyle = prefs.getString("glass_style", "clear") ?: "clear"
         menuGlassStyle = prefs.getString("menu_glass_style", "clear") ?: "clear"

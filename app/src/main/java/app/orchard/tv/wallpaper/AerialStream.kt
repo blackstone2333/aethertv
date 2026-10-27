@@ -3,6 +3,7 @@ package app.orchard.tv.wallpaper
 import android.content.Context
 import android.os.SystemClock
 import android.util.Log
+import app.orchard.tv.settings.AerialSettings
 import androidx.annotation.OptIn
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -77,26 +78,28 @@ object AerialStream {
     fun mediaItem(film: Aerial, quality: AerialQuality, overHttp: Boolean): MediaItem =
         MediaItem.Builder().setUri(url(film, quality, overHttp)).setMediaId(film.id).setCustomCacheKey(key(film, quality)).build()
 
+    internal fun loadControl(quality: AerialQuality, lite: Boolean): DefaultLoadControl =
+        DefaultLoadControl.Builder()
+            .setBufferDurationsMs(if (lite) 3_000 else 10_000, if (lite) 12_000 else 30_000, 1_000, 2_000)
+            .setTargetBufferBytes(
+                when (quality) {
+                    AerialQuality.DolbyVision -> if (lite) 16 else 48
+                    AerialQuality.Uhd -> if (lite) 12 else 32
+                    else -> if (lite) 8 else 24
+                } * 1024 * 1024,
+            )
+            .setPrioritizeTimeOverSizeThresholds(false)
+            .build()
+
     fun player(context: Context, quality: AerialQuality): ExoPlayer {
         val source = CacheDataSource.Factory()
             .setCache(cache(context))
             .setUpstreamDataSourceFactory(http())
             .setCacheWriteDataSinkFactory(null)
             .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
-        // ExoPlayer's default video buffer is sized for phones (up to 128 MB); TVs here have 1–2 GB.
-        // 24 MB is 10–13 s of 1080p film, which is also when the next film starts loading; the 4K
-        // files get about as many seconds.
-        val load = DefaultLoadControl.Builder()
-            .setBufferDurationsMs(10_000, 30_000, 1_000, 2_000)
-            .setTargetBufferBytes(
-                when (quality) {
-                    AerialQuality.DolbyVision -> 48
-                    AerialQuality.Uhd -> 32
-                    else -> 24
-                } * 1024 * 1024,
-            )
-            .setPrioritizeTimeOverSizeThresholds(false)
-            .build()
+        // Lite trades read-ahead for RAM without changing the selected film quality. Keep the
+        // byte threshold authoritative even before the time threshold on high-bitrate footage.
+        val load = loadControl(quality, AerialSettings.liteMode)
         return ExoPlayer.Builder(context)
             .setLoadControl(load)
             .setMediaSourceFactory(

@@ -62,6 +62,8 @@ private const val KEEP_STOPPED_MS = 2 * 60 * 1000L
 class LiveFilm {
     var film by mutableStateOf<Aerial?>(null); internal set
     internal var player: ExoPlayer? = null
+    /** Resume after releasing a decoder even when the TV cannot copy its paused video plane. */
+    internal var resumeSpot: Pair<String, Long>? = null
 
     /**
      * Stopped on a frame that is not yet the wallpaper's picture, with the glass for it ready
@@ -133,13 +135,15 @@ fun LiveWallpaper(
     var surface by remember { mutableStateOf<SurfaceView?>(null) }
     var videoSurface by remember { mutableStateOf<Surface?>(null) }
     var gpuFailed by remember { mutableStateOf(false) }
-    val gpu = !AerialSettings.liteMode && !gpuFailed
+    val lite = AerialSettings.liteMode
+    val gpu = !lite && !gpuFailed
     val density = LocalDensity.current.density
     // Frames are reaching the screen: the first one has been drawn and the film is not stopped.
     var showing by remember { mutableStateOf(false) }
     var idle by remember { mutableStateOf(false) }
     val reader = remember { FrameReader(context) }
-    val pauseOnInput = AerialSettings.aerialPauseOnInput || AerialSettings.liteMode
+    LaunchedEffect(lite) { if (lite) reader.close() }
+    val pauseOnInput = AerialSettings.aerialPauseOnInput || lite
     val delayMs = maxOf(AerialSettings.aerialDelaySeconds * 1000L, if (pauseOnInput) 800L else 0L)
     LaunchedEffect(if (pauseOnInput || delayMs > 0) lastInputAt else 0L, moving, delayMs, AerialSettings.aerialCategory) {
         idle = false
@@ -153,6 +157,7 @@ fun LiveWallpaper(
 
     fun release() {
         reader.close()
+        player?.let { p -> p.currentMediaItem?.mediaId?.let { live.resumeSpot = it to p.currentPosition } }
         player?.release()
         player = null
         live.player = null
@@ -166,7 +171,7 @@ fun LiveWallpaper(
         val overHttp = Build.VERSION.SDK_INT < Build.VERSION_CODES.N
         val all = Aerials.preferred(context).shuffled()
         // The film the picture on screen came from, at that moment; else one fetched ahead.
-        val spot = Wallpapers.liveSpot()
+        val spot = live.resumeSpot ?: Wallpapers.liveSpot()
         val resume = spot?.let { (id, _) -> all.firstOrNull { it.id == id } }
         val films = if (resume != null) listOf(resume) + (all - resume) else AerialStream.withOpenerFirst(context, all, quality)
         var failures = 0
@@ -206,10 +211,12 @@ fun LiveWallpaper(
     // The film on screen, opened ahead for its frames (see FrameReader), and a small key frame
     // taken every few seconds while it moves: the glass for wherever it stops is then at hand.
     var glassSample by remember { mutableStateOf<GlassSample?>(null) }
-    LaunchedEffect(live.film, play, showing) {
+    LaunchedEffect(live.film, play, showing, lite) {
         val id = live.film?.id ?: return@LaunchedEffect
         // Where PixelCopy reads the film (TCL MT5879), its frame is at hand without the file.
-        if (!play || gpu || pixelCopy == true) return@LaunchedEffect
+        // A retriever opens its own codec even for a tiny thumbnail. Lite must leave the only
+        // decoder to the SurfaceView, especially on Android 6 where PixelCopy does not exist.
+        if (!play || lite || gpu || pixelCopy == true) return@LaunchedEffect
         reader.open(id)
         // The first soon, for a film stopped moments after it moved.
         var wait = 800L
@@ -221,7 +228,7 @@ fun LiveWallpaper(
         }
     }
 
-    LaunchedEffect(play, gpu) {
+    LaunchedEffect(play, gpu, lite) {
         live.stopped = false
         if (play) {
             if (!showing) cover.snapTo(0f)
@@ -258,8 +265,8 @@ fun LiveWallpaper(
                     glassReady(live)
                 }
                 glassSample = null
-                var frame = if (pixelCopy == false && surface !is AerialGlassView) null else surface?.let { capture(it) }
-                if (frame == null && film != null) {
+                var frame = if (pixelCopy == false && surface !is AerialGlassView) null else surface?.let { capture(it, lite) }
+                if (frame == null && film != null && !lite) {
                     if (!live.stopped) reader.frame(film, at, 320, 180, exact = false)?.let {
                         Wallpapers.useLiveFrost(it)
                         glassReady(live)
@@ -270,6 +277,19 @@ fun LiveWallpaper(
                     frame = reader.frame(film, at, w, h, exact = true)
                         ?: reader.frame(film, at, w, h, exact = false, nearest = true)
                     if (frame == null && live.stopped) Wallpapers.restoreFrost(before)
+                }
+                reader.close()
+                // Old TV video planes cannot be copied. Keep the paused plane for quick D-pad
+                // input instead of decoding the film twice; a panel can then fade to the saved
+                // backdrop and free the player. No stale picture is painted inside the dock.
+                if (frame == null && lite) {
+                    glassReady(live)
+                    withTimeoutOrNull(KEEP_STOPPED_MS) { snapshotFlow { standInNow && keepNow }.first { !it } }
+                    if (!keepNow) { cover.snapTo(0f); release(); return@LaunchedEffect }
+                    cover.animateTo(0f, tween(320, easing = Motion.EaseOut))
+                    live.stopped = false
+                    release()
+                    return@LaunchedEffect
                 }
                 if (frame != null) {
                     Wallpapers.useLiveFrame(frame, film.orEmpty(), at)
@@ -294,7 +314,8 @@ fun LiveWallpaper(
                 }
                 live.stopped = false
             }
-            delay(KEEP_STOPPED_MS)
+            // A panel does not need a paused decoder plus compressed read-ahead for two minutes.
+            if (!lite) delay(KEEP_STOPPED_MS)
             release()
         }
     }
@@ -303,7 +324,8 @@ fun LiveWallpaper(
     LaunchedEffect(keep) {
         if (!keep && !play && player != null && cover.value == 0f) release()
     }
-    DisposableEffect(Unit) { onDispose { release() } }
+    // Recreate the player when its buffer/rendering policy changes, not only its output View.
+    DisposableEffect(lite) { onDispose { release() } }
 
     androidx.compose.runtime.key(gpu) {
         AndroidView(
@@ -355,10 +377,10 @@ fun LiveWallpaper(
  * brightness without colour (Hisense VIDAA_TV T963, Xiaomi MiTV-MTEQ0: the wallpaper turned green
  * at the first key press, issue #256).
  */
-private suspend fun capture(view: SurfaceView): Bitmap? {
+private suspend fun capture(view: SurfaceView, lite: Boolean): Bitmap? {
     // The same TV gives the same answer: where it fails, later stops go straight to the film's
     // file; where it works, the file is not needed at all.
-    return captureOnce(view).also { pixelCopy = it != null }
+    return captureOnce(view, lite).also { pixelCopy = it != null }
 }
 
 /**
@@ -380,18 +402,21 @@ private const val GLASS_EVERY_MS = 2_500L
 /** A small key frame of [film] near [atMs], kept for the glass. */
 private class GlassSample(val film: String, val atMs: Long, val frame: Bitmap)
 
-private suspend fun captureOnce(view: SurfaceView): Bitmap? {
+private suspend fun captureOnce(view: SurfaceView, lite: Boolean): Bitmap? {
     if (view is AerialGlassView) return withTimeoutOrNull(1500) { view.rawFrame() }
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N || view.width <= 0 || !view.holder.surface.isValid) return null
-    val bitmap = createBitmap(view.width, view.height)
+    val scale = if (lite) minOf(1f, 1920f / view.width) else 1f
+    val bitmap = createBitmap((view.width * scale).toInt().coerceAtLeast(1), (view.height * scale).toInt().coerceAtLeast(1))
     val result = suspendCancellableCoroutine { done ->
         runCatching {
-            PixelCopy.request(view, bitmap, { done.resume(it) }, Handler(Looper.getMainLooper()))
-        }.onFailure { done.resume(-1) }
+            PixelCopy.request(view, bitmap, {
+                if (done.isActive) done.resume(it) else bitmap.recycle()
+            }, Handler(Looper.getMainLooper()))
+        }.onFailure { if (done.isActive) done.resume(-1) else bitmap.recycle() }
     }
     val unread = if (result == PixelCopy.SUCCESS) unreadable(bitmap) else null
     if (result != PixelCopy.SUCCESS || unread != null) DiagLog.i("wallpaper frame copy: result $result, $unread")
-    return bitmap.takeIf { result == PixelCopy.SUCCESS && unread == null }
+    return if (result == PixelCopy.SUCCESS && unread == null) bitmap else null.also { bitmap.recycle() }
 }
 
 /**
@@ -441,13 +466,16 @@ private class FrameReader(private val context: android.content.Context) {
         if (!quiet || frame == null) DiagLog.i("wallpaper ${if (exact) "frame" else if (nearest) "key frame" else "glass frame"} decoded: ${frame != null} in ${android.os.SystemClock.elapsedRealtime() - started} ms")
         val sized = frame?.let {
             val sized = if (it.width == w && it.height == h) it else Bitmap.createScaledBitmap(it, w, h, true)
-            if (sized.isMutable && sized.config == Bitmap.Config.ARGB_8888) sized else sized.copy(Bitmap.Config.ARGB_8888, true)
+            if (sized !== it) it.recycle()
+            if (sized.isMutable && sized.config == Bitmap.Config.ARGB_8888) sized else
+                sized.copy(Bitmap.Config.ARGB_8888, true).also { sized.recycle() }
         }
         // The decoder can lose the colour too: on Xiaomi MiTV-MFTP0 (Android 9) the wallpaper and
         // the glass still turned green in 1.36, which reads the film's file wherever the copy of
         // the screen came back green (issue #284). Only green: a dark film's frame may well be.
         if (sized != null && unreadable(sized) == "green") {
             DiagLog.i("wallpaper decoded frame is green; not used")
+            sized.recycle()
             return null
         }
         return sized

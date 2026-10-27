@@ -304,4 +304,16 @@
     <string name="live_next">Next channel</string>
     <string name="live_previous">Previous channel</string>
     <string name="live_source_settings">Playlist settings</string>
+
+    <string name="controls_edit">Edit Controls</string>
+    <string name="controls_reset">Restore Default Layout</string>
+    <string name="controls_visible">Shown</string>
+    <string name="controls_hidden">Hidden</string>
+    <string name="controls_compact">Small</string>
+    <string name="controls_wide">Wide</string>
+    <string name="controls_large">Large</string>
+    <string name="controls_earlier">Move Earlier</string>
+    <string name="controls_later">Move Later</string>
+    <string name="network_connections">Connections</string>
+    <string name="system_settings_open">System Settings</string>
 </resources>

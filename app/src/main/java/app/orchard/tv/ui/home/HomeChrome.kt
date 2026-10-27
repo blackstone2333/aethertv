@@ -30,6 +30,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.produceState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.Alignment
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.layout.Box
@@ -42,6 +45,7 @@ import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -53,6 +57,7 @@ import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
@@ -71,6 +76,7 @@ import app.orchard.tv.ui.components.Dissolve
 import app.orchard.tv.ui.components.Pressable
 import app.orchard.tv.ui.components.frozen
 import app.orchard.tv.ui.components.refractivePlate
+import app.orchard.tv.ui.components.diffusePlate
 import app.orchard.tv.ui.components.glassEdge
 import app.orchard.tv.ui.components.smoothMask
 import app.orchard.tv.ui.theme.Glyph
@@ -290,6 +296,10 @@ private fun Plate(glass: ImageBitmap?, plate: Rect?, scroll: () -> Float, collap
     val clear = AerialSettings.glassStyle == "clear"
     val lite = AerialSettings.liteMode
     val light = AerialSettings.glassLight
+    if (lite) {
+        LitePlate(shown, plate, scroll, collapse, cover, toSaver, expansion, bakeExpansion, clear, light)
+        return
+    }
     val top = remember(shown, clear, light) { shown?.let { PlateLayer(if (clear) it else plateTinted(it), clear, light) } }
     val bottom = remember(under, clear, light) { under?.let { PlateLayer(if (clear) it else plateTinted(it), clear, light) } }
     Canvas(Modifier.fillMaxSize()) {
@@ -305,16 +315,68 @@ private fun Plate(glass: ImageBitmap?, plate: Rect?, scroll: () -> Float, collap
         val grow = PlateSwell.toPx() * (1f - rest)
         val e = expansion()
         val r = Rect(plate.left - e.x, plate.top - e.y, plate.right + e.x, plate.bottom + e.y).translate(0f, -scroll()).inflate(grow)
-        if (lite) {
-            drawRoundRect(Color(0x50202024), topLeft = r.topLeft, size = r.size,
-                cornerRadius = androidx.compose.ui.geometry.CornerRadius(PlateCorner.toPx()), alpha = alpha)
-            return@Canvas
-        }
         val t = swap.value
         val bakeRect = Rect(plate.left - bakeExpansion.x, plate.top - bakeExpansion.y, plate.right + bakeExpansion.x, plate.bottom + bakeExpansion.y)
         val radius = PlateCorner.toPx() + minOf(bakeExpansion.x, bakeExpansion.y)
         if (t < 1f) bottom?.draw(this, bakeRect, r, alpha, radius)
         top?.draw(this, bakeRect, r, if (bottom != null) alpha * t else alpha, radius)
+    }
+}
+
+/** A bounded static lens and an edge-only moving plate: never put yesterday's frame over video. */
+@Composable
+private fun LitePlate(glass: ImageBitmap?, plate: Rect?, scroll: () -> Float, collapse: Float,
+    cover: () -> Float, toSaver: () -> Float, expansion: () -> Offset, bakeExpansion: Offset,
+    clear: Boolean, light: Float) {
+    if (plate == null) return
+    val density = LocalDensity.current.density
+    var screen by remember { mutableStateOf(Size.Zero) }
+    val rect = Rect(plate.left - bakeExpansion.x, plate.top - bakeExpansion.y,
+        plate.right + bakeExpansion.x, plate.bottom + bakeExpansion.y)
+    val radius = PlateCorner.value * density + minOf(bakeExpansion.x, bakeExpansion.y)
+    // Only the resting and focused endpoints are baked; spring frames stretch the cached image.
+    val textures = remember(glass, plate, screen, clear, light, density) { LinkedHashMap<Offset, ImageBitmap>() }
+    val lens by produceState<ImageBitmap?>(null, textures, bakeExpansion) {
+        value = null
+        if (glass != null && screen != Size.Zero) value = withContext(Dispatchers.Default) {
+            synchronized(textures) {
+                textures[bakeExpansion] ?: (if (clear) refractivePlate(glass, screen, rect, radius,
+                    1.2f * density, light, density, 768)
+                else diffusePlate(glass, screen, rect, radius, 1.2f * density, light)).also {
+                    if (textures.size >= 2) textures.remove(textures.keys.first())
+                    textures[bakeExpansion] = it
+                }
+            }
+        }
+    }
+    val edge = remember(rect, radius, density) {
+        val scale = minOf(1f, 768f / maxOf(rect.width, rect.height))
+        glassEdge((rect.width * scale).roundToInt().coerceAtLeast(1),
+            (rect.height * scale).roundToInt().coerceAtLeast(1), radius * scale, 1.2f * density * scale)
+    }
+    Canvas(Modifier.fillMaxSize().onSizeChanged { screen = Size(it.width.toFloat(), it.height.toFloat()) }) {
+        val rest = 1f - smooth((scroll() / collapse / .55f).coerceIn(0f, 1f))
+        val alpha = rest * (1f - toSaver())
+        if (alpha < .01f) return@Canvas
+        val grow = PlateSwell.toPx() * (1f - rest)
+        val e = expansion()
+        val at = Rect(plate.left - e.x, plate.top - e.y, plate.right + e.x, plate.bottom + e.y)
+            .translate(0f, -scroll()).inflate(grow)
+        val offset = IntOffset(at.left.roundToInt(), at.top.roundToInt())
+        val extent = IntSize(at.width.roundToInt(), at.height.roundToInt())
+        val image = lens
+        if (cover() < .01f && image != null) {
+            drawImage(image, dstOffset = offset, dstSize = extent, alpha = alpha, filterQuality = FilterQuality.Low)
+        } else {
+            // Hardware video overlay remains untouched. The thin directional meniscus supplies
+            // depth, while the selected brightness and material control just the transparent fill.
+            val tint = (light - .70f) / .48f
+            val fill = if (clear) Color.White.copy(alpha = .015f + tint * .055f)
+                else Color(0xFF202024).copy(alpha = .30f + (1f - tint) * .20f)
+            drawRoundRect(fill, topLeft = at.topLeft, size = at.size,
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(PlateCorner.toPx() + minOf(e.x, e.y)), alpha = alpha)
+            drawImage(edge, dstOffset = offset, dstSize = extent, alpha = alpha, filterQuality = FilterQuality.Low)
+        }
     }
 }
 
