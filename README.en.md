@@ -4,19 +4,20 @@ A home media launcher for Android TV 5.0+, based on [pengchujin/aerial-tv](https
 
 [中文](README.md) · **English**
 
-## v0.1 development build
+## 0.3.0 preview
 
 - Aerial home grid, folders, wallpaper, screensavers and QR-based phone management.
 - AetherTV branding and five UI languages.
 - Auto / Full / Lite rendering, selectable in the phone console under More, with background image cache reclamation.
-- M3U and XMLTV/XMLTV.gz source configuration, channel/programme counts and offline disk-cache fallback.
+- M3U/XMLTV configuration and foreground HLS/TS playback, channel navigation, EPG and bounded source fallback.
+- Independent desktop/menu glass, focus-responsive Dock clearance, 4–8 columns, grid-only names and optional direct system controls.
 - Documented work packages for human and Agent collaboration, Java 17 builds and two release flavors.
 
-IPTV currently covers configuration, parsing and caching. Full-screen playback, live previews, NAS posters and network mounts remain future [Roadmap](ROADMAP.md) work. See the [phone acceptance record](docs/work/AERIAL-20261026-phone-acceptance.md) for evidence and limits.
+Foreground playback and desktop settings have Redmi K40S phone evidence. Home previews, NAS posters and network mounts remain [Roadmap](ROADMAP.md) work. See the [0.3.0 work package](docs/work/AERIAL-20261027-liquid-controls.md) for evidence and target-TV limits.
 
 ## Build and install
 
-Read the [installation guide](docs/INSTALL.md). No GitHub Release has been published yet; build from source:
+Use the [0.3.0 prerelease](https://github.com/blackstone2333/aethertv/releases/tag/v0.3.0) and [installation guide](docs/INSTALL.md), or build from source:
 
 ```bash
 JAVA_HOME=/opt/homebrew/opt/openjdk@17 ./gradlew assembleStandardRelease assembleGuardRelease

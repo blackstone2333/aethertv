@@ -273,4 +273,27 @@
     <string name="care_cleaning">Очищення…</string>
     <string name="care_cleaned">Очищено: %1$s</string>
     <string name="care_background">Фонові програми</string>
+    <string name="menu_glass_material">Матеріал меню</string>
+    <string name="desktop_glass_light">Яскравість скла стільниці</string>
+    <string name="menu_glass_light">Яскравість скла меню</string>
+    <string name="names_grid_only">Лише в меню застосунків</string>
+    <string name="direct_controls">Кнопки головного екрана</string>
+    <string name="control_grouped">У Центрі керування</string>
+    <string name="control_direct">Окрема кнопка</string>
+    <string name="names_display">Назви застосунків</string>
+    <string name="names_focus">Лише у фокусі</string>
+    <string name="names_all">Усі застосунки</string>
+    <string name="direct_care">Кнопка стану ТБ</string>
+    <string name="direct_inputs">Кнопка входів</string>
+    <string name="direct_network">Кнопка мережі</string>
+    <string name="direct_settings">Кнопка налаштувань</string>
+    <string name="live_watch">Прямий ефір</string>
+    <string name="live_loading">Завантаження каналів…</string>
+    <string name="live_no_channels">Додайте список із телефона</string>
+    <string name="live_unavailable">Канал недоступний</string>
+    <string name="live_retry">Повторити</string>
+    <string name="live_channels">Канали</string>
+    <string name="live_next">Наступний канал</string>
+    <string name="live_previous">Попередній канал</string>
+    <string name="live_source_settings">Налаштування джерел</string>
 </resources>

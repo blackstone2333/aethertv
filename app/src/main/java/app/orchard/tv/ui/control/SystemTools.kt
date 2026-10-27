@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
+import app.orchard.tv.ui.components.softScrollEdges
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -199,7 +200,7 @@ fun CareDetails(info: JSONObject, takeFocus: Boolean) {
         if (it.type == KeyEventType.KeyDown && (it.key == Key.DirectionDown || it.key == Key.DirectionUp)) {
             scope.launch { scroll.scrollTo((scroll.value + if (it.key == Key.DirectionDown) 100 else -100).coerceIn(0, scroll.maxValue)) }; true
         } else false
-    }.focusable().verticalScroll(scroll)) {
+    }.focusable().softScrollEdges(scroll).verticalScroll(scroll)) {
         BasicText(stringResource(R.string.system_info), style = Type.Title, modifier = Modifier.padding(4.dp))
         Metric(info.optString("model"), "Android ${info.optString("android")}")
         Metric(stringResource(R.string.system_cpu), info.optString("cpu"))
@@ -253,7 +254,7 @@ fun ExchangePage(takeFocus: Boolean) {
         qr = url?.let { withContext(Dispatchers.Default) { PhoneServer.qr(it).asImageBitmap() } }
         while (true) { files = withContext(Dispatchers.IO) { store.entries() }; delay(2000) }
     }
-    Column(Modifier.verticalScroll(rememberScrollState())) {
+    Column(Modifier.let { viewport -> val edgeScroll = rememberScrollState(); viewport.softScrollEdges(edgeScroll).verticalScroll(edgeScroll) }) {
         BasicText(stringResource(R.string.transfer_title), style = Type.Title, modifier = Modifier.padding(4.dp))
         qr?.let { Image(it, stringResource(R.string.transfer_title), Modifier.padding(top = 12.dp).size(116.dp).align(Alignment.CenterHorizontally)) }
             ?: BasicText(stringResource(R.string.transfer_connect), style = Type.Callout, modifier = Modifier.padding(12.dp))

@@ -3,6 +3,9 @@ package app.orchard.tv.live.repo
 import android.content.Context
 import app.orchard.tv.live.model.LiveSourceConfig
 import app.orchard.tv.live.model.LiveSourceKind
+import app.orchard.tv.live.playback.LiveStation
+import app.orchard.tv.live.playback.mergeStations
+import app.orchard.tv.live.model.EpgProgram
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -50,9 +53,8 @@ object LiveSources {
     }
 
     /** Refreshes one source synchronously; callers should run it off the main thread. */
-    @Synchronized
     fun refresh(id: String): JSONObject {
-        val config = readConfigs().firstOrNull { it.id == id }
+        val config = all().firstOrNull { it.id == id }
             ?: return snapshot().put("error", "unknown source")
         val playlist = feeds.loadPlaylist(config, forceRefresh = true)
         var channelCount = 0
@@ -79,7 +81,7 @@ object LiveSources {
             }
             is FeedLoad.Failure -> error = playlist.error.message
         }
-        refreshes[id] = RefreshState(System.currentTimeMillis(), channelCount, epgCount, fromCache, stale, error)
+        synchronized(this) { refreshes[id] = RefreshState(System.currentTimeMillis(), channelCount, epgCount, fromCache, stale, error) }
         return snapshot()
     }
 
@@ -106,6 +108,22 @@ object LiveSources {
         }
         return JSONObject().put("sources", sources).put("sourceCount", sources.length())
     }
+
+    /** Worker-thread entry point; networking never holds the configuration/UI monitor. */
+    fun loadStations(): List<LiveStation> {
+        val playlists = FailoverPlanner.orderSources(all()).mapNotNull { config ->
+            when (val loaded = feeds.loadPlaylist(config)) {
+                is FeedLoad.Success -> config to loaded.value.playlist.channels
+                is FeedLoad.Failure -> null
+            }
+        }
+        return mergeStations(playlists)
+    }
+
+    fun loadPrograms(): List<EpgProgram> = FailoverPlanner.orderSources(all()).flatMap { config ->
+        val epg = config.epgUrl ?: (feeds.loadPlaylist(config) as? FeedLoad.Success)?.value?.playlist?.epgUrl
+        if (epg == null) emptyList() else (feeds.loadEpg(config.copy(epgUrl = epg)) as? FeedLoad.Success)?.value?.programs.orEmpty()
+    }.distinctBy { Triple(it.channelId, it.startMillis, it.title) }
 
     private fun readConfigs(): List<LiveSourceConfig> {
         if (!::preferences.isInitialized) return emptyList()

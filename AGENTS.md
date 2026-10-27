@@ -24,6 +24,13 @@ source local/tvs.env && BUILD=1 KEEP_ADB=1 TV=$XIAOMI_TV tools/install.sh   # BU
 
 测试不要求每次都连接电视。解析器、布局、配置、手机 Web 控制台和普通 Compose/Media3 逻辑先用单元测试、Android 模拟器或 Android 手机验证；手机通过只能记为“手机验证”。当贝包名白名单、HOME 接管、原厂桌面心跳、防黑屏、HomeGuard、遥控器、HDMI、音量、多任务和 MStar 硬解码必须在当贝 F3 Release 真机上验收，未验收一律写“未验证”。
 
+## 产品版本
+
+- 使用 `主版本.功能版本.修订版本`：系统级更新递增第一位；功能增改递增第二位；普通优化和修复递增第三位。递增高位时，低位归零。
+- 当前产品基线为 `0.3.0`；按用户确认的交付范围发版，不因 Agent 会话、提交或构建次数跳功能版本。
+- Android `versionCode` 是独立、单调递增的安装序号，不能随产品版本回退。Guard 只增加 flavor 后缀。
+- 未经正式发布要求只提供测试包或 GitHub prerelease；发布前写明手机与目标电视的验证范围。
+
 ## 搜索范围
 
 - 只在明确的项目目录或目标子目录内搜索；禁止从 `/`、`/Users/black/` 或 `~/` 递归扫描。

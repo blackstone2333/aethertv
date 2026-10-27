@@ -369,7 +369,7 @@ let state = null, stateJson = '';
 
 // The language: ?lang=ru in the address, else the one picked under More (kept on the phone), else the
 // first of the phone's preferred languages that has a table, else English. Keys are in KEYS, one array of texts per language.
-const KEYS = ["screensaver", "screensaver_short", "ss_aerial", "ss_photos", "ss_clock", "focus", "focus_high", "focus_standard", "weather", "city_ph", "set", "upload_label", "feedback_h", "feedback_hint", "diag_show", "diag_copy", "diag_github", "hint_aerial", "hint_photos", "hint_clock", "g_live", "g_live_sub", "g_daily", "g_daily_sub", "g_photo", "g_builtin", "g_auto", "toast_wallpaper", "aria_delete", "confirm_delete", "wx_clear", "wx_partlycloudy", "wx_cloudy", "wx_fog", "wx_rain", "wx_snow", "wx_thunder", "wx_chosen", "wx_auto_btn", "toast_auto", "wx_guessed", "wx_none", "tag_source", "aria_rename", "toast_renamed", "toast_name_reset", "toast_rename_fail", "aria_reset_icon", "toast_icon_reset", "focus_hint_standard", "focus_hint_high", "daily_title", "daily_caption", "rotate_title", "rotate_caption", "empty_photos", "add_second", "toast_tv_updated", "sending_n", "toast_added", "toast_no_photos", "toast_send_fail", "toast_city_set", "toast_city_nf", "toast_set_fail", "toast_sending_icon", "toast_icon_set", "toast_icon_bad", "diag_collecting", "toast_diag_fail", "toast_copied", "toast_copy_manual", "language", "hint_follows", "ss_videos", "hint_videos", "videos_h", "videos_upload", "videos_hint", "videos_empty", "confirm_video_delete", "toast_videos_added", "toast_video_bad", "sending_video", "hint_system", "tab_home", "tab_more", "current_wp", "cancel", "save", "name_ph", "rename_hint", "change_icon", "this_tv", "folder_count", "folder_ph", "inputs_h", "inputs_hint", "rename_hint_app", "was_named", "arrange_hint", "arrange_unready", "hidden_h", "hidden_none", "hidden_locked", "show_app", "hide_app", "to_folder", "new_folder", "out_of_folder", "ungroup", "ungroup_confirm", "folder_hint", "toast_hidden", "toast_shown", "toast_in_folder", "toast_out_folder", "toast_ungrouped", "tab_looks", "looks_title", "show_on_home", "source_device", "source_plain", "source_device_hint", "tv_model", "live_h", "live_hint", "live_id_ph", "live_m3u_ph", "live_epg_ph", "live_priority_ph", "live_save", "live_refresh", "live_delete", "live_empty", "live_saved", "live_refreshed", "live_failed", "render_h", "render_hint", "render_auto", "render_full", "render_lite", "render_active_full", "render_active_lite", "live_counts", "live_cache", "live_unchecked", "home_columns", "glass_material", "glass_clear", "glass_frosted", "glass_hint", "aerial_start", "aerial_immediate", "aerial_start_hint", "aerial_pause", "aerial_keep_playing", "aerial_stop_input", "aerial_pause_hint", "aerial_category", "daily_theme", "daily_theme_more", "daily_theme_hint", "topic_all", "topic_nature", "topic_city", "topic_water", "topic_underwater", "topic_space", "topic_animals", "topic_other", "system_info", "system_short", "system_cpu", "system_cores", "system_memory", "system_storage", "system_used", "system_network", "system_offline", "system_clean", "system_clean_hint", "new_cleaned", "new_app_cpu", "new_app_mem", "new_no_matches", "new_loading", "new_refresh", "new_memory", "transfer_title", "transfer_connect", "transfer_hint", "transfer_pick", "transfer_empty", "transfer_save", "transfer_remove", "transfer_upload", "transfer_download", "transfer_confirm", "new_sending", "tools_failed", "tools_saved"];
+const KEYS = ["screensaver", "screensaver_short", "ss_aerial", "ss_photos", "ss_clock", "focus", "focus_high", "focus_standard", "weather", "city_ph", "set", "upload_label", "feedback_h", "feedback_hint", "diag_show", "diag_copy", "diag_github", "hint_aerial", "hint_photos", "hint_clock", "g_live", "g_live_sub", "g_daily", "g_daily_sub", "g_photo", "g_builtin", "g_auto", "toast_wallpaper", "aria_delete", "confirm_delete", "wx_clear", "wx_partlycloudy", "wx_cloudy", "wx_fog", "wx_rain", "wx_snow", "wx_thunder", "wx_chosen", "wx_auto_btn", "toast_auto", "wx_guessed", "wx_none", "tag_source", "aria_rename", "toast_renamed", "toast_name_reset", "toast_rename_fail", "aria_reset_icon", "toast_icon_reset", "focus_hint_standard", "focus_hint_high", "daily_title", "daily_caption", "rotate_title", "rotate_caption", "empty_photos", "add_second", "toast_tv_updated", "sending_n", "toast_added", "toast_no_photos", "toast_send_fail", "toast_city_set", "toast_city_nf", "toast_set_fail", "toast_sending_icon", "toast_icon_set", "toast_icon_bad", "diag_collecting", "toast_diag_fail", "toast_copied", "toast_copy_manual", "language", "hint_follows", "ss_videos", "hint_videos", "videos_h", "videos_upload", "videos_hint", "videos_empty", "confirm_video_delete", "toast_videos_added", "toast_video_bad", "sending_video", "hint_system", "tab_home", "tab_more", "current_wp", "cancel", "save", "name_ph", "rename_hint", "change_icon", "this_tv", "folder_count", "folder_ph", "inputs_h", "inputs_hint", "rename_hint_app", "was_named", "arrange_hint", "arrange_unready", "hidden_h", "hidden_none", "hidden_locked", "show_app", "hide_app", "to_folder", "new_folder", "out_of_folder", "ungroup", "ungroup_confirm", "folder_hint", "toast_hidden", "toast_shown", "toast_in_folder", "toast_out_folder", "toast_ungrouped", "tab_looks", "looks_title", "show_on_home", "source_device", "source_plain", "source_device_hint", "tv_model", "live_h", "live_hint", "live_id_ph", "live_m3u_ph", "live_epg_ph", "live_priority_ph", "live_save", "live_refresh", "live_delete", "live_empty", "live_saved", "live_refreshed", "live_failed", "render_h", "render_hint", "render_auto", "render_full", "render_lite", "render_active_full", "render_active_lite", "live_counts", "live_cache", "live_unchecked", "home_columns", "glass_material", "glass_clear", "glass_frosted", "glass_hint", "aerial_start", "aerial_immediate", "aerial_start_hint", "aerial_pause", "aerial_keep_playing", "aerial_stop_input", "aerial_pause_hint", "aerial_category", "daily_theme", "daily_theme_more", "daily_theme_hint", "topic_all", "topic_nature", "topic_city", "topic_water", "topic_underwater", "topic_space", "topic_animals", "topic_other", "system_info", "system_short", "system_cpu", "system_cores", "system_memory", "system_storage", "system_used", "system_network", "system_offline", "system_clean", "system_clean_hint", "new_cleaned", "new_app_cpu", "new_app_mem", "new_no_matches", "new_loading", "new_refresh", "new_memory", "transfer_title", "transfer_connect", "transfer_hint", "transfer_pick", "transfer_empty", "transfer_save", "transfer_remove", "transfer_upload", "transfer_download", "transfer_confirm", "new_sending", "tools_failed", "tools_saved", "menu_glass_material", "desktop_glass_light", "menu_glass_light", "names_grid_only", "direct_controls", "control_grouped", "control_direct", "names_display", "names_focus", "names_all", "direct_care", "direct_inputs", "direct_network", "direct_settings", "live_watch", "live_loading", "live_no_channels", "live_unavailable", "live_retry", "live_channels", "live_next", "live_previous", "live_source_settings"];
 const TEXTS = {
  "zh": [
   "屏幕保护程序",
@@ -574,7 +574,30 @@ const TEXTS = {
   "从中转箱移除 {name}？",
   "正在发送…",
   "未能完成，请检查文件大小、剩余空间或系统文件选择器支持。",
-  "文件已就绪"
+  "文件已就绪",
+  "菜单材质",
+  "桌面玻璃明暗",
+  "菜单玻璃明暗",
+  "仅应用菜单",
+  "主屏幕控件",
+  "收在控制中心",
+  "独立按钮",
+  "应用名称",
+  "仅焦点应用",
+  "所有应用",
+  "电视管家按钮",
+  "信号源按钮",
+  "网络按钮",
+  "设置按钮",
+  "电视直播",
+  "正在加载频道…",
+  "用手机添加直播源",
+  "频道暂不可用",
+  "重试",
+  "频道",
+  "下一频道",
+  "上一频道",
+  "直播源设置"
  ],
  "en": [
   "Screensaver",
@@ -779,7 +802,30 @@ const TEXTS = {
   "Remove {name} from the exchange box?",
   "Sending…",
   "Could not complete. Check file size, available storage or file-picker support.",
-  "File ready"
+  "File ready",
+  "Menu material",
+  "Desktop glass brightness",
+  "Menu glass brightness",
+  "App menu only",
+  "Home controls",
+  "Control Center",
+  "Separate button",
+  "App names",
+  "Focused app",
+  "All apps",
+  "TV care button",
+  "Inputs button",
+  "Network button",
+  "Settings button",
+  "Live TV",
+  "Loading channels…",
+  "Add a playlist from your phone",
+  "Channel unavailable",
+  "Retry",
+  "Channels",
+  "Next channel",
+  "Previous channel",
+  "Playlist settings"
  ],
  "ru": [
   "Заставка",
@@ -984,7 +1030,30 @@ const TEXTS = {
   "Удалить {name} из буфера?",
   "Отправка…",
   "Не удалось завершить. Проверьте размер файла, свободное место и поддержку выбора файлов.",
-  "Файл готов"
+  "Файл готов",
+  "Материал меню",
+  "Яркость стекла рабочего стола",
+  "Яркость стекла меню",
+  "Только в меню приложений",
+  "Кнопки на главном экране",
+  "В Центре управления",
+  "Отдельная кнопка",
+  "Названия приложений",
+  "Только в фокусе",
+  "Все приложения",
+  "Кнопка состояния ТВ",
+  "Кнопка входов",
+  "Кнопка сети",
+  "Кнопка настроек",
+  "Прямой эфир",
+  "Загрузка каналов…",
+  "Добавьте список с телефона",
+  "Канал недоступен",
+  "Повторить",
+  "Каналы",
+  "Следующий канал",
+  "Предыдущий канал",
+  "Настройки источников"
  ],
  "uk": [
   "Заставка",
@@ -1189,7 +1258,30 @@ const TEXTS = {
   "Видалити {name} з буфера?",
   "Надсилання…",
   "Не вдалося завершити. Перевірте розмір файлу, вільне місце та підтримку вибору файлів.",
-  "Файл готовий"
+  "Файл готовий",
+  "Матеріал меню",
+  "Яскравість скла стільниці",
+  "Яскравість скла меню",
+  "Лише в меню застосунків",
+  "Кнопки головного екрана",
+  "У Центрі керування",
+  "Окрема кнопка",
+  "Назви застосунків",
+  "Лише у фокусі",
+  "Усі застосунки",
+  "Кнопка стану ТБ",
+  "Кнопка входів",
+  "Кнопка мережі",
+  "Кнопка налаштувань",
+  "Прямий ефір",
+  "Завантаження каналів…",
+  "Додайте список із телефона",
+  "Канал недоступний",
+  "Повторити",
+  "Канали",
+  "Наступний канал",
+  "Попередній канал",
+  "Налаштування джерел"
  ],
  "kk": [
   "Экран қорғаушы",
@@ -1394,7 +1486,30 @@ const TEXTS = {
   "{name} файлын жәшіктен жою керек пе?",
   "Жіберілуде…",
   "Аяқталмады. Файл өлшемін, бос орынды және файл таңдау қолдауын тексеріңіз.",
-  "Файл дайын"
+  "Файл дайын",
+  "Мәзір материалы",
+  "Жұмыс үстелі әйнегінің жарықтығы",
+  "Мәзір әйнегінің жарықтығы",
+  "Тек қолданбалар мәзірінде",
+  "Басты экран басқаруы",
+  "Басқару орталығында",
+  "Бөлек түйме",
+  "Қолданба атаулары",
+  "Тек фокустағы қолданба",
+  "Барлық қолданбалар",
+  "Теледидар күйі түймесі",
+  "Кірістер түймесі",
+  "Желі түймесі",
+  "Баптаулар түймесі",
+  "Тікелей эфир",
+  "Арналар жүктелуде…",
+  "Телефоннан арналар тізімін қосыңыз",
+  "Арна қолжетімсіз",
+  "Қайталау",
+  "Арналар",
+  "Келесі арна",
+  "Алдыңғы арна",
+  "Арна көздерін баптау"
  ]
 };
 const LANGS = Object.keys(TEXTS);
@@ -2204,6 +2319,11 @@ function renderDesktop() {
   const home = $('#desktopHome'); home.replaceChildren();
   desktopSelect(home, 'columns', 'home_columns', [4,5,6,7,8].map(n => [n, '@'+n]), state.homeColumns);
   desktopSelect(home, 'glass', 'glass_material', [['clear','glass_clear'],['frosted','glass_frosted']], state.glassStyle, 'glass_hint');
+  desktopSelect(home, 'glassBrightness', 'desktop_glass_light', [0,25,50,75,100].map(n=>[n,'@'+n+'%']), state.glassBrightness);
+  desktopSelect(home, 'menuGlass', 'menu_glass_material', [['clear','glass_clear'],['frosted','glass_frosted']], state.menuGlassStyle);
+  desktopSelect(home, 'menuGlassBrightness', 'menu_glass_light', [0,25,35,50,75,100].map(n=>[n,'@'+n+'%']), state.menuGlassBrightness);
+  desktopSelect(home, 'names', 'names_display', [['focused','names_focus'],['all','names_all'],['grid','names_grid_only']], state.nameMode);
+  for (const key of ['care','inputs','network','settings']) desktopSelect(home, key, 'direct_'+key, [[false,'control_grouped'],[true,'control_direct']], (state.directControls || []).includes(key));
   const root = $('#desktopLooks'); root.replaceChildren();
   desktopSelect(root, 'delay', 'aerial_start', [[0,'aerial_immediate'],[2,'@2 s'],[10,'@10 s'],[30,'@30 s']], state.aerialDelay, 'aerial_start_hint');
   desktopSelect(root, 'pause', 'aerial_pause', [[false,'aerial_keep_playing'],[true,'aerial_stop_input']], state.aerialPause, 'aerial_pause_hint');

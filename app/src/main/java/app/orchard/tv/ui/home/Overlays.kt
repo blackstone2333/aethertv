@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import app.orchard.tv.ui.components.softScrollEdges
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.heightIn
@@ -277,7 +278,7 @@ fun AppMenu(
                         val source = shownApp.source
                         val current = source?.let { SourceLooks.of(it.id)?.device }
                         val choices = listOfNotNull(current) + listOf(null) + SourceDevice.entries.filter { it != current }
-                        Column(Modifier.heightIn(max = 300.dp).verticalScroll(rememberScrollState())) {
+                        Column(Modifier.heightIn(max = 300.dp).let { viewport -> val edgeScroll = rememberScrollState(); viewport.softScrollEdges(edgeScroll).verticalScroll(edgeScroll) }) {
                             choices.forEachIndexed { i, device ->
                                 MenuRow(
                                     if (device == current) Glyph.Check else Glyph.Input,
@@ -369,7 +370,7 @@ fun HiddenAppsSheet(
                 Column(
                     Modifier
                         .weight(1f, fill = false)
-                        .verticalScroll(rememberScrollState())
+                        .let { viewport -> val edgeScroll = rememberScrollState(); viewport.softScrollEdges(edgeScroll).verticalScroll(edgeScroll) }
                         // Room for the focused tile's 1.1x scale, so the edge rows are not clipped.
                         .padding(horizontal = 8.dp, vertical = 8.dp),
                 ) {

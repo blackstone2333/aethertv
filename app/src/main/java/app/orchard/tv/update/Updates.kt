@@ -34,7 +34,8 @@ import java.net.URL
  */
 object Updates {
     private const val TAG = "AerialUpdates"
-    private const val PREFS = "updates_aethertv"
+    // The 0.x product version baseline must not inherit cached 1.x development hints.
+    private const val PREFS = "updates_aethertv_v0"
     private const val VERSION_URL = "https://raw.githubusercontent.com/blackstone2333/aethertv/main/updates/version.txt"
     const val RELEASES_URL = "https://github.com/blackstone2333/aethertv/releases"
     const val SETUP_URL = "https://github.com/blackstone2333/aethertv/blob/main/docs/INSTALL.md"

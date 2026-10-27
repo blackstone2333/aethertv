@@ -5,6 +5,10 @@ import android.graphics.LinearGradient
 import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.Shader
+import androidx.compose.runtime.produceState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -25,7 +29,6 @@ import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Paint as ComposePaint
 import androidx.compose.ui.graphics.ShaderBrush
-import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.asAndroidPath
 import androidx.compose.ui.graphics.asImageBitmap
@@ -43,16 +46,10 @@ import app.orchard.tv.wallpaper.Wallpapers
 import kotlin.math.roundToInt
 
 /**
- * The regular control material, with cached diffusion for text-heavy panels: the TVs here mostly run
- * Android 9–11 (no RenderEffect) and their GPUs could not afford one. The surface shows the part
- * of the frosted wallpaper (Wallpapers.frosted, baked small) that lies behind it, dimmed so white
- * text reads on any picture, and light catches its rim. The frosted picture is stretched over the
- * screen through a shader, so a panel costs one fill of its own area, as a flat color did. In
- * "Follow App" mode there is no frosted wallpaper and the panel is the plain dark glass color.
- *
- * Replaces clip + background + border; [bottomCorners] false for a sheet rising from the bottom.
- * The continuous outline is a baked mask (see SmoothCorners.kt); children are clipped to a plain
- * rounded rect, which holds it.
+ * Shared control material: a refractive lens or cached diffusion sampled from the wallpaper.
+ * Android 5/6 use the same geometry with the Lite fill. Layout/background changes rebuild the
+ * lens off the main thread; animation frames reuse it. No second decoder or frame readback.
+ * [bottomCorners] is false for a sheet that meets the bottom of the screen.
  */
 fun Modifier.liquidGlass(corner: Dp, bottomCorners: Boolean = true): Modifier = composed {
     val shape = if (bottomCorners) RoundedCornerShape(corner) else RoundedCornerShape(topStart = corner, topEnd = corner)
@@ -60,12 +57,27 @@ fun Modifier.liquidGlass(corner: Dp, bottomCorners: Boolean = true): Modifier = 
         // Android 5/6 and low-RAM phones benefit more from a flat plate than from a baked mask.
         return@composed this.clip(shape).background(Palette.Glass)
     }
+    val clear = AerialSettings.menuGlassStyle == "clear"
     val frost = Wallpapers.frosted.takeIf { Wallpapers.backdrop != null }
+    val source = Wallpapers.backdrop
+    val brightness = AerialSettings.menuGlassLight
+    val density = LocalDensity.current.density
     var at by remember { mutableStateOf(Offset.Zero) }
     var root by remember { mutableStateOf(IntSize.Zero) }
+    var extent by remember { mutableStateOf(IntSize.Zero) }
+    // Rebuild only after layout/background/settings change; never capture or blur video each frame.
+    val lens by produceState<ImageBitmap?>(null, source, root, at, extent, brightness, clear) {
+        value = if (!clear || source == null || root == IntSize.Zero || extent == IntSize.Zero) null else
+            withContext(Dispatchers.Default) {
+                refractivePlate(source, Size(root.width.toFloat(), root.height.toFloat()),
+                    Rect(at, Size(extent.width.toFloat(), extent.height.toFloat())), corner.value * density,
+                    1.2f * density, brightness, density)
+            }
+    }
     this
         .onGloballyPositioned { c ->
             at = c.positionInRoot()
+            extent = c.size
             var r = c
             while (true) r = r.parentLayoutCoordinates ?: break
             root = r.size
@@ -80,7 +92,9 @@ fun Modifier.liquidGlass(corner: Dp, bottomCorners: Boolean = true): Modifier = 
             val brush = shader?.let { ShaderBrush(it) }
             val flat = mask.asImageBitmap()
             onDrawBehind {
-                if (shader == null || brush == null || root == IntSize.Zero) {
+                if (clear && lens != null) {
+                    drawImage(lens!!, dstSize = IntSize(w, h))
+                } else if (shader == null || brush == null || root == IntSize.Zero) {
                     drawImage(flat, dstSize = IntSize(w, h), colorFilter = ColorFilter.tint(Palette.Glass))
                 } else {
                     shader.setLocalMatrix(Matrix().apply {
@@ -96,14 +110,14 @@ fun Modifier.liquidGlass(corner: Dp, bottomCorners: Boolean = true): Modifier = 
                     drawRect(brush, colorFilter = PanelTint, blendMode = BlendMode.SrcIn)
                     drawContext.canvas.restore()
                 }
-                drawGlassEdge(size, radius, bottomCorners)
+                if (!clear || lens == null) drawGlassEdge(size, radius, bottomCorners)
             }
         }
 }
 
 /**
  * The lit edge of a piece of glass: a sheen inside the top, and a rim bright where light falls on
- * it from the top left, faint along the sides, and catching again at the far corner.
+ * it along the top and bottom, with neutral grey side walls.
  */
 private fun DrawScope.drawGlassEdge(size: Size, radius: Float, bottomCorners: Boolean) {
     val w = size.width.roundToInt()
@@ -141,9 +155,9 @@ fun glassEdge(w: Int, h: Int, radius: Float, rim: Float, bottomCorners: Boolean 
                 style = Paint.Style.STROKE
                 strokeWidth = rim
                 shader = LinearGradient(
-                    0f, 0f, w.toFloat(), bottom,
-                    intArrayOf(white(0.30f), white(0.07f), white(0.025f), white(0.18f)),
-                    floatArrayOf(0f, 0.35f, 0.7f, 1f),
+                    0f, 0f, 0f, bottom,
+                    intArrayOf(white(0.58f), Color(0x807C818A).toArgb(), Color(0x807C818A).toArgb(), white(0.44f)),
+                    floatArrayOf(0f, 0.18f, 0.82f, 1f),
                     Shader.TileMode.CLAMP,
                 )
             },

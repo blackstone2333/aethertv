@@ -273,4 +273,27 @@
     <string name="care_cleaning">Очистка…</string>
     <string name="care_cleaned">Очищено: %1$s</string>
     <string name="care_background">Фоновые приложения</string>
+    <string name="menu_glass_material">Материал меню</string>
+    <string name="desktop_glass_light">Яркость стекла рабочего стола</string>
+    <string name="menu_glass_light">Яркость стекла меню</string>
+    <string name="names_grid_only">Только в меню приложений</string>
+    <string name="direct_controls">Кнопки на главном экране</string>
+    <string name="control_grouped">В Центре управления</string>
+    <string name="control_direct">Отдельная кнопка</string>
+    <string name="names_display">Названия приложений</string>
+    <string name="names_focus">Только в фокусе</string>
+    <string name="names_all">Все приложения</string>
+    <string name="direct_care">Кнопка состояния ТВ</string>
+    <string name="direct_inputs">Кнопка входов</string>
+    <string name="direct_network">Кнопка сети</string>
+    <string name="direct_settings">Кнопка настроек</string>
+    <string name="live_watch">Прямой эфир</string>
+    <string name="live_loading">Загрузка каналов…</string>
+    <string name="live_no_channels">Добавьте список с телефона</string>
+    <string name="live_unavailable">Канал недоступен</string>
+    <string name="live_retry">Повторить</string>
+    <string name="live_channels">Каналы</string>
+    <string name="live_next">Следующий канал</string>
+    <string name="live_previous">Предыдущий канал</string>
+    <string name="live_source_settings">Настройки источников</string>
 </resources>

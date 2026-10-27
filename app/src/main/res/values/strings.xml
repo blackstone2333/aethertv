@@ -281,4 +281,27 @@
     <string name="care_cleaning">Cleaning…</string>
     <string name="care_cleaned">Cleared %1$s</string>
     <string name="care_background">Background &amp; apps</string>
+    <string name="menu_glass_material">Menu material</string>
+    <string name="desktop_glass_light">Desktop glass brightness</string>
+    <string name="menu_glass_light">Menu glass brightness</string>
+    <string name="names_grid_only">App menu only</string>
+    <string name="direct_controls">Home controls</string>
+    <string name="control_grouped">Control Center</string>
+    <string name="control_direct">Separate button</string>
+    <string name="names_display">App names</string>
+    <string name="names_focus">Focused app</string>
+    <string name="names_all">All apps</string>
+    <string name="direct_care">TV care button</string>
+    <string name="direct_inputs">Inputs button</string>
+    <string name="direct_network">Network button</string>
+    <string name="direct_settings">Settings button</string>
+    <string name="live_watch">Live TV</string>
+    <string name="live_loading">Loading channels…</string>
+    <string name="live_no_channels">Add a playlist from your phone</string>
+    <string name="live_unavailable">Channel unavailable</string>
+    <string name="live_retry">Retry</string>
+    <string name="live_channels">Channels</string>
+    <string name="live_next">Next channel</string>
+    <string name="live_previous">Previous channel</string>
+    <string name="live_source_settings">Playlist settings</string>
 </resources>

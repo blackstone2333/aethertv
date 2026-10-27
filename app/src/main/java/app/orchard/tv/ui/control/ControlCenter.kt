@@ -1,5 +1,6 @@
 package app.orchard.tv.ui.control
 
+import app.orchard.tv.ui.components.softScrollEdges
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.heightIn
@@ -40,8 +41,6 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import org.json.JSONObject
 import androidx.compose.foundation.Image
 import androidx.compose.runtime.getValue
@@ -126,12 +125,13 @@ fun ControlCenter(
         }
     }
     BackHandler(enabled = visible) {
+        if (page == (vm.overlay as? Overlay.ControlCenter)?.root) { onClose(); return@BackHandler }
         when (page) {
             CcPage.Main -> onClose()
             CcPage.Inputs -> vm.overlay = Overlay.ControlCenter(CcPage.Main)
-            CcPage.InputSettings -> vm.overlay = Overlay.ControlCenter(CcPage.Inputs)
+            CcPage.InputSettings -> vm.overlay = Overlay.ControlCenter(CcPage.Inputs, (vm.overlay as? Overlay.ControlCenter)?.root ?: CcPage.Main)
             CcPage.Update, CcPage.Setup, CcPage.Care -> vm.overlay = Overlay.ControlCenter(CcPage.Main)
-            CcPage.CareDetails, CcPage.Exchange -> vm.overlay = Overlay.ControlCenter(CcPage.Care)
+            CcPage.CareDetails, CcPage.Exchange -> vm.overlay = Overlay.ControlCenter(CcPage.Care, (vm.overlay as? Overlay.ControlCenter)?.root ?: CcPage.Main)
         }
     }
 
@@ -162,7 +162,7 @@ fun ControlCenter(
                 CcPage.Update -> UpdatePage(vm, visible)
                 CcPage.Setup -> SetupPage(vm, visible, onOpen)
                 CcPage.Care -> CarePage(care, visible, careFocus, onPage = { next, origin ->
-                    careFocus = origin; vm.overlay = Overlay.ControlCenter(next)
+                    careFocus = origin; vm.overlay = Overlay.ControlCenter(next, (vm.overlay as? Overlay.ControlCenter)?.root ?: CcPage.Main)
                 }, onNetwork = { openNetwork() }, onOpen = { intent ->
                     vm.whenUnlocked { onOpen(if (intent.resolveActivity(context.packageManager) != null) intent else SystemProbe.settingsIntent(context)) }
                 })
@@ -193,7 +193,7 @@ private fun MainPage(vm: HomeViewModel, now: LocalDateTime, takeFocus: Boolean, 
         runCatching { (if (focusCare) careEntry else first).requestFocus() }
     }
 
-    Column(Modifier.verticalScroll(rememberScrollState())) {
+    Column(Modifier.let { viewport -> val edgeScroll = rememberScrollState(); viewport.softScrollEdges(edgeScroll).verticalScroll(edgeScroll) }) {
         Row(verticalAlignment = Alignment.Bottom) {
             Column(Modifier.weight(1f)) {
                 BasicText(timeText(now), style = Type.SmallClock.copy(fontSize = Type.LargeTitle.fontSize * 1.05f))
@@ -239,6 +239,9 @@ private fun MainPage(vm: HomeViewModel, now: LocalDateTime, takeFocus: Boolean, 
         BrightnessRow(vm)
 
         Spacer(Modifier.height(6.dp))
+        MenuRow(Glyph.Antenna, stringResource(R.string.live_watch), onClick = {
+            onOpen(android.content.Intent(context, app.orchard.tv.live.LiveActivity::class.java))
+        })
         // How Home looks (wallpaper, screensaver, focus style, hidden apps, weather) lives in one place.
         MenuRow(
             Glyph.Photo,
@@ -534,8 +537,13 @@ private fun InputsPage(vm: HomeViewModel, takeFocus: Boolean, onOpen: (android.c
         withFrameNanos { }
         runCatching { first.requestFocus() }
     }
-    Column(Modifier.heightIn(max = 470.dp).verticalScroll(rememberScrollState())) {
-        MenuRow(Glyph.ChevronLeft, stringResource(R.string.cc_inputs), onClick = { vm.overlay = Overlay.ControlCenter(CcPage.Main) })
+    Column(Modifier.heightIn(max = 470.dp).let { viewport -> val edgeScroll = rememberScrollState(); viewport.softScrollEdges(edgeScroll).verticalScroll(edgeScroll) }) {
+        if ((vm.overlay as? Overlay.ControlCenter)?.root == CcPage.Inputs) {
+            Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                GlyphIcon(Glyph.Input, Palette.Label, 22.dp)
+                BasicText(stringResource(R.string.cc_inputs), style = Type.Body)
+            }
+        } else MenuRow(Glyph.ChevronLeft, stringResource(R.string.cc_inputs), onClick = { vm.overlay = Overlay.ControlCenter(CcPage.Main) })
         Spacer(Modifier.height(8.dp))
         if (vm.sources.isEmpty()) {
             BasicText(stringResource(R.string.cc_no_inputs), style = Type.Callout, modifier = Modifier.padding(14.dp))
@@ -561,7 +569,7 @@ private fun InputsPage(vm: HomeViewModel, takeFocus: Boolean, onOpen: (android.c
         // Switching is this page's one job; what Aerial does with the inputs is a page further in.
         if (vm.sources.isNotEmpty()) {
             Spacer(Modifier.height(10.dp))
-            MenuRow(Glyph.Gear, stringResource(R.string.cc_inputs_settings), onClick = { vm.overlay = Overlay.ControlCenter(CcPage.InputSettings) })
+            MenuRow(Glyph.Gear, stringResource(R.string.cc_inputs_settings), onClick = { vm.overlay = Overlay.ControlCenter(CcPage.InputSettings, (vm.overlay as? Overlay.ControlCenter)?.root ?: CcPage.Main) })
         }
     }
 }
@@ -579,8 +587,8 @@ private fun InputSettingsPage(vm: HomeViewModel, takeFocus: Boolean) {
         runCatching { first.requestFocus() }
     }
     fun name(source: app.orchard.tv.system.TvSource) = source.deviceName?.let { "${source.label} · $it" } ?: source.label
-    Column(Modifier.heightIn(max = 470.dp).verticalScroll(rememberScrollState())) {
-        MenuRow(Glyph.ChevronLeft, stringResource(R.string.cc_inputs_settings), onClick = { vm.overlay = Overlay.ControlCenter(CcPage.Inputs) })
+    Column(Modifier.heightIn(max = 470.dp).let { viewport -> val edgeScroll = rememberScrollState(); viewport.softScrollEdges(edgeScroll).verticalScroll(edgeScroll) }) {
+        MenuRow(Glyph.ChevronLeft, stringResource(R.string.cc_inputs_settings), onClick = { vm.overlay = Overlay.ControlCenter(CcPage.Inputs, (vm.overlay as? Overlay.ControlCenter)?.root ?: CcPage.Main) })
 
         Spacer(Modifier.height(10.dp))
         BasicText(stringResource(R.string.cc_inputs_pin), style = Type.Callout, modifier = Modifier.padding(start = 14.dp, bottom = 6.dp))

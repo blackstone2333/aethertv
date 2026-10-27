@@ -213,6 +213,11 @@ class PhoneServer private constructor(private val context: Context, private val 
             .put("liteMode", AerialSettings.liteMode)
             .put("homeColumns", AerialSettings.homeColumns)
             .put("glassStyle", AerialSettings.glassStyle)
+            .put("menuGlassStyle", AerialSettings.menuGlassStyle)
+            .put("glassBrightness", AerialSettings.glassBrightness)
+            .put("menuGlassBrightness", AerialSettings.menuGlassBrightness)
+            .put("nameMode", AerialSettings.nameMode)
+            .put("directControls", JSONArray(AerialSettings.directControls.toList()))
             .put("aerialDelay", AerialSettings.aerialDelaySeconds)
             .put("aerialPause", AerialSettings.aerialPauseOnInput)
             .put("aerialCategory", AerialSettings.aerialCategory)
@@ -265,7 +270,10 @@ class PhoneServer private constructor(private val context: Context, private val 
     private fun desktop(f: Map<String, String>): Response {
         val valid = f.isNotEmpty() && f.all { (key, value) -> when (key) {
             "columns" -> value.toIntOrNull() in 4..8
-            "glass" -> value in listOf("clear", "frosted")
+            "glass", "menuGlass" -> value in listOf("clear", "frosted")
+            "glassBrightness", "menuGlassBrightness" -> value.toIntOrNull() in 0..100
+            "names" -> value in listOf("focused", "all", "grid")
+            "care", "inputs", "network", "settings" -> value in listOf("true", "false")
             "delay" -> value.toIntOrNull()?.let { it in 0..60 } == true
             "pause" -> value in listOf("true", "false")
             "aerial" -> value in listOf("all", "landscapes", "cities", "underwater", "space")
@@ -276,6 +284,11 @@ class PhoneServer private constructor(private val context: Context, private val 
         onMain {
             f["columns"]?.toInt()?.let(AerialSettings::chooseHomeColumns)
             f["glass"]?.let(AerialSettings::chooseGlassStyle)
+            f["menuGlass"]?.let(AerialSettings::chooseMenuGlassStyle)
+            f["glassBrightness"]?.toInt()?.let(AerialSettings::chooseGlassBrightness)
+            f["menuGlassBrightness"]?.toInt()?.let(AerialSettings::chooseMenuGlassBrightness)
+            f["names"]?.let(AerialSettings::chooseNameMode)
+            listOf("care", "inputs", "network", "settings").forEach { key -> f[key]?.let { AerialSettings.chooseDirectControl(key, it == "true") } }
             f["delay"]?.toInt()?.let(AerialSettings::chooseAerialDelay)
             f["pause"]?.let { AerialSettings.chooseAerialPause(it == "true") }
             f["aerial"]?.let(AerialSettings::chooseAerialCategory)

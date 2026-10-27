@@ -4,19 +4,20 @@
 
 **中文** · [English](README.en.md)
 
-## v0.1 开发验收版
+## 0.3.0 测试版
 
 - 首页应用网格、文件夹、壁纸、屏保和手机扫码管理沿用 Aerial 的基础能力。
 - AetherTV / 以太桌面品牌与五语言界面。
 - Auto / Full / Lite 渲染模式，手机控制台“更多”可切换；后台释放可重建图片缓存。
-- 手机配置 M3U 与 XMLTV/XMLTV.gz，刷新频道和节目数量；网络失效时回退到本机缓存。
+- 手机配置 M3U 与 XMLTV/XMLTV.gz；前台直播支持 HLS/TS、频道表、EPG 与失败切源，网络失效可读取缓存。
+- 桌面/菜单分别设置液态或磨砂玻璃，聚焦时 Dock 伸展；支持 4–8 列、应用菜单名称及独立系统控件。
 - 多人和 Agent 按工作包推进，构建固定 Java 17，双 flavor 保留包名和清单约束。
 
-当前 IPTV 是源配置、解析和缓存基线；全屏直播播放、首页实时预览、NAS 海报墙和文件挂载见后续 [Roadmap](ROADMAP.md)。验收范围和设备证据见 [手机验收记录](docs/work/AERIAL-20261026-phone-acceptance.md)。
+前台直播与桌面定制已做 Redmi K40S 手机验证；首页静音预览、NAS 海报墙和文件挂载见后续 [Roadmap](ROADMAP.md)。验收范围见 [0.3.0 工作包](docs/work/AERIAL-20261027-liquid-controls.md)，电视专属能力仍需目标机验证。
 
 ## 安装与开发
 
-请使用本仓库的 [安装与升级指南](docs/INSTALL.md)。当前尚未发布 GitHub Release，可从源码构建：
+请使用 [0.3.0 预发布包](https://github.com/blackstone2333/aethertv/releases/tag/v0.3.0) 和 [安装与升级指南](docs/INSTALL.md)，也可从源码构建：
 
 ```bash
 JAVA_HOME=/opt/homebrew/opt/openjdk@17 ./gradlew assembleStandardRelease assembleGuardRelease

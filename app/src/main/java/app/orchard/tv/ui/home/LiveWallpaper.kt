@@ -125,6 +125,7 @@ fun LiveWallpaper(
     live: LiveFilm,
     plate: Rect?,
     plateAlpha: () -> Float,
+    plateRadius: Float = 32f,
 ) {
     val context = LocalContext.current
     LaunchedEffect(Unit) { cover.snapTo(0f) }
@@ -327,7 +328,7 @@ fun LiveWallpaper(
                 }
             },
             update = { view ->
-                if (view is AerialGlassView) view.plate(plate, density, AerialSettings.glassStyle == "frosted", plateAlpha())
+                if (view is AerialGlassView) view.plate(plate, density, AerialSettings.glassStyle == "frosted", plateAlpha(), AerialSettings.glassLight, plateRadius)
             },
             onRelease = {
                 if (surface === it) {
@@ -342,7 +343,7 @@ fun LiveWallpaper(
     // Observe only this small GL uniform during dock/scroll transitions, with no bitmap readback.
     LaunchedEffect(gpu, plate, AerialSettings.glassStyle) {
         snapshotFlow { plateAlpha() }.collect { alpha ->
-            (surface as? AerialGlassView)?.plate(plate, density, AerialSettings.glassStyle == "frosted", alpha)
+            (surface as? AerialGlassView)?.plate(plate, density, AerialSettings.glassStyle == "frosted", alpha, AerialSettings.glassLight, plateRadius)
         }
     }
 

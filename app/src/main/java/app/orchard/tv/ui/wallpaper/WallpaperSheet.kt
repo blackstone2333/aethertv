@@ -36,6 +36,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
+import app.orchard.tv.ui.components.softScrollEdges
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -148,7 +149,7 @@ fun WallpaperSheet(
                 // How Home looks, in the order you see it: the picture behind everything, how Home
                 // is laid out over it, what replaces it when idle, then the weather and the PIN.
                 // Settings sit in tvOS-style grouped rows; each group's note follows the focused row.
-                Column(Modifier.weight(1f).fillMaxHeight().verticalScroll(scroll)) {
+                Column(Modifier.weight(1f).fillMaxHeight().softScrollEdges(scroll).verticalScroll(scroll)) {
                     BasicText(stringResource(R.string.wp_title), style = Type.LargeTitle)
                     Spacer(Modifier.height(16.dp))
                     SectionTitle(R.string.wp_wallpaper)
@@ -180,6 +181,13 @@ fun WallpaperSheet(
                         Choices(R.string.glass_material, stringResource(R.string.glass_hint), note,
                             listOf("clear" to R.string.glass_clear, "frosted" to R.string.glass_frosted),
                             AerialSettings.glassStyle, AerialSettings::chooseGlassStyle)
+                        Choices(R.string.desktop_glass_light, null, note, (0..100 step 25).map { it to "$it%" },
+                            AerialSettings.glassBrightness, AerialSettings::chooseGlassBrightness)
+                        Choices(R.string.menu_glass_material, null, note,
+                            listOf("clear" to R.string.glass_clear, "frosted" to R.string.glass_frosted),
+                            AerialSettings.menuGlassStyle, AerialSettings::chooseMenuGlassStyle)
+                        Choices(R.string.menu_glass_light, null, note, listOf(0, 25, 35, 50, 75, 100).map { it to "$it%" },
+                            AerialSettings.menuGlassBrightness, AerialSettings::chooseMenuGlassBrightness)
                         // Two rows show the second row whole; only one row has a peek to hide.
                         if (AerialSettings.oneRowHome) Choices(
                             R.string.st_peek, stringResource(R.string.st_peek_hint), note,
@@ -193,8 +201,8 @@ fun WallpaperSheet(
                         )
                         Choices(
                             R.string.st_names, stringResource(R.string.st_names_hint), note,
-                            listOf(false to R.string.st_names_focused, true to R.string.st_names_all),
-                            AerialSettings.showAllNames, AerialSettings::chooseShowAllNames,
+                            listOf("focused" to R.string.st_names_focused, "all" to R.string.st_names_all, "grid" to R.string.names_grid_only),
+                            AerialSettings.nameMode, AerialSettings::chooseNameMode,
                         )
                         // Apps taken off Home are kept with the rest of how Home looks.
                         SettingRow(R.string.st_hidden_apps, stringResource(R.string.st_hidden_apps_hint), note) {
@@ -203,6 +211,15 @@ fun WallpaperSheet(
                                 Glyph.ChevronRight,
                                 onHiddenApps,
                             )
+                        }
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    SectionTitle(R.string.direct_controls)
+                    Group { note ->
+                        listOf("care" to R.string.system_info, "inputs" to R.string.cc_inputs,
+                            "network" to R.string.cc_network, "settings" to R.string.cc_settings).forEach { (key, title) ->
+                            Choices(title, null, note, listOf(false to R.string.control_grouped, true to R.string.control_direct),
+                                key in AerialSettings.directControls, { AerialSettings.chooseDirectControl(key, it) })
                         }
                     }
                     Spacer(Modifier.height(10.dp))
@@ -473,7 +490,7 @@ private fun <T> Choices(
     first: Boolean = false,
 ) {
     SettingRow(label, hint, note, first) {
-        Row(Modifier.widthIn(max = 370.dp).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(Modifier.widthIn(max = 370.dp).let { viewport -> val edgeScroll = rememberScrollState(); viewport.softScrollEdges(edgeScroll, horizontal = true).horizontalScroll(edgeScroll) }, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             options.forEach { (value, text) ->
                 Chip(if (text is Int) stringResource(text) else text.toString(), on = current == value) { choose(value) }
             }

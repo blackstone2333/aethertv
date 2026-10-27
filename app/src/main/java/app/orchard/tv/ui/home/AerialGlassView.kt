@@ -31,8 +31,8 @@ class AerialGlassView(context: Context, private val ready: (Surface?) -> Unit, p
         renderMode = RENDERMODE_WHEN_DIRTY
     }
 
-    fun plate(rect: Rect?, density: Float, frosted: Boolean, alpha: Float) {
-        val next = Plate(rect ?: Rect.Zero, density, frosted, if (rect == null) 0f else alpha)
+    fun plate(rect: Rect?, density: Float, frosted: Boolean, alpha: Float, brightness: Float = .94f, radius: Float = GlassOptics.RADIUS_DP) {
+        val next = Plate(rect ?: Rect.Zero, density, frosted, if (rect == null) 0f else alpha, brightness, radius)
         if (lens.plate != next) { lens.plate = next; requestRender() }
     }
 
@@ -52,7 +52,7 @@ class AerialGlassView(context: Context, private val ready: (Surface?) -> Unit, p
         queueEvent { lens.release() }
     }
 
-    private data class Plate(val rect: Rect = Rect.Zero, val density: Float = 1f, val frosted: Boolean = false, val alpha: Float = 0f)
+    private data class Plate(val rect: Rect = Rect.Zero, val density: Float = 1f, val frosted: Boolean = false, val alpha: Float = 0f, val brightness: Float = .94f, val radius: Float = GlassOptics.RADIUS_DP)
 
     private inner class VideoRenderer : Renderer {
         @Volatile var plate = Plate()
@@ -122,9 +122,11 @@ class AerialGlassView(context: Context, private val ready: (Surface?) -> Unit, p
             glUniform2f(resolution, width.toFloat(), height.toFloat())
             val p = plate
             glUniform4f(bounds, p.rect.left, p.rect.top, p.rect.right, p.rect.bottom)
-            glUniform4f(optical, GlassOptics.RADIUS_DP * p.density, GlassOptics.DEPTH_DP * p.density,
+            glUniform4f(optical, p.radius * p.density, GlassOptics.DEPTH_DP * p.density,
                 GlassOptics.BEND_DP * p.density, if (p.frosted) 1f else 0f)
             glUniform1f(enabled, if (decorated) p.alpha else 0f)
+            glUniform1f(glGetUniformLocation(program, "uBrightness"), p.brightness)
+            glUniform1f(glGetUniformLocation(program, "uDensity"), p.density)
             glUniform4fv(glGetUniformLocation(program, "uShade"), 1, Images.SHADE, 0)
             glUniform4fv(glGetUniformLocation(program, "uShadeAt"), 1, Images.SHADE_AT, 0)
             glUniform1f(glGetUniformLocation(program, "uShadeLeft"), Images.SHADE_LEFT)
@@ -191,6 +193,8 @@ class AerialGlassView(context: Context, private val ready: (Surface?) -> Unit, p
             uniform vec4 uPlate;
             uniform vec4 uOptical;
             uniform float uEnabled;
+            uniform float uBrightness;
+            uniform float uDensity;
             uniform vec4 uShade;
             uniform vec4 uShadeAt;
             uniform float uShadeLeft;
@@ -230,13 +234,14 @@ class AerialGlassView(context: Context, private val ready: (Surface?) -> Unit, p
                                 vec2 o = vec2(uOptical.y * 0.6);
                                 color = (color * 2.0 + scene(bent+vec2(o.x,0.0)) + scene(bent-vec2(o.x,0.0)) + scene(bent+vec2(0.0,o.y)) + scene(bent-vec2(0.0,o.y))) / 6.0;
                                 color = mix(color, vec3(0.09), 0.32);
-                            } else { color *= 0.94; }
-                            float px = uOptical.x / 32.0;
+                            } else { color *= uBrightness; }
+                            float px = uDensity;
                             float dark = exp(-pow((d + 1.8*px) / (1.15*px), 2.0)) * 0.22;
                             float light = exp(-pow((d + 0.55*px) / (0.6*px), 2.0));
-                            float specular = 0.10 + 0.19 * pow(abs(dot(normal, normalize(vec2(-0.65,-1.0)))), 5.0);
+                            float vertical = pow(abs(normal.y), 3.0);
+                            float specular = mix(0.09, normal.y < 0.0 ? 0.58 : 0.44, vertical);
                             color = color * (1.0-dark);
-                            color = mix(color, vec3(1.0), light * specular);
+                            color = mix(color, mix(vec3(0.49,0.51,0.54), vec3(1.0), vertical), light * specular);
                             color = mix(original, color, smoothstep(0.0, px, -d) * uEnabled);
                         } else {
                             float shadow = exp(-d / (uOptical.x * 0.08)) * 0.12 * uEnabled;

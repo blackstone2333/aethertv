@@ -13,7 +13,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import kotlin.math.*
 
 /** A color-neutral, bilinear lens. Static backgrounds bake once; video uses the same profile on GPU. */
-fun refractivePlate(source: ImageBitmap, screen: Size, plate: Rect, radius: Float, rim: Float): ImageBitmap {
+fun refractivePlate(source: ImageBitmap, screen: Size, plate: Rect, radius: Float, rim: Float, light: Float = .94f, density: Float = radius / GlassOptics.RADIUS_DP): ImageBitmap {
     val scale = min(1f, 1600f / plate.width)
     val w = (plate.width * scale).roundToInt().coerceAtLeast(1)
     val h = (plate.height * scale).roundToInt().coerceAtLeast(1)
@@ -22,7 +22,6 @@ fun refractivePlate(source: ImageBitmap, screen: Size, plate: Rect, radius: Floa
     src.getPixels(pixels, 0, src.width, 0, 0, src.width, src.height)
     val out = IntArray(w * h)
     val r = radius.coerceAtMost(min(plate.width, plate.height) / 2)
-    val density = radius / GlassOptics.RADIUS_DP
     fun channel(x: Float, y: Float, shift: Int): Float {
         val sx = x.coerceIn(0f, src.width - 1f); val sy = y.coerceIn(0f, src.height - 1f)
         val ix = sx.toInt(); val iy = sy.toInt(); val fx = sx - ix; val fy = sy - iy
@@ -34,7 +33,7 @@ fun refractivePlate(source: ImageBitmap, screen: Size, plate: Rect, radius: Floa
             r, GlassOptics.DEPTH_DP * density, GlassOptics.BEND_DP * density)
         val sx = (plate.left + lens.x) / screen.width * src.width - .5f
         val sy = (plate.top + lens.y) / screen.height * src.height - .5f
-        fun c(shift: Int) = (channel(sx, sy, shift) * .94f).roundToInt().coerceIn(0, 255)
+        fun c(shift: Int) = (channel(sx, sy, shift) * light).roundToInt().coerceIn(0, 255)
         out[y * w + x] = (255 shl 24) or (c(16) shl 16) or (c(8) shl 8) or c(0)
     }
     val bitmap = Bitmap.createBitmap(out, w, h, Bitmap.Config.ARGB_8888).copy(Bitmap.Config.ARGB_8888, true)

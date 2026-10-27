@@ -1,7 +1,7 @@
 # 安装与升级 AetherTV
 
 源码与版本入口：[blackstone2333/aethertv](https://github.com/blackstone2333/aethertv)。
-当前 v0.1 为开发验收版，尚未发布 GitHub Release；可从源码构建。
+当前 **0.3.0 为测试版**，下载入口：[v0.3.0 预发布](https://github.com/blackstone2333/aethertv/releases/tag/v0.3.0)。一般设备选择 `aethertv-standard.apk`；拒绝 HOME 应用的固件才选 `aethertv-guard.apk`。
 
 ## 构建
 
@@ -31,8 +31,20 @@ adb -s <设备序列号> shell cmd package compile -m speed -f com.dangbei.tvlau
 
 当前版本在 Redmi K40S 上的测试不能证明 F3 的 HOME、黑屏、遥控器、HDMI、待机和硬解码兼容性。这些项目仍需单独验收，状态见工作包。
 
+## 晚间电视验收（0.3.0）
+
+1. 覆盖安装与现有版本相同 flavor 的 APK，打开桌面并执行 speed 编译；先保留电视现有 HOME 设置。
+2. 在「个性化」切换 4/8 列，聚焦首尾图标，检查 Dock 留白、上下亮边/左右灰边和航拍中底栏持续显示。
+3. 分别切换桌面/菜单液态或磨砂、调明暗；选择「应用名称 → 仅应用菜单」，向下进入应用菜单检查名称与边缘渐隐。
+4. 打开四个独立控件，检查直接到达和 Back 返回；网络、HDMI 与系统设置只做本机能力验收。
+5. 用手机添加已有合法 M3U/EPG 源，从天线按钮播放；检查换台、失效源回退、返回后航拍恢复，再单独验证待机唤醒和其他视频 App。
+
+测试版通过 Redmi L1；当贝 F3 的 HOME/守护/防黑屏/硬解码和真实遥控器尚未验证。第三方 TV 客户端只安装到 Redmi，没有替用户登录或配置电视服务。
+
 ## 后续升级
 
 应用只检查本仓库的 `updates/version.txt`，只下载本仓库 Releases 的 `aethertv-standard.apk` 或 `aethertv-guard.apk`，不会使用上游 Aerial 的安装包。版本提示仅在 manifest 数字高于本机时出现。发布维护者应先上传经过验收的同签名 APK，再更新版本 manifest；未发布前不要提高 manifest。
 
 覆盖安装必须使用相同包名和签名密钥。密钥放在本机 `local/`；未配置时会使用开发机调试密钥，该包不应作为长期公开发行签名。不要通过卸载应用解决签名冲突，以免丢失设置和照片。
+
+0.3.0 采用新的产品编号基线；早期 1.x 开发包可用相同签名的 APK 手动覆盖安装，安装序号仍为递增的 105。测试包通过预发布链接获取，应用内稳定版下载通道待正式发布后使用。

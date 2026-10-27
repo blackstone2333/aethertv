@@ -4,7 +4,7 @@
 
 ## 桌面个性化接口
 
-- `POST api/desktop` 接受经过验证的 `columns` (4–8)、`glass` (clear/frosted)、`delay` (0–60秒)、`pause` (true/false)、`aerial` 和 `daily` 主题；电视和手机消费同一设置状态。
+- `POST api/desktop` 接受经过验证的 `columns` (4–8)、`glass` / `menuGlass` (clear/frosted)、`glassBrightness` / `menuGlassBrightness` (0–100)、`names` (focused/all/grid)、`care/inputs/network/settings` 独立按钮 (true/false)、`delay` (0–60秒)、`pause` (true/false)、`aerial` 和 `daily` 主题；电视和手机消费同一设置状态。
 - `Aerials.preferred` 过滤播放目录；`PhotoThemes` 对每日图片说明推断主题，自动每日选择在没有匹配时回退最新图，并在手机页提示。
 - `GlassOptics` 统一静态/动态底栏透镜参数。`refractivePlate` 静态双线性采样并缓存；Full 的 `AerialGlassView` 用单 Media3 解码器输出 OES 纹理，在同一次 GPU 绘制中合成当前视频帧和边缘透镜，运动期间底栏持续可见。只在新视频帧或几何改变时绘制；暂停时离屏读取未加底栏/遮光的原始帧。Lite 使用普通 SurfaceView 与低成本半透明底栏。AndroidView 更换输出时按 view 所有者绑定/解绑，旧 view 释放不能清除新输出。
 - `ControlPanel` 是控制中心及电视管家的唯一外壳。`CcPage.Care/CareDetails/Exchange` 均在同一个导航栈内；主菜单提供图形内存/存储概览，管家首焦点为清理，网络复用原控制中心的设置路径。详情/互传返回恢复入口焦点，无额外返回按钮。系统设置返回保留管家页；守护重绑定优先采用同进程 resumed 状态，避免误发 MAIN 重置菜单。
@@ -12,6 +12,15 @@
 - `api/files` 列表、`api/files/upload`、`files/<随机ID>` 下载、`api/files/delete` 只操作私有中转箱。网络下载强制attachment/octet-stream，不在网页执行收到的内容。
 - PhoneServer 在个性化/管家的文件互传页任一打开时保留，全部关闭后5分钟停止；令牌随服务重启轮换。
 - 二维码地址优先选择默认物理 Wi-Fi/以太网，其次其他物理局域网；排除已知 VPN、回环、链路本地、未指定地址和代理测试网段。固件缺少网络能力信息时保留原默认网络兜底；不修改 VPN 或路由。选择逻辑在 Android6/14 的 Robolectric 场景验证，真实 LAN/VPN 与 F3 可达性仍未验证。
+
+## 前台直播与材质配置
+
+- `LiveActivity` 为非导出横屏入口，960dp 画布；配置页仍由 MainActivity 的显式 `LIVE_SETTINGS` action 打开。首页只新增独立天线按钮，不重排用户磁贴。
+- `live/playback/mergeStations` 按源优先级和 EPG ID（无 ID 时按名称）合并备用地址，保留源请求头。`LivePlaybackSession` 使用一个 Media3 1.8.1 播放器；首帧/缓冲超时或错误递进下一地址，耗尽后等待用户重试。`onPause` 同步释放，首页航拍分配解码器前有明确所有权交接。
+- `LiveStreamDataSource` 对自定义 IPTV 的 HTTP 使用局部 socket 流；支持 chunked、Range 与跨源请求头隔离。HTTPS 仍用平台证书/主机校验，不改变全局网络安全策略。
+- `liquidGlass` 按独立菜单设置选择缓存折射或 regular 扩散；静态采样只在背景/布局/亮度变化时重建，不采集逐帧视频。Dock GL 同帧采样视频，焦点几何以临界阻尼弹簧伸展；静态底板缓存两个几何端态。
+- `softEdges` 在有滚动溢出时使用局部透明渐隐；不以实色遮挡卡片。`nameMode=grid` 只在向下应用菜单显示名称；旧名称偏好迁移保留。
+- 控制中心 Overlay 保存 `root`；独立管家/输入页直接退出到原控件，子页返回保留根页。网络和设置复用既有系统路径。
 
 ## v0.1 接口和生命周期
 
@@ -39,7 +48,7 @@ app/src/main/java/app/orchard/tv/
 │   ├── theme/Theme.kt       Palette（tvOS 深色系统色）、Motion（缓动曲线）、Inter 字体（opsz 14/32）、Type
 │   ├── theme/Glyphs.kt      图标：Material Symbols Rounded 实心款的路径（GlyphPaths.kt，Apache 2.0），控制中心的开关图标自绘
 │   ├── components/Pressable.kt  遥控器可按控件：按下缩放、只在「本控件上开始的按压」抬起时触发
-│   ├── components/LiquidGlass.kt  面板的 Liquid Glass 材质（取模糊版壁纸里面板身后的一块）和玻璃边缘
+│   ├── components/LiquidGlass.kt  面板的 菜单独立液态/磨砂材质、背景采样和方向光边缘
 │   ├── home/HomeScreen.kt   首页布局：网格几何、滚动、焦点管理、各浮层挂载、返回键
 │   ├── home/AppTile.kt      单个磁贴：聚焦弹簧、阴影、柔光、视差、边缘回弹、长按、移动抖动
 │   ├── home/HomeChrome.kt   背景（AmbientBackground）、大时钟、右上角状态胶囊、时间格式
@@ -58,7 +67,9 @@ app/src/main/java/app/orchard/tv/
 ├── live/
 │   ├── model/LiveModels.kt  直播源、频道、EPG 和播放状态契约
 │   ├── parser/               M3U EXTINF、XMLTV/XMLTV.gz 解析与输入上限
-│   └── repo/                 源配置、限定于直播源的 HTTP/HTTPS、TTL/容量缓存和优先级规划
+│   ├── repo/                 源配置、限定于直播源的 HTTP/HTTPS、TTL/容量缓存和优先级规划
+│   ├── playback/             频道合并、流式 DataSource 与单播放器回退
+│   └── LiveActivity.kt       前台播放、频道表、EPG 与生命周期释放
 ├── settings/
 │   └── AerialSettings.kt    Aerial 自己的偏好（SharedPreferences "settings"）：焦点样式 FocusStyle（默认高对比度）、固定到主屏幕的信号源、开机信号源、屏保开始时间、家长密码（SHA-256，解锁 10 分钟或按 HOME 重新上锁）
 ├── update/

@@ -273,4 +273,27 @@
     <string name="care_cleaning">Тазалануда…</string>
     <string name="care_cleaned">Тазаланды: %1$s</string>
     <string name="care_background">Фондық қолданбалар</string>
+    <string name="menu_glass_material">Мәзір материалы</string>
+    <string name="desktop_glass_light">Жұмыс үстелі әйнегінің жарықтығы</string>
+    <string name="menu_glass_light">Мәзір әйнегінің жарықтығы</string>
+    <string name="names_grid_only">Тек қолданбалар мәзірінде</string>
+    <string name="direct_controls">Басты экран басқаруы</string>
+    <string name="control_grouped">Басқару орталығында</string>
+    <string name="control_direct">Бөлек түйме</string>
+    <string name="names_display">Қолданба атаулары</string>
+    <string name="names_focus">Тек фокустағы қолданба</string>
+    <string name="names_all">Барлық қолданбалар</string>
+    <string name="direct_care">Теледидар күйі түймесі</string>
+    <string name="direct_inputs">Кірістер түймесі</string>
+    <string name="direct_network">Желі түймесі</string>
+    <string name="direct_settings">Баптаулар түймесі</string>
+    <string name="live_watch">Тікелей эфир</string>
+    <string name="live_loading">Арналар жүктелуде…</string>
+    <string name="live_no_channels">Телефоннан арналар тізімін қосыңыз</string>
+    <string name="live_unavailable">Арна қолжетімсіз</string>
+    <string name="live_retry">Қайталау</string>
+    <string name="live_channels">Арналар</string>
+    <string name="live_next">Келесі арна</string>
+    <string name="live_previous">Алдыңғы арна</string>
+    <string name="live_source_settings">Арна көздерін баптау</string>
 </resources>

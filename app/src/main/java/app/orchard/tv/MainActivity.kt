@@ -202,6 +202,7 @@ class MainActivity : ComponentActivity() {
         if (DiagLog.softLayer(this)) window.decorView.setLayerType(View.LAYER_TYPE_SOFTWARE, null)
         logWindow()
 
+        if (intent.action == ACTION_LIVE_SETTINGS) vm.overlay = app.orchard.tv.Overlay.Wallpaper
         setContent {
             // TVs ship at different densities for the same 1080p panel (Xiaomi 320dpi, TCL 240dpi),
             // which would make the same layout bigger on one and smaller on the other. Aerial is
@@ -583,6 +584,7 @@ class MainActivity : ComponentActivity() {
         if (locked) return
         DiagLog.i("onNewIntent ${intent.action}")
         if (intent.getBooleanExtra(EXTRA_WOKE, false)) openBootSource("brought back on wake")
+        if (intent.action == ACTION_LIVE_SETTINGS) { vm.overlay = app.orchard.tv.Overlay.Wallpaper; return }
         if (intent.action == ACTION_PREVIEW_SCREENSAVER) {
             idleHandler.post { startScreensaver(asked = true) }
             return
@@ -749,6 +751,7 @@ class MainActivity : ComponentActivity() {
         private const val PANEL_REFRESH_MS = 3_000L
 
         /** `adb shell am start -a com.dangbei.tvlauncher.PREVIEW_SCREENSAVER -n com.dangbei.tvlauncher/.MainActivity` */
+        const val ACTION_LIVE_SETTINGS = "com.dangbei.tvlauncher.LIVE_SETTINGS"
         const val ACTION_PREVIEW_SCREENSAVER = "com.dangbei.tvlauncher.PREVIEW_SCREENSAVER"
 
         /** Set by Home Guard when it brings Aerial back after standby or a boot. */

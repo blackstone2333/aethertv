@@ -48,6 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
@@ -80,6 +81,8 @@ import app.orchard.tv.wallpaper.Wallpapers
 import app.orchard.tv.ui.components.liquidGlass
 import app.orchard.tv.ui.theme.LocalReducedMotion
 import app.orchard.tv.ui.theme.Motion
+import app.orchard.tv.ui.theme.Glyph
+import app.orchard.tv.ui.components.softEdges
 import app.orchard.tv.ui.theme.Type
 import androidx.compose.runtime.snapshotFlow
 import app.orchard.tv.system.DiagLog
@@ -196,6 +199,7 @@ fun HomeScreen(
     // from focusedKey: a closing menu hands focus to whatever tile lies under it first.
     var focusAfterOverlay by remember { mutableStateOf<String?>(null) }
     var indexAfterOverlay by remember { mutableStateOf(0) }
+    var topControl by remember { mutableStateOf<String?>(null) }
     var pillFocused by remember { mutableStateOf(false) }
     var lastFocusedIndex by remember { mutableStateOf(0) }
     val focusedIndex = apps.indexOfFirst { it.key == focusedKey }
@@ -302,7 +306,7 @@ fun HomeScreen(
         val index = apps.indexOfFirst { it.key == focusedKey }
         // A tile that went while the overlay was up (hidden, put in a folder, a folder ungrouped)
         // leaves focus where it was.
-        if (pillFocused && focusedKey != null) runCatching { pillRequester.requestFocus() }
+        if (pillFocused && focusedKey != null) runCatching { (topControl?.let { requester("control:$it") } ?: pillRequester).requestFocus() }
         else focusApp(if (index >= 0) index else if (wanted != null) indexAfterOverlay else lastFocusedIndex)
     }
     // A folder whose last app left closes.
@@ -403,6 +407,14 @@ fun HomeScreen(
         val metrics = remember(maxWidth, maxHeight, oneRow, plateNames, peek, hasPlate, columns) {
             GridMetrics(maxWidth, maxHeight, oneRow, plateNames, peek, hasPlate, columns)
         }
+        val dockExpanded = focusedRow == 0 && !pillFocused && focusedIndex >= 0 && overlay == Overlay.None
+        val dockLift by animateFloatAsState(
+            if (dockExpanded) 1f else 0f,
+            if (reduced) tween(0) else spring(dampingRatio = 1f, stiffness = 380f), label = "dock-clearance")
+        val dockReach = with(density) { Offset(
+            (metrics.tileW * .075f + 16.dp - PlatePadH + 12.dp).toPx().coerceAtLeast(6.dp.toPx()),
+            (metrics.tileH * .075f + 16.dp - PlatePadV + 10.dp).toPx().coerceAtLeast(8.dp.toPx())) }
+        val dockExpansion = dockReach * dockLift
         val collapsePx = with(density) { (metrics.topRowY - metrics.restY).toPx() }
 
         val target = with(density) { metrics.scrollFor(focusedRow, rows).toPx() }
@@ -503,7 +515,8 @@ fun HomeScreen(
                     hold = filmSaver && vm.resumed,
                     standIn = overlay == Overlay.None,
                     live = liveFilm,
-                    plate = plate,
+                    plate = plate?.let { Rect(it.left - dockExpansion.x, it.top - dockExpansion.y, it.right + dockExpansion.x, it.bottom + dockExpansion.y) },
+                    plateRadius = 32f + minOf(dockExpansion.x, dockExpansion.y) / density.density,
                     plateAlpha = { (1f - toSaver.value) * (1f - (scroll.value / collapsePx / 0.55f).coerceIn(0f, 1f)) },
                 )
             }
@@ -521,8 +534,11 @@ fun HomeScreen(
                 saverImage = saverImage,
                 saverReveal = { saverReveal.value },
                 saverPush = { saverPush.value },
+                plateExpansion = { dockExpansion },
+                plateBakeExpansion = if (dockExpanded) dockReach else Offset.Zero,
             )
 
+            Box(Modifier.fillMaxSize().softEdges(start = { scroll.value > 1f }, end = { rows > 1 && scroll.value < maxScroll + 1f })) {
             Box(Modifier.fillMaxSize().offset { IntOffset(0, -scroll.value.roundToInt()) }) {
                 val clockRight = AerialSettings.clockRight
                 // The large clock stands over the top row; the small one is the time and weather in
@@ -620,12 +636,13 @@ fun HomeScreen(
                             rowEnd = index % columns == columns - 1 || index == apps.lastIndex,
                             // On the glass plate only with every name shown (an earlier build showed
                             // the focused one alone there, but it sat oddly on the glass).
-                            showName = plate == null || index >= columns || plateNames,
+                            showName = if (AerialSettings.nameMode == "grid") (focusedRow > 0 || pastShelf) else plate == null || index >= columns || plateNames,
                             nameOnPlate = plate != null && index < columns,
                         )
                     }
                 }
             }
+        }
         }
 
         homeShot?.let { shot -> Canvas(Modifier.fillMaxSize()) { drawImage(shot) } }
@@ -660,9 +677,30 @@ fun HomeScreen(
                     toSaver = { toSaver.value },
                 )
             }
+            HomeControl(Glyph.Antenna, stringResource(R.string.live_watch), requester("control:live"), gridEnabled && moving == null,
+                onFocused = { if (it) { pillFocused = true; topControl = "live" } },
+                onClick = { pillFocused = true; topControl = "live"; onOpen(Intent(appContext, app.orchard.tv.live.LiveActivity::class.java)) })
+            listOf("care" to Glyph.Info, "inputs" to Glyph.Input, "network" to Glyph.Wifi, "settings" to Glyph.Gear)
+                .filter { it.first in AerialSettings.directControls }.forEach { (key, glyph) ->
+                    val title = stringResource(when (key) { "care" -> R.string.system_info; "inputs" -> R.string.cc_inputs; "network" -> R.string.cc_network; else -> R.string.cc_settings })
+                    HomeControl(glyph, title, requester("control:$key"), gridEnabled && moving == null,
+                        onFocused = { if (it) { pillFocused = true; topControl = key } },
+                        onClick = {
+                            pillFocused = true; topControl = key
+                            vm.whenUnlocked {
+                                when (key) {
+                                    "care" -> vm.overlay = Overlay.ControlCenter(CcPage.Care, CcPage.Care)
+                                    "inputs" -> { vm.overlay = if (vm.sources.isEmpty() && SystemProbe.openInputPicker(appContext)) Overlay.None else Overlay.ControlCenter(CcPage.Inputs, CcPage.Inputs) }
+                                    "network" -> { val intents = SystemProbe.networkSettingsIntents(appContext, ethernet = vm.network.kind == app.orchard.tv.system.NetKind.Ethernet); app.orchard.tv.system.LaunchFallback.arm(intents.drop(1)); onOpen(intents.first()) }
+                                    else -> onOpen(SystemProbe.settingsIntent(appContext))
+                                }
+                            }
+                        })
+                }
             StatusPill(
                 now = now,
                 network = vm.network,
+                showNetwork = "network" !in AerialSettings.directControls,
                 showTime = if (dragged) pastShelf else focusedRow > 0,
                 enabled = gridEnabled && moving == null,
                 focusRequester = pillRequester,
@@ -678,6 +716,7 @@ fun HomeScreen(
                             if (apps.isNotEmpty()) focusApp(0)
                         } else {
                             pillFocused = true
+                            topControl = null
                         }
                     }
                 },
@@ -685,6 +724,7 @@ fun HomeScreen(
                     // A tap focuses the pill and opens Control Center in the same frame, before
                     // onFocused hears of it: note it here so focus comes back to the pill.
                     pillFocused = true
+                    topControl = null
                     vm.overlay = Overlay.ControlCenter()
                 },
             )

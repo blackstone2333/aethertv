@@ -69,6 +69,23 @@ object AerialSettings {
 
     var homeColumns by mutableStateOf(5); private set
     var glassStyle by mutableStateOf("clear"); private set
+    var menuGlassStyle by mutableStateOf("clear"); private set
+    var glassBrightness by mutableStateOf(50); private set
+    var menuGlassBrightness by mutableStateOf(35); private set
+    var nameMode by mutableStateOf("focused"); private set
+    var directControls by mutableStateOf<Set<String>>(emptySet()); private set
+    val allNames: Boolean get() = nameMode != "focused"
+    val glassLight: Float get() = 0.70f + glassBrightness * 0.0048f
+    val menuGlassLight: Float get() = 0.24f + menuGlassBrightness * 0.005f
+    fun chooseMenuGlassStyle(value: String) { if (value in listOf("clear", "frosted")) { menuGlassStyle = value; save("menu_glass_style", value) } }
+    fun chooseGlassBrightness(value: Int) { glassBrightness = value.coerceIn(0, 100); save("glass_brightness", glassBrightness) }
+    fun chooseMenuGlassBrightness(value: Int) { menuGlassBrightness = value.coerceIn(0, 100); save("menu_glass_brightness", menuGlassBrightness) }
+    fun chooseNameMode(value: String) { if (value in listOf("focused", "all", "grid")) { nameMode = value; showAllNames = value == "all"; save("name_mode", value); save("show_all_names", showAllNames) } }
+    fun chooseDirectControl(key: String, on: Boolean) {
+        if (key !in listOf("care", "inputs", "network", "settings")) return
+        directControls = if (on) directControls + key else directControls - key
+        app.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit { putStringSet("direct_controls", directControls) }
+    }
     var aerialDelaySeconds by mutableStateOf(0); private set
     var aerialPauseOnInput by mutableStateOf(false); private set
     var aerialCategory by mutableStateOf("all"); private set
@@ -165,6 +182,10 @@ object AerialSettings {
         val prefs = app.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         homeColumns = prefs.getInt("home_columns", 5).coerceIn(4, 8)
         glassStyle = prefs.getString("glass_style", "clear") ?: "clear"
+        menuGlassStyle = prefs.getString("menu_glass_style", "clear") ?: "clear"
+        glassBrightness = prefs.getInt("glass_brightness", 50).coerceIn(0, 100)
+        menuGlassBrightness = prefs.getInt("menu_glass_brightness", 35).coerceIn(0, 100)
+        directControls = prefs.getStringSet("direct_controls", null)?.filter { it in listOf("care", "inputs", "network", "settings") }?.toSet() ?: emptySet()
         aerialDelaySeconds = prefs.getInt("aerial_delay", 0).coerceIn(0, 60)
         aerialPauseOnInput = prefs.getBoolean("aerial_pause", false)
         aerialCategory = prefs.getString("aerial_category", "all") ?: "all"
@@ -183,6 +204,7 @@ object AerialSettings {
         largeClock = prefs.getBoolean("large_clock", false)
         homePlate = prefs.getBoolean("home_plate", true)
         showAllNames = prefs.getBoolean("show_all_names", false)
+        nameMode = prefs.getString("name_mode", if (showAllNames) "all" else "focused")?.takeIf { it in listOf("focused", "all", "grid") } ?: "focused"
         // Before 1.28 this was on or off; on meant whichever sounds Aerial played.
         uiSounds = UiSounds.of(prefs.getString("ui_sounds_kind", null)) ?: when {
             !prefs.getBoolean("ui_sounds", true) -> UiSounds.Off
@@ -262,8 +284,7 @@ object AerialSettings {
     }
 
     fun chooseShowAllNames(on: Boolean) {
-        showAllNames = on
-        app.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit { putBoolean("show_all_names", on) }
+        chooseNameMode(if (on) "all" else "focused")
     }
 
     fun chooseBackStartsScreensaver(on: Boolean) {

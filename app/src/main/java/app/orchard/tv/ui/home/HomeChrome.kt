@@ -197,6 +197,8 @@ fun HomeBackground(
     saverImage: ImageBitmap? = null,
     saverReveal: () -> Float = { 0f },
     saverPush: () -> Float = { 0f },
+    plateExpansion: () -> Offset = { Offset.Zero },
+    plateBakeExpansion: Offset = Offset.Zero,
 ) {
     Box(Modifier.fillMaxSize()) {
         // Over a paused film, under the pictures: the shading its picture will have. The picture
@@ -214,7 +216,7 @@ fun HomeBackground(
             val a = saverReveal()
             if (a > 0.01f) drawDrawingIn(saverImage, saverPush(), a)
         }
-        Plate(if (AerialSettings.glassStyle == "clear") backdrop else frosted ?: backdrop, plate, scroll, collapse, cover, videoGlass, toSaver)
+        Plate(if (AerialSettings.glassStyle == "clear") backdrop else frosted ?: backdrop, plate, scroll, collapse, cover, videoGlass, toSaver, plateExpansion, plateBakeExpansion)
     }
 }
 
@@ -261,7 +263,7 @@ private fun Pictures(backdrop: ImageBitmap?, frosted: ImageBitmap?, scroll: () -
  * it: two plates fading against each other let what is behind show through halfway.
  */
 @Composable
-private fun Plate(glass: ImageBitmap?, plate: Rect?, scroll: () -> Float, collapse: Float, cover: () -> Float, videoGlass: Boolean, toSaver: () -> Float) {
+private fun Plate(glass: ImageBitmap?, plate: Rect?, scroll: () -> Float, collapse: Float, cover: () -> Float, videoGlass: Boolean, toSaver: () -> Float, expansion: () -> Offset, bakeExpansion: Offset) {
     var shown by remember { mutableStateOf(glass) }
     var under by remember { mutableStateOf<ImageBitmap?>(null) }
     val swap = remember { Animatable(1f) }
@@ -287,8 +289,9 @@ private fun Plate(glass: ImageBitmap?, plate: Rect?, scroll: () -> Float, collap
     }
     val clear = AerialSettings.glassStyle == "clear"
     val lite = AerialSettings.liteMode
-    val top = remember(shown, clear) { shown?.let { PlateLayer(if (clear) it else plateTinted(it), clear) } }
-    val bottom = remember(under, clear) { under?.let { PlateLayer(if (clear) it else plateTinted(it), clear) } }
+    val light = AerialSettings.glassLight
+    val top = remember(shown, clear, light) { shown?.let { PlateLayer(if (clear) it else plateTinted(it), clear, light) } }
+    val bottom = remember(under, clear, light) { under?.let { PlateLayer(if (clear) it else plateTinted(it), clear, light) } }
     Canvas(Modifier.fillMaxSize()) {
         if (plate == null) return@Canvas
         // The plate rides with its row and dissolves into the frosted background: it fades
@@ -300,15 +303,18 @@ private fun Plate(glass: ImageBitmap?, plate: Rect?, scroll: () -> Float, collap
         val alpha = visibility()
         if (alpha < 0.01f) return@Canvas
         val grow = PlateSwell.toPx() * (1f - rest)
-        val r = plate.translate(0f, -scroll()).inflate(grow)
+        val e = expansion()
+        val r = Rect(plate.left - e.x, plate.top - e.y, plate.right + e.x, plate.bottom + e.y).translate(0f, -scroll()).inflate(grow)
         if (lite) {
             drawRoundRect(Color(0x50202024), topLeft = r.topLeft, size = r.size,
                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(PlateCorner.toPx()), alpha = alpha)
             return@Canvas
         }
         val t = swap.value
-        if (t < 1f) bottom?.draw(this, plate, r, alpha)
-        top?.draw(this, plate, r, if (bottom != null) alpha * t else alpha)
+        val bakeRect = Rect(plate.left - bakeExpansion.x, plate.top - bakeExpansion.y, plate.right + bakeExpansion.x, plate.bottom + bakeExpansion.y)
+        val radius = PlateCorner.toPx() + minOf(bakeExpansion.x, bakeExpansion.y)
+        if (t < 1f) bottom?.draw(this, bakeRect, r, alpha, radius)
+        top?.draw(this, bakeRect, r, if (bottom != null) alpha * t else alpha, radius)
     }
 }
 
@@ -319,12 +325,15 @@ private fun Plate(glass: ImageBitmap?, plate: Rect?, scroll: () -> Float, collap
  * MiTV-ASTP0, Android 9, Mali-G31, issue #183; a HuiQu projector, #181) and drawn apart they cost
  * 3 ms more a frame than the plain rounded plate. Baked while drawing, for one screen and place.
  */
-private class PlateLayer(private val src: ImageBitmap, private val clear: Boolean) {
-    private var baked: Pair<Pair<Size, Rect>, ImageBitmap>? = null
+private class PlateLayer(private val src: ImageBitmap, private val clear: Boolean, private val light: Float) {
+    private val cache = LinkedHashMap<Triple<Size, Rect, Float>, ImageBitmap>()
 
-    fun draw(scope: androidx.compose.ui.graphics.drawscope.DrawScope, plate: Rect, at: Rect, alpha: Float) = with(scope) {
-        val image = baked?.takeIf { it.first == size to plate }?.second
-            ?: (if (clear) refractivePlate(src, size, plate, PlateCorner.toPx(), 1.2.dp.toPx()) else bakePlate(src, size, plate, PlateCorner.toPx(), 1.2.dp.toPx())).also { baked = (size to plate) to it }
+    fun draw(scope: androidx.compose.ui.graphics.drawscope.DrawScope, plate: Rect, at: Rect, alpha: Float, radius: Float) = with(scope) {
+        val key = Triple(size, plate, radius)
+        val image = cache[key] ?: (if (clear) refractivePlate(src, size, plate, radius, 1.2.dp.toPx(), light, density) else bakePlate(src, size, plate, radius, 1.2.dp.toPx())).also {
+            if (cache.size >= 2) cache.remove(cache.keys.first())
+            cache[key] = it
+        }
         drawImage(
             image,
             dstOffset = IntOffset(at.left.roundToInt(), at.top.roundToInt()),
@@ -546,6 +555,7 @@ fun StatusPill(
     onFocused: (Boolean) -> Unit,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    showNetwork: Boolean = true,
 ) {
     Pressable(
         onClick = onClick,
@@ -574,7 +584,7 @@ fun StatusPill(
                 NetKind.Ethernet -> Glyph.Ethernet
                 NetKind.Offline -> Glyph.Offline
             }
-            GlyphIcon(glyph, fg, 17.dp, level = network.level)
+            if (showNetwork) GlyphIcon(glyph, fg, 17.dp, level = network.level)
             if (showTime) {
                 BasicText(timeText(now), style = Type.Headline.copy(color = fg))
             }
