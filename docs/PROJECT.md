@@ -55,6 +55,7 @@ IPTV 由 `LiveSources` 保存源配置、`LiveFeedRepository` 负责网络/缓�
 
 ## 当前工作前沿
 
+- `AERIAL-20261028-f3-three-apps`：F3 / Android6上已安装并启动桌面standard 0.3.1/106、AetherLive 0.1.0/1、AetherCinema 0.1.0/1，保留现有配置与系统默认项。仅安装/启动范围通过，真实遥控器、播放/解码与性能仍未验证；见[设备记录](devices/dangbei-f3.md)。
 - `AERIAL-20261028-nas-cinema`：已授权并启动独立NAS应用对话AetherCinema；基于Java17兼容Jellyfin源码重做Android TV UI，适配Emby，核查MoonTV/飞牛视频后端。Owner独占players/nas及NAS工作包，独立构建，桌面与IPTV共享文件由各原Owner保留，当前无后端完成声明。
 - `AERIAL-20261027-modular-controls`：独立玻璃控件、遥控器编辑顺序/尺寸/显隐、网络/设置内页；个性化适度压暗、宽选项和手机卡片对齐，控制中心仅右侧渐变虚化。Java17双Release与Redmi L1通过；首版每flavor92测试，直播拆分工作树桌面各70测试，F3未验证。
 - NAS独立播放器候选及只读桌面接口见[选型方案](NAS_PLAYER_PLAN.md)：优先Jellyfin的Java17兼容基线，Android6和实际媒体库尚待原型验证；当前上游JDK21不能直接采用。
