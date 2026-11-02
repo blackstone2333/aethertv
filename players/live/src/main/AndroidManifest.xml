@@ -1,0 +1,17 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-feature android:name="android.software.leanback" android:required="false" />
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="com.dangbei.tvlauncher.permission.MEDIA_CONFIG" />
+    <queries><provider android:authorities="com.dangbei.tvlauncher.media-config" /></queries>
+    <application android:label="@string/live_app_name" android:icon="@drawable/ic_live" android:banner="@drawable/ic_live" android:theme="@style/Theme.AetherLive" android:allowBackup="false" android:usesCleartextTraffic="true" android:supportsRtl="true">
+        <activity android:name="app.orchard.tv.live.LiveActivity" android:exported="true" android:launchMode="singleTask" android:screenOrientation="landscape" android:configChanges="orientation|screenSize|keyboardHidden">
+            <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /><category android:name="android.intent.category.LEANBACK_LAUNCHER" /></intent-filter>
+            <intent-filter><action android:name="app.aethertv.live.PLAY" /><category android:name="android.intent.category.DEFAULT" /></intent-filter>
+        </activity>
+        <activity android:name="app.orchard.tv.live.LiveSettingsActivity" android:exported="true" android:screenOrientation="landscape">
+            <intent-filter><action android:name="app.aethertv.live.SETTINGS" /><category android:name="android.intent.category.DEFAULT" /></intent-filter>
+        </activity>
+    </application>
+</manifest>

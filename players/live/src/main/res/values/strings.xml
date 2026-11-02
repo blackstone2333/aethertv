@@ -1,0 +1,40 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+  <string name="live_watch">Live TV</string>
+  <string name="live_loading">Loading channels…</string>
+  <string name="live_no_channels">Add a playlist in settings</string>
+  <string name="live_unavailable">Channel unavailable</string>
+  <string name="live_retry">Retry</string>
+  <string name="live_channels">Channels</string>
+  <string name="live_next">Next channel</string>
+  <string name="live_previous">Previous channel</string>
+  <string name="live_source_settings">Playlist settings</string>
+  <string name="live_app_name">AetherLive</string>
+  <string name="live_import">Import from AetherTV</string>
+  <string name="live_import_hint">Copy playlists from AetherTV. Your existing playlists are kept.</string>
+  <string name="live_imported">Import complete</string>
+  <string name="live_settings_failed">Could not save or import. Check the addresses and the installed AetherTV companion.</string>
+  <string name="live_add_source">Add playlist</string>
+  <string name="live_edit_source">Edit playlist</string>
+  <string name="live_playlist_url">Playlist URL (M3U / TXT)</string>
+  <string name="live_epg_url">EPG URL (optional)</string>
+  <string name="live_save">Save</string>
+  <string name="live_saved">Saved</string>
+  <string name="live_enabled">Enabled</string>
+  <string name="live_remove">Remove playlist</string>
+  <string name="live_remove_confirm">Confirm removal</string>
+  <string name="live_playlists">Playlists</string>
+  <string name="live_setup_title">Your live TV, together</string>
+  <string name="live_setup_hint">Add a playlist address to start watching. No channels are included.</string>
+  <string name="live_ready_title">Ready to watch</string>
+  <string name="live_ready_hint">Choose a playlist to edit, or return to your last channel.</string>
+  <string name="live_source_name">Name (optional)</string>
+  <string name="live_cancel">Cancel</string>
+  <string name="live_importing">Importing…</string>
+  <string name="live_import_unchanged">Your playlists are up to date</string>
+  <string name="live_imported_count">Imported %1$d playlists</string>
+  <string name="live_settings_navigation">Back to return · Back while editing cancels changes</string>
+  <string name="live_now_playing">Now playing</string>
+  <string name="live_channel_count">%1$d channels</string>
+  <string name="live_formats_hint">M3U and TXT playlists · Optional XMLTV programme guide</string>
+</resources>

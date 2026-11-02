@@ -1,0 +1,40 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+  <string name="live_watch">Прямой эфир</string>
+  <string name="live_loading">Загрузка каналов…</string>
+  <string name="live_no_channels">Добавьте список в настройках</string>
+  <string name="live_unavailable">Канал недоступен</string>
+  <string name="live_retry">Повторить</string>
+  <string name="live_channels">Каналы</string>
+  <string name="live_next">Следующий канал</string>
+  <string name="live_previous">Предыдущий канал</string>
+  <string name="live_source_settings">Настройки источников</string>
+  <string name="live_app_name">AetherLive</string>
+  <string name="live_import">Импорт из AetherTV</string>
+  <string name="live_import_hint">Копирование списков из AetherTV. Ваши списки сохраняются.</string>
+  <string name="live_imported">Импорт завершён</string>
+  <string name="live_settings_failed">Не удалось сохранить или импортировать. Проверьте адреса и установленное приложение AetherTV.</string>
+  <string name="live_add_source">Добавить список</string>
+  <string name="live_edit_source">Изменить список</string>
+  <string name="live_playlist_url">Адрес списка (M3U / TXT)</string>
+  <string name="live_epg_url">Адрес EPG (необязательно)</string>
+  <string name="live_save">Сохранить</string>
+  <string name="live_saved">Сохранено</string>
+  <string name="live_enabled">Включён</string>
+  <string name="live_remove">Удалить список</string>
+  <string name="live_remove_confirm">Подтвердить удаление</string>
+  <string name="live_playlists">Списки каналов</string>
+  <string name="live_setup_title">Ваше прямое ТВ</string>
+  <string name="live_setup_hint">Добавьте адрес списка для просмотра. Встроенных каналов нет.</string>
+  <string name="live_ready_title">Всё готово</string>
+  <string name="live_ready_hint">Выберите список для изменения или вернитесь к последнему каналу.</string>
+  <string name="live_source_name">Название (необязательно)</string>
+  <string name="live_cancel">Отмена</string>
+  <string name="live_importing">Импорт…</string>
+  <string name="live_import_unchanged">Все списки уже добавлены</string>
+  <string name="live_imported_count">Импортировано списков: %1$d</string>
+  <string name="live_settings_navigation">Назад — вернуться · При изменении — отменить</string>
+  <string name="live_now_playing">Сейчас в эфире</string>
+  <string name="live_channel_count">Каналов: %1$d</string>
+  <string name="live_formats_hint">Списки M3U и TXT · Необязательная программа XMLTV</string>
+</resources>

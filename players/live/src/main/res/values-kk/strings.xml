@@ -1,0 +1,40 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+  <string name="live_watch">Тікелей эфир</string>
+  <string name="live_loading">Арналар жүктелуде…</string>
+  <string name="live_no_channels">Баптауларда тізім қосыңыз</string>
+  <string name="live_unavailable">Арна қолжетімсіз</string>
+  <string name="live_retry">Қайталау</string>
+  <string name="live_channels">Арналар</string>
+  <string name="live_next">Келесі арна</string>
+  <string name="live_previous">Алдыңғы арна</string>
+  <string name="live_source_settings">Арна көздерін баптау</string>
+  <string name="live_app_name">AetherLive</string>
+  <string name="live_import">AetherTV ішінен импорттау</string>
+  <string name="live_import_hint">AetherTV тізімдерін көшіру. Бар тізімдеріңіз сақталады.</string>
+  <string name="live_imported">Импорт аяқталды</string>
+  <string name="live_settings_failed">Сақтау немесе импорттау сәтсіз. Мекенжайларды және AetherTV қолданбасын тексеріңіз.</string>
+  <string name="live_add_source">Тізім қосу</string>
+  <string name="live_edit_source">Тізімді өңдеу</string>
+  <string name="live_playlist_url">Тізім мекенжайы (M3U / TXT)</string>
+  <string name="live_epg_url">EPG мекенжайы (міндетті емес)</string>
+  <string name="live_save">Сақтау</string>
+  <string name="live_saved">Сақталды</string>
+  <string name="live_enabled">Қосулы</string>
+  <string name="live_remove">Тізімді жою</string>
+  <string name="live_remove_confirm">Жоюды растау</string>
+  <string name="live_playlists">Арна тізімдері</string>
+  <string name="live_setup_title">Тікелей эфиріңіз</string>
+  <string name="live_setup_hint">Көру үшін тізім мекенжайын қосыңыз. Кірістірілген арналар жоқ.</string>
+  <string name="live_ready_title">Көруге дайын</string>
+  <string name="live_ready_hint">Өңдеу үшін тізімді таңдаңыз немесе соңғы арнаға оралыңыз.</string>
+  <string name="live_source_name">Атау (міндетті емес)</string>
+  <string name="live_cancel">Болдырмау</string>
+  <string name="live_importing">Импортталуда…</string>
+  <string name="live_import_unchanged">Барлық тізімдер қосылған</string>
+  <string name="live_imported_count">Импортталған тізімдер: %1$d</string>
+  <string name="live_settings_navigation">Артқа — оралу · Өңдеу кезінде — болдырмау</string>
+  <string name="live_now_playing">Қазір көрсетілуде</string>
+  <string name="live_channel_count">%1$d арна</string>
+  <string name="live_formats_hint">M3U және TXT тізімдері · Қосымша XMLTV бағдарлама нұсқаулығы</string>
+</resources>

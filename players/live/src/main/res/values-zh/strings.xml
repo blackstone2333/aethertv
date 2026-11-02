@@ -1,0 +1,40 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+  <string name="live_watch">电视直播</string>
+  <string name="live_loading">正在加载频道…</string>
+  <string name="live_no_channels">请在设置中添加播放列表</string>
+  <string name="live_unavailable">频道暂不可用</string>
+  <string name="live_retry">重试</string>
+  <string name="live_channels">频道</string>
+  <string name="live_next">下一频道</string>
+  <string name="live_previous">上一频道</string>
+  <string name="live_source_settings">直播源设置</string>
+  <string name="live_app_name">以太直播</string>
+  <string name="live_import">从以太桌面导入</string>
+  <string name="live_import_hint">复制以太桌面的播放列表，保留直播中已有的配置。</string>
+  <string name="live_imported">导入完成</string>
+  <string name="live_settings_failed">保存或导入失败，请检查地址及配套安装的以太桌面。</string>
+  <string name="live_add_source">添加播放列表</string>
+  <string name="live_edit_source">编辑播放列表</string>
+  <string name="live_playlist_url">播放列表地址（M3U / TXT）</string>
+  <string name="live_epg_url">节目单地址（可选）</string>
+  <string name="live_save">保存</string>
+  <string name="live_saved">已保存</string>
+  <string name="live_enabled">启用</string>
+  <string name="live_remove">移除播放列表</string>
+  <string name="live_remove_confirm">确认移除</string>
+  <string name="live_playlists">播放列表</string>
+  <string name="live_setup_title">你的频道，尽在一处</string>
+  <string name="live_setup_hint">添加播放列表地址，即可开始观看。应用不内置频道。</string>
+  <string name="live_ready_title">随时开始观看</string>
+  <string name="live_ready_hint">选择左侧列表进行编辑，或回到上次观看的频道。</string>
+  <string name="live_source_name">名称（可选）</string>
+  <string name="live_cancel">取消</string>
+  <string name="live_importing">正在导入…</string>
+  <string name="live_import_unchanged">播放列表已是最新</string>
+  <string name="live_imported_count">已导入 %1$d 个播放列表</string>
+  <string name="live_settings_navigation">返回键回到上一页 · 编辑时按返回取消修改</string>
+  <string name="live_now_playing">正在播放</string>
+  <string name="live_channel_count">%1$d 个频道</string>
+  <string name="live_formats_hint">支持 M3U、TXT 播放列表 · 可选 XMLTV 节目单</string>
+</resources>
