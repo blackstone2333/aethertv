@@ -36,6 +36,14 @@ source local/tvs.env && BUILD=1 KEEP_ADB=1 TV=$XIAOMI_TV tools/install.sh   # BU
 - 只在明确的项目目录或目标子目录内搜索；禁止从 `/`、`/Users/black/` 或 `~/` 递归扫描。
 - 不盲扫 CloudStorage，以免触发 NAS 文件下载；跨项目查询须明确目标路径。
 
+## 桌面与播放器独立开发
+
+- 桌面、AetherLive、AetherCinema 各用自己的 Git worktree、分支、索引和构建输出；不得在其他对话工作区改文件、切分支、清理或暂存。
+- 桌面根 Gradle 只加载 `:app`，独立构建不需要 `players/` 源码或播放器 APK。播放器在各自工作区维护独立构建入口；Java21 例外仅适用于已获授权的 AetherCinema，桌面继续 Java17。
+- 桌面 Owner 独占 `app/**`、根构建、`contracts/**` 和桌面文档；播放器 Owner 仅修改各自 `players/live/**` 或 `players/nas/**` 及对应工作包/交接。共享接口先提交提案，由桌面 Owner 审阅后集成，不能直接跨区修改。
+- 每个工作区的 `git status` 只判断该工作区的占用；其他播放器工作区的未提交改动不阻塞桌面。当前工作区同表面的未提交改动仍不得覆盖。
+- 测试设备依然共享，必须先协调；仅迁移工作区不授予设备操作权限。不要复制忽略目录内的凭据、用户数据、签名或构建缓存；本机路径保存在 `local/`。
+
 ## 代码约定
 
 - 注释和标识符用英文，界面文字放 `res/values`（英文）、`res/values-zh`（中文）、`res/values-ru`（俄语）、`res/values-uk`（乌克兰语）、`res/values-kk`（哈萨克语），五份都要加，占位符要一致。手机设置页 `assets/web/index.html` 的文字在 `KEYS` / `TEXTS` 表里，同样五种语言，脚本里不要写死文字。

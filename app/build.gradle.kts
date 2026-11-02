@@ -68,6 +68,7 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+    sourceSets.getByName("main").java.srcDir(rootProject.file("contracts/src/main/java"))
     buildFeatures {
         compose = true
         buildConfig = true

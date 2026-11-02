@@ -237,10 +237,14 @@ object GuardSetup {
      * minutes after a boot, and once: that is when the setting can lie; a TV used over USB
      * debugging also has the port closed, by choice. Up to Android 10: from 11 network ADB is
      * mostly wireless debugging on a port of its own, 5555 is closed by design, and switching
-     * ADB off ends wireless debugging too.
+     * ADB off ends wireless debugging too. Before Android 6 the transition can permanently
+     * stop TCP ADB (reported upstream on Xiaomi Mi TV 3 / Android 5.0.1, #1099; not locally
+     * hardware-verified), so those devices only restore a disabled setting in ensureAdb.
      */
     private fun ensureAdbListening(context: Context) {
-        if (adbDancing || adbDanced || Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) return
+        if (adbDancing || adbDanced || Build.VERSION.SDK_INT >= Build.VERSION_CODES.R ||
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.M
+        ) return
         if (SystemClock.elapsedRealtime() > ADB_BOOT_WINDOW_MS) return
         Thread {
             if (adbdListens(adbProbePort)) return@Thread

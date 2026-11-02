@@ -1,5 +1,7 @@
 # 交接说明
 
+> 当前桌面开发已使用独立worktree/分支，入口见[桌面独立接管](handoffs/AERIAL-20261102-desktop-independent-handoff.md)。播放器各自在自己的worktree维护，不使用旧共享目录继续桌面开发。
+
 > AetherTV 定制版当前入口：先读 [PROJECT.md](PROJECT.md)、[AGENT_WORKFLOW.md](AGENT_WORKFLOW.md) 和 [手机验收工作包](work/AERIAL-20261026-phone-acceptance.md)。以下正文是上游历史；其中 `app.orchard.tv` 是 namespace，当前应用包名为 `com.dangbei.tvlauncher`，历史电视结果不代表本定制版已验收。安装使用 [INSTALL.md](INSTALL.md)。
 
 写给接手 Aerial 的人或 AI。先读这份，再读 [ARCHITECTURE.md](ARCHITECTURE.md) 和 [devices/](devices/)。

@@ -309,15 +309,7 @@
   <p class="foot" data-i18n="render_hint"></p>
   <p class="foot" id="renderActive"></p>
 
-  <h2 data-i18n="live_h"></h2>
-  <p class="foot" data-i18n="live_hint"></p>
-  <form class="list" id="liveForm">
-    <label class="item field"><input id="liveId" type="text" data-i18n-placeholder="live_id_ph" autocomplete="off" required></label>
-    <label class="item field"><input id="liveM3u" type="url" data-i18n-placeholder="live_m3u_ph" autocomplete="url" required></label>
-    <label class="item field"><input id="liveEpg" type="url" data-i18n-placeholder="live_epg_ph" autocomplete="url"></label>
-    <label class="item field"><input id="livePriority" type="number" value="0" min="-99" max="99" data-i18n-placeholder="live_priority_ph" inputmode="numeric"><button class="link" id="liveSave" data-i18n="live_save"></button></label>
-  </form>
-  <div class="list" id="liveSources"></div>
+
 
   <h2 data-i18n="weather"></h2>
   <div class="list">
@@ -1797,39 +1789,10 @@ $('#videoFile').onchange = async e => {
 
 /* More tab: focus style and weather. */
 const weatherNames = { clear: t('wx_clear'), partlycloudy: t('wx_partlycloudy'), cloudy: t('wx_cloudy'), fog: t('wx_fog'), rain: t('wx_rain'), snow: t('wx_snow'), thunder: t('wx_thunder') };
-function renderLive() {
-  const root = $('#liveSources'); root.replaceChildren();
-  const sources = (state.live && state.live.sources) || [];
-  if (!sources.length) { root.appendChild(el('div', 'item', t('live_empty'))).style.color = 'var(--secondary)'; return; }
-  for (const source of sources) {
-    const row = el('div', 'item');
-    const txt = el('span', 'txt', source.id);
-    const counts = t('live_counts', { channels: source.channels || 0, programs: source.epgPrograms || 0 });
-    const sub = el('span', 'sub', source.error ? t('live_failed') : !source.lastRefreshMillis ? t('live_unchecked') : source.stale ? `${counts} · ${t('live_cache')}` : counts);
-    txt.appendChild(sub); row.appendChild(txt);
-    const refresh = el('button', 'link', t('live_refresh')); refresh.onclick = async () => {
-      refresh.disabled = true;
-      try {
-        const next = await api('api/live/refresh', { id: source.id });
-        take(next);
-        const result = (next.live && next.live.sources || []).find(item => item.id === source.id);
-        toast(result && result.error ? t('live_failed') : t('live_refreshed'));
-      }
-      catch (e) { refresh.disabled = false; toast(t('live_failed')); }
-    };
-    const remove = el('button', 'link', t('live_delete')); remove.style.color = 'var(--danger)'; remove.onclick = async () => {
-      remove.disabled = true;
-      try { take(await api('api/live/source/delete', { id: source.id })); toast(t('live_saved')); }
-      catch (e) { remove.disabled = false; toast(t('toast_set_fail')); }
-    };
-    row.append(refresh, remove); root.appendChild(row);
-  }
-}
 function renderMore() {
   document.querySelectorAll('#renderMode [data-render]').forEach(b => b.setAttribute('aria-checked', b.dataset.render === state.renderMode ? 'true' : 'false'));
   $('#renderActive').textContent = t(state.liteMode ? 'render_active_lite' : 'render_active_full');
   document.querySelectorAll('#focus [data-style]').forEach(b => b.setAttribute('aria-checked', b.dataset.style === state.focusStyle ? 'true' : 'false'));
-  renderLive();
   const w = state.weather || {};
   $('#wxNow').textContent = w.celsius !== undefined ? `${w.celsius}° ${weatherNames[w.kind] || ''}` : '—';
   $('#wxPlace').textContent = w.place || '';
@@ -1873,18 +1836,6 @@ document.querySelectorAll('#renderMode [data-render]').forEach(b => b.onclick = 
   catch (e) { toast(t('toast_set_fail')); }
   finally { b.disabled = false; }
 });
-$('#liveForm').onsubmit = async e => {
-  e.preventDefault();
-  const id = $('#liveId').value.trim(), m3uUrl = $('#liveM3u').value.trim(), epgUrl = $('#liveEpg').value.trim();
-  if (!id || !m3uUrl) return;
-  const button = $('#liveSave'); button.disabled = true;
-  try {
-    take(await api('api/live/source', { id, m3uUrl, epgUrl, priority: $('#livePriority').value || '0', kind: 'lan' }));
-    $('#liveId').value = ''; $('#liveM3u').value = ''; $('#liveEpg').value = ''; $('#livePriority').value = '0';
-    toast(t('live_saved'));
-  } catch (err) { toast(t('toast_set_fail')); }
-  button.disabled = false;
-};
 $('#city').oninput = () => $('#cityBtn').disabled = !$('#city').value.trim();
 $('#cityForm').onsubmit = async e => {
   e.preventDefault();

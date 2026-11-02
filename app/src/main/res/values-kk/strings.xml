@@ -308,4 +308,5 @@
     <string name="controls_later">Артқа жылжыту</string>
     <string name="network_connections">Қосылымдар</string>
     <string name="system_settings_open">Жүйе баптаулары</string>
+    <string name="live_companion_missing">Тікелей эфир үшін AetherLive орнатыңыз</string>
 </resources>

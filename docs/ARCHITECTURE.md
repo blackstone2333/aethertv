@@ -1,6 +1,6 @@
 # Aerial 架构
 
-单模块 Android 应用（`app/`），Kotlin + Jetpack Compose（自绘界面）。当前定制版产品名为 AetherTV / 以太桌面，`applicationId = com.dangbei.tvlauncher`，namespace 为 `app.orchard.tv`；外部组件必须使用白名单包名加完整源码类名，例如 `com.dangbei.tvlauncher/app.orchard.tv.MainActivity`。minSdk 21、targetSdk 34、compileSdk 36，使用 Java 17。Compose 保持 1.9.x、Media3 保持 1.8.1，以兼容 Android 5/6。以下保留了上游的历史设计和设备记录；定制版当前验收以 `docs/work/` 为准。
+独立桌面 Android 应用（根Gradle仅加载`app/`），Kotlin + Jetpack Compose（自绘界面）。当前定制版产品名为 AetherTV / 以太桌面，`applicationId = com.dangbei.tvlauncher`，namespace 为 `app.orchard.tv`；外部组件必须使用白名单包名加完整源码类名，例如 `com.dangbei.tvlauncher/app.orchard.tv.MainActivity`。minSdk 21、targetSdk 34、compileSdk 36，使用 Java 17。Compose 保持 1.9.x、Media3 保持 1.8.1，以兼容 Android 5/6。以下保留了上游的历史设计和设备记录；定制版当前验收以 `docs/work/` 为准。
 
 ## 桌面个性化接口
 
@@ -13,11 +13,11 @@
 - PhoneServer 在个性化/管家的文件互传页任一打开时保留，全部关闭后5分钟停止；令牌随服务重启轮换。
 - 二维码地址优先选择默认物理 Wi-Fi/以太网，其次其他物理局域网；排除已知 VPN、回环、链路本地、未指定地址和代理测试网段。固件缺少网络能力信息时保留原默认网络兜底；不修改 VPN 或路由。选择逻辑在 Android6/14 的 Robolectric 场景验证，真实 LAN/VPN 与 F3 可达性仍未验证。
 
-## 前台直播与材质配置
+## 独立媒体接口与材质配置
 
-- `LiveActivity` 为非导出横屏入口，960dp 画布；配置页仍由 MainActivity 的显式 `LIVE_SETTINGS` action 打开。首页只新增独立天线按钮，不重排用户磁贴。
-- `live/playback/mergeStations` 按源优先级和 EPG ID（无 ID 时按名称）合并备用地址，保留源请求头。`LivePlaybackSession` 使用一个 Media3 1.8.1 播放器；首帧/缓冲超时或错误递进下一地址，耗尽后等待用户重试。`onPause` 同步释放，首页航拍分配解码器前有明确所有权交接。
-- `LiveStreamDataSource` 对自定义 IPTV 的 HTTP 使用局部 socket 流；支持 chunked、Range 与跨源请求头隔离。HTTPS 仍用平台证书/主机校验，不改变全局网络安全策略。
+- `contracts/src/main/java/app/orchard/tv/media/MediaContract.kt`定义无网络/播放器依赖的v1启动契约，编入桌面与独立播放器的固定副本。桌面显式指定`app.aethertv.live`和协议版本；找不到入口时返回空值，由UI提示。没有任意播放URL入口。
+- `media/LegacyMediaProvider`以signature权限和调用时权限检查保护旧`live_sources`配置，只响应只读`export_live_v1`；旧配置不被删除或覆写。数据解析、显式导入、频道/EPG、网络/缓存和解码属于独立播放器。
+- 桌面分支不包含播放器实现，不加载其Gradle项目；播放器各自工作区的未提交改动和Java版本不影响桌面构建。媒体接口兼容变更由桌面Owner审阅，不能让HomeViewModel.reload或守护链依赖媒体服务。
 - `liquidGlass` 按独立菜单设置选择缓存折射或 regular 扩散；静态采样只在背景/布局/亮度变化时重建，不采集逐帧视频。Dock GL 同帧采样视频，焦点几何以临界阻尼弹簧伸展；静态底板缓存两个几何端态。Lite使用768px上限的静态材质，视频播放时只叠透明底板和方向光；不打开MediaMetadataRetriever，Android6无法复制视频平面时先保持暂停平面，面板打开后渐隐回已有壁纸并释放解码器。
 - `AerialStream.loadControl` 保持Full缓冲，Lite的1080p/4K/Dolby分别为8/12/16MiB，以字节阈值优先限制读取；不更改用户画质选择。Lite面板停留时不保留航拍解码器和全屏Home截图。`AppTile`的派生face缓存只在视口附近保留，完整源图/应用/焦点节点仍在；共享bakes与缩略图分别限制8/4MiB，UI存活引用不受全局LRU上限替代。
 - `softEdges` 在有滚动溢出时使用局部透明渐隐；不以实色遮挡卡片。`nameMode=grid` 只在向下应用菜单显示名称；旧名称偏好迁移保留。
@@ -26,7 +26,6 @@
 ## v0.1 接口和生命周期
 
 - 手机 `POST api/render-mode` 接受 `auto/full/lite`，`api/state` 返回选择值和实际 Lite 状态；五语言文案统一在 Web `KEYS/TEXTS` 中。
-- `LiveHttpFetcher` 只处理显式配置的直播源。HTTP 使用有边界的 socket 请求，不改变全局 cleartext 策略；HTTPS 使用系统证书校验。重定向有次数上限，跨 origin 清除自定义请求头，禁止 HTTPS 降级。
 - Home 隐藏时释放壁纸解码图和 Compose 图片缓存；`onStart` 先恢复本地烘焙图，再按需重建。系统时钟屏保也使用壁纸，因此 `AerialDream` 持有窗口时保留共享图片，并在附着窗口时恢复缓存。
 
 > 以下上游历史中关于动态影片收起底板和CPU取帧的记录，不适用于当前Full GPU合成路径；当前设计与验收见 `docs/DESIGN_SYSTEM.md` 和 `docs/work/AERIAL-20261026-liquid-glass.md`。
@@ -65,12 +64,9 @@ app/src/main/java/app/orchard/tv/
 │   ├── Images.kt            解码裁剪、首页压暗烘焙、抖动、box blur
 │   ├── Aerials.kt           读取 assets/aerials.json（Apple 航拍目录）；AerialFormats：这台电视能播哪档画质
 │   └── PhoneServer.kt       NanoHTTPD 手机配置页 + 二维码生成
-├── live/
-│   ├── model/LiveModels.kt  直播源、频道、EPG 和播放状态契约
-│   ├── parser/               M3U EXTINF、XMLTV/XMLTV.gz 解析与输入上限
-│   ├── repo/                 源配置、限定于直播源的 HTTP/HTTPS、TTL/容量缓存和优先级规划
-│   ├── playback/             频道合并、流式 DataSource 与单播放器回退
-│   └── LiveActivity.kt       前台播放、频道表、EPG 与生命周期释放
+├── media/
+│   ├── MediaBridge.kt         显式启动独立播放器，缺少入口时返回空值
+│   └── LegacyMediaProvider.kt 签名保护的只读旧直播配置导出
 ├── settings/
 │   └── AerialSettings.kt    Aerial 自己的偏好（SharedPreferences "settings"）：焦点样式 FocusStyle（默认高对比度）、固定到主屏幕的信号源、开机信号源、屏保开始时间、家长密码（SHA-256，解锁 10 分钟或按 HOME 重新上锁）
 ├── update/

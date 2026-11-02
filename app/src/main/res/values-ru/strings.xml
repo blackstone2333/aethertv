@@ -308,4 +308,5 @@
     <string name="controls_later">Позже</string>
     <string name="network_connections">Подключения</string>
     <string name="system_settings_open">Системные настройки</string>
+    <string name="live_companion_missing">Установите AetherLive для просмотра ТВ</string>
 </resources>

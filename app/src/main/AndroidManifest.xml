@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <permission android:name="com.dangbei.tvlauncher.permission.MEDIA_CONFIG" android:protectionLevel="signature" />
+    <uses-permission android:name="com.dangbei.tvlauncher.permission.MEDIA_CONFIG" />
     <uses-feature android:name="android.software.leanback" android:required="false" />
     <uses-feature android:name="android.software.live_tv" android:required="false" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
@@ -48,6 +50,7 @@
     <!-- Android 11 package visibility for the Skyworth/Coocaa source API: the TV's SDK provider
          lists the ports and its TV activity opens one (SystemProbe.skyworthSources). -->
     <queries>
+        <package android:name="app.aethertv.live" />
         <package android:name="com.skyworth.tv" />
         <provider android:authorities="com.skyworth.tv.sdk.provider" />
     </queries>
@@ -93,8 +96,7 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".live.LiveActivity" android:exported="false"
-            android:screenOrientation="landscape" android:configChanges="orientation|screenSize|keyboardHidden" />
+        <provider android:name=".media.LegacyMediaProvider" android:authorities="com.dangbei.tvlauncher.media-config" android:exported="true" android:permission="com.dangbei.tvlauncher.permission.MEDIA_CONFIG" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

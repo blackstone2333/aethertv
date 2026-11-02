@@ -23,9 +23,6 @@ import app.orchard.tv.system.Diagnostics
 import app.orchard.tv.system.currentNetwork
 import app.orchard.tv.settings.FocusStyle
 import app.orchard.tv.settings.RenderMode
-import app.orchard.tv.live.model.LiveSourceConfig
-import app.orchard.tv.live.model.LiveSourceKind
-import app.orchard.tv.live.repo.LiveSources
 import app.orchard.tv.weather.Weather
 import androidx.core.graphics.createBitmap
 import com.google.zxing.BarcodeFormat
@@ -74,7 +71,6 @@ class PhoneServer private constructor(private val context: Context, private val 
                 session.method == Method.POST && path == "/api/files/delete" -> json(JSONObject().put("removed", transfers.delete(form(session)["id"].orEmpty())).put("files", transfers.json()))
                 session.method == Method.GET && path.startsWith("/files/") -> transferDownload(path.removePrefix("/files/"))
                 session.method == Method.POST && path == "/api/desktop" -> desktop(form(session))
-                path == "/api/live/state" -> { LiveSources.init(context); json(LiveSources.snapshot()) }
                 path == "/api/diagnostics" -> text(Response.Status.OK, Diagnostics.report(context))
                 path.startsWith("/thumb/") -> thumb(path.removePrefix("/thumb/"))
                 session.method == Method.POST && path == "/api/wallpaper" -> {
@@ -170,17 +166,6 @@ class PhoneServer private constructor(private val context: Context, private val 
                     onMain { Weather.useNetworkLocation() }
                     json(state())
                 }
-                session.method == Method.POST && path == "/api/live/source" -> liveSource(form(session))
-                session.method == Method.POST && path == "/api/live/source/delete" -> {
-                    LiveSources.init(context)
-                    val removed = LiveSources.remove(form(session)["id"].orEmpty())
-                    json(state().put("removed", removed))
-                }
-                session.method == Method.POST && path == "/api/live/refresh" -> {
-                    LiveSources.init(context)
-                    LiveSources.refresh(form(session)["id"].orEmpty())
-                    json(state())
-                }
                 else -> text(Response.Status.NOT_FOUND, "Not found")
             }
         }.getOrElse {
@@ -193,7 +178,6 @@ class PhoneServer private constructor(private val context: Context, private val 
         .replace("{{DEVICE}}", Build.MODEL.replace("_", " "))
 
     private fun state(): JSONObject {
-        LiveSources.init(context)
         val list = JSONArray()
         val selected = Wallpapers.selectedId
         Wallpapers.items.forEach { w ->
@@ -264,7 +248,7 @@ class PhoneServer private constructor(private val context: Context, private val 
                 put("chosen", Weather.chosen)
                 Weather.now?.let { put("celsius", it.celsius); put("kind", it.kind.name.lowercase()); put("day", it.day) }
             })
-            .put("live", LiveSources.snapshot())
+
     }
 
     private fun desktop(f: Map<String, String>): Response {
@@ -317,27 +301,6 @@ class PhoneServer private constructor(private val context: Context, private val 
             addHeader("X-Content-Type-Options", "nosniff")
             addHeader("Cache-Control", "no-store")
         }
-    }
-
-    private fun liveSource(fields: Map<String, String>): Response {
-        LiveSources.init(context)
-        return runCatching {
-            val id = fields["id"].orEmpty().trim()
-            val m3u = fields["m3uUrl"].orEmpty().trim()
-            val epg = fields["epgUrl"].orEmpty().trim().takeIf { it.isNotEmpty() }
-            LiveSources.upsert(
-                LiveSourceConfig(
-                    id = id,
-                    kind = LiveSourceKind.of(fields["kind"] ?: "lan"),
-                    m3uUrl = m3u,
-                    epgUrl = epg,
-                    priority = fields["priority"]?.toIntOrNull() ?: 0,
-                    enabled = fields["enabled"]?.let { it != "0" && !it.equals("false", true) } ?: true,
-                    timeoutMillis = fields["timeoutMillis"]?.toIntOrNull() ?: 8_000,
-                ),
-            )
-            json(state().put("saved", true))
-        }.getOrElse { text(Response.Status.BAD_REQUEST, it.message ?: "invalid source") }
     }
 
     /** Home in order, each folder's apps and the hidden apps, by the names Home shows. */

@@ -666,7 +666,7 @@ fun HomeScreen(
             }
             HomeControl(Glyph.Antenna, stringResource(R.string.live_watch), requester("control:live"), gridEnabled && moving == null,
                 onFocused = { if (it) { pillFocused = true; topControl = "live" } },
-                onClick = { pillFocused = true; topControl = "live"; onOpen(Intent(appContext, app.orchard.tv.live.LiveActivity::class.java)) })
+                onClick = { pillFocused = true; topControl = "live"; app.orchard.tv.media.MediaBridge.liveIntent(appContext)?.let(onOpen) ?: vm.notify(appContext.getString(R.string.live_companion_missing)) })
             listOf("care" to Glyph.Info, "inputs" to Glyph.Input, "network" to Glyph.Wifi, "settings" to Glyph.Gear)
                 .filter { it.first in AerialSettings.directControls }.forEach { (key, glyph) ->
                     val title = stringResource(when (key) { "care" -> R.string.system_info; "inputs" -> R.string.cc_inputs; "network" -> R.string.cc_network; else -> R.string.cc_settings })

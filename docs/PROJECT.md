@@ -16,7 +16,7 @@
 
 - Android `applicationId` 必须是 `com.dangbei.tvlauncher`。
 - Kotlin namespace 必须保持 `app.orchard.tv`；外部组件使用白名单包名加完整源码类名。
-- 构建和测试必须使用 Java 17；Compose/Media3 依赖保持 Android 5/6 兼容线。
+- 桌面构建和测试必须使用 Java 17；Compose/Media3 依赖保持 Android 5/6 兼容线。AetherCinema 的 Java21/min23 例外仅适用于独立播放器，不传播到桌面。
 - 当贝原厂桌面 `com.dangbei.leard.leradlauncher` 保持启用，不得卸载或停用。
 - 不覆盖现有无障碍服务，不修改 `local/`、签名密钥、IP、凭据或户主数据。
 - 没有当贝 F3 真机证据的行为只能标记为“未验证”。
@@ -31,7 +31,7 @@ app/src/main/java/app/orchard/tv/
 ├── ui/home/                        首页、焦点、长按菜单和屏保入口
 ├── ui/control/                     控制中心、系统输入和音量亮度
 ├── wallpaper/                      壁纸、屏保和手机 Web 服务
-├── live/                           IPTV 数据、源配置、前台播放器、EPG 和播放回退
+├── media/                          独立播放器启动桥与签名保护的只读旧配置导出
 ├── guard/                          开机复活、桌面守护和同步适配器
 ├── system/                         厂商能力检测和信号源适配
 └── update/                         应用内升级
@@ -39,7 +39,9 @@ app/src/main/java/app/orchard/tv/
 
 Roadmap 的新功能必须沿现有依赖方向接入：入口/状态 → 功能模块 → 系统适配。IPTV、NAS 和 Lite 先做独立边界，再由首页消费稳定的只读状态接口，不能把网络失败带入 `HomeViewModel.reload()` 或 HomeGuard 链路。
 
-IPTV 由 `LiveSources` 保存源配置、`LiveFeedRepository` 负责网络/缓存回退，解析器保持纯数据边界。`LiveActivity` 是首页天线按钮与控制中心的前台直播入口，独占一个 Media3 会话，支持频道表、EPG、上下换台和有界切源。离开同步释放解码器，返回恢复航拍。首页静音预览和 NAS Dock 仍待后续工作包。
+桌面根Gradle只加载`:app`，不需要任何`players/`目录或播放器构建产物；`contracts/src/main/java`仅包含无运行时依赖的v1协议常量。`media/MediaBridge`显式启动独立AetherLive，未安装时显示本地化提示；`LegacyMediaProvider`仅向相同签名的应用只读导出旧配置，桌面不再刷新频道库、管理直播源或分配直播解码器。旧偏好和缓存保留，迁移由播放器中的用户操作触发。
+
+桌面、直播、NAS各用独立worktree/分支/构建入口。桌面Owner维护`app/**`、根构建和`contracts/**`；播放器Owner分别维护自己的目录、工作包和交接。桌面分支`codex/aerial/aerial-20261102-desktop-independent`；直播分支`codex/aerial/aerial-20261102-live-independent`（43项测试与独立Release通过，检查点3ff74e9）；NAS分支与最新证据由对应交接记录。本机路径仅在`local/`。接口改变先审阅，播放器工作树或后端状态不阻塞桌面，设备测试仍须共享协调。源协作目录保持原样，不作为新的桌面开发入口。
 
 ## 桌面定制与本地工具
 
@@ -55,8 +57,10 @@ IPTV 由 `LiveSources` 保存源配置、`LiveFeedRepository` 负责网络/缓�
 
 ## 当前工作前沿
 
+- `AERIAL-20261102-desktop-independent`：桌面worktree与构建隔离；仅保留独立播放器v1接口，选择性适配T-Cast异常长度及Android5 ADB兼容修复。证据与未验证范围见[工作包](work/AERIAL-20261102-desktop-independent.md)。
+
 - `AERIAL-20261028-f3-three-apps`：F3 / Android6上已安装并启动桌面standard 0.3.1/106、AetherLive 0.1.0/1、AetherCinema 0.1.0/1，保留现有配置与系统默认项。仅安装/启动范围通过，真实遥控器、播放/解码与性能仍未验证；见[设备记录](devices/dangbei-f3.md)。
-- `AERIAL-20261028-nas-cinema`：已授权并启动独立NAS应用对话AetherCinema；基于Java17兼容Jellyfin源码重做Android TV UI，适配Emby，核查MoonTV/飞牛视频后端。Owner独占players/nas及NAS工作包，独立构建，桌面与IPTV共享文件由各原Owner保留，当前无后端完成声明。
+- `AERIAL-20261028-nas-cinema`：已授权并启动独立NAS应用对话AetherCinema；基于固定Jellyfin源码重做Android TV UI并适配Emby/MoonTV；独立应用已获Java21授权，min23/JVM17。播放器Owner独占自身工作区的players/nas及NAS工作包；实际协议、手机与后端验收以其最新交接为准，桌面快照接口尚未集成。
 - `AERIAL-20261027-modular-controls`：独立玻璃控件、遥控器编辑顺序/尺寸/显隐、网络/设置内页；个性化适度压暗、宽选项和手机卡片对齐，控制中心仅右侧渐变虚化。Java17双Release与Redmi L1通过；首版每flavor92测试，直播拆分工作树桌面各70测试，F3未验证。
 - NAS独立播放器候选及只读桌面接口见[选型方案](NAS_PLAYER_PLAN.md)：优先Jellyfin的Java17兼容基线，Android6和实际媒体库尚待原型验证；当前上游JDK21不能直接采用。
 

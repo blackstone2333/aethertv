@@ -315,4 +315,5 @@
     <string name="controls_later">向后移</string>
     <string name="network_connections">网络连接</string>
     <string name="system_settings_open">系统设置</string>
+    <string name="live_companion_missing">请先安装以太直播</string>
 </resources>

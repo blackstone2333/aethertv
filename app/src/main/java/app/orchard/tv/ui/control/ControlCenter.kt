@@ -163,7 +163,7 @@ fun ControlCenter(
                         app.orchard.tv.settings.ControlKind.Settings -> go(CcPage.Settings)
                         app.orchard.tv.settings.ControlKind.Care -> vm.whenUnlocked { careFocus = CareFocus.Clean; go(CcPage.Care) }
                         app.orchard.tv.settings.ControlKind.Personalize -> vm.overlay = Overlay.Wallpaper
-                        app.orchard.tv.settings.ControlKind.Live -> onOpen(android.content.Intent(context, app.orchard.tv.live.LiveActivity::class.java))
+                        app.orchard.tv.settings.ControlKind.Live -> app.orchard.tv.media.MediaBridge.liveIntent(context)?.let(onOpen) ?: vm.notify(context.getString(R.string.live_companion_missing))
                         else -> Unit
                     }
                 }, onEdit = { mainFocus = "edit"; go(CcPage.EditControls) })
