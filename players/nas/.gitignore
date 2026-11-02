@@ -1,0 +1,9 @@
+.gradle/
+.kotlin/
+.runtime/
+**/build/
+local.properties
+local/
+upstream/jellyfin-androidtv-*/
+
+*.log
