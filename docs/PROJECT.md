@@ -57,6 +57,8 @@ Roadmap 的新功能必须沿现有依赖方向接入：入口/状态 → 功能
 
 ## 当前工作前沿
 
+- `AERIAL-20261103-upstream-install`：逐项登记上游e8c251e..b09b4ed共58个提交，选择性适配安装结果/下载校验/构建失败、Android6/7通知监听器和T-Cast修复。43项离线测试通过，Java17双Release与APK契约通过；APK与0da7ad7检查点逐字节一致，设备行为未验证。见[工作包](work/AERIAL-20261103-upstream-install.md)。
+
 - `AERIAL-20261102-desktop-independent`：桌面worktree与构建隔离；仅保留独立播放器v1接口，选择性适配T-Cast异常长度及Android5 ADB兼容修复。证据与未验证范围见[工作包](work/AERIAL-20261102-desktop-independent.md)。
 
 - `AERIAL-20261028-f3-three-apps`：F3 / Android6上已安装并启动桌面standard 0.3.1/106、AetherLive 0.1.0/1、AetherCinema 0.1.0/1，保留现有配置与系统默认项。仅安装/启动范围通过，真实遥控器、播放/解码与性能仍未验证；见[设备记录](devices/dangbei-f3.md)。

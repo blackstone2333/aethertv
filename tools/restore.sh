@@ -13,9 +13,31 @@ case "$TV" in *:*) SERIAL="$TV" ;; *) SERIAL="$TV:5555" ;; esac
 export ANDROID_SERIAL="$SERIAL"
 adb connect "$SERIAL" >/dev/null
 
+remove_revival_listener() {
+  local listener="$PKG/$NS.guard.RevivalListener" listeners rest
+  local components='^[A-Za-z0-9_.]+/[A-Za-z0-9_.$]+(:[A-Za-z0-9_.]+/[A-Za-z0-9_.$]+)*$'
+  adb shell cmd notification disallow_listener "$listener" >/dev/null 2>&1 || true
+  # Remove only our exact component on Android6/7, where cmd may be missing.
+  if ! listeners=$(adb shell settings get secure enabled_notification_listeners 2>/dev/null); then
+    echo "Could not read notification listeners; the settings list was left untouched." >&2
+    return 0
+  fi
+  listeners=$(printf '%s' "$listeners" | tr -d '\r')
+  [[ "$listeners" =~ $components ]] || return 0
+  case ":$listeners:" in
+    *":$listener:"*)
+      rest=$(printf '%s' "$listeners" | tr ':' '\n' | grep -Fvx "$listener" | paste -sd: - || true)
+      if [ -n "$rest" ]; then
+        adb shell settings put secure enabled_notification_listeners "'$rest'" >/dev/null 2>&1 || true
+      else
+        adb shell settings delete secure enabled_notification_listeners >/dev/null 2>&1 || true
+      fi ;;
+  esac
+}
+
 # First take away what lets Aerial switch the guard back on, or it would simply do so.
 adb shell am broadcast -a "$PKG.CONFIG" -n "$PKG/$NS.guard.ConfigReceiver" --ez keep_adb false --ez own_screensaver false >/dev/null 2>&1 || true
-adb shell cmd notification disallow_listener "$PKG/$NS.guard.RevivalListener" >/dev/null 2>&1 || true
+remove_revival_listener
 adb shell pm revoke "$PKG" android.permission.WRITE_SECURE_SETTINGS >/dev/null 2>&1 || true
 adb shell appops set "$PKG" SYSTEM_ALERT_WINDOW default >/dev/null 2>&1 || true
 adb shell appops set "$PKG" REQUEST_INSTALL_PACKAGES default >/dev/null 2>&1 || true

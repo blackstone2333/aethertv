@@ -6,8 +6,8 @@
 #   KEEP_ADB=1 TV=<tv-ip> tools/install.sh    # also switch ADB back on whenever the TV turns it off
 #   TV=<tv-ip> tools/install.sh repair        # Home went back to the TV's launcher: restart Home Guard
 #
-# The APK comes only from this fork's latest GitHub release, so only adb is needed
-# (and python3 on TCL TVs).
+# The APK comes only from this fork's latest GitHub release: needs adb, curl and unzip
+# to check the download (and python3 on TCL TVs).
 #   BUILD=1        build it from this checkout instead (JDK 17 + Android SDK)
 #   APK_FILE=<apk> install this file instead
 #
@@ -84,6 +84,26 @@ if [ "$FLAVOR" = repair ]; then
   exit 1
 fi
 
+# A failed download must not replace a previously valid file or reach the installer.
+download_apk() (
+  local flavor=$1 out="${TMPDIR:-/tmp}/aethertv-$1.apk" partial url
+  command -v unzip >/dev/null || { echo "unzip is required to check downloaded APKs." >&2; return 1; }
+  partial=$(mktemp "${TMPDIR:-/tmp}/aethertv-$flavor.XXXXXX") || return 1
+  trap 'rm -f "$partial"' EXIT
+  url="https://github.com/$REPO/releases/latest/download/aethertv-$flavor.apk"
+  echo "Downloading $url" >&2
+  if curl -fL --progress-bar --connect-timeout 10 -o "$partial" "$url"; then
+    if unzip -tq "$partial" </dev/null >/dev/null 2>&1; then
+      mv -f "$partial" "$out" || return 1
+      echo "$out"
+      return 0
+    fi
+    echo "Downloaded APK is incomplete or corrupt: $url" >&2
+  fi
+  echo "Could not download a complete aethertv-$flavor.apk; use BUILD=1 or APK_FILE for a local build." >&2
+  return 1
+)
+
 # Path of the APK for a flavor: APK_FILE, a local build, or the latest release.
 build() {
   local flavor=$1
@@ -91,16 +111,11 @@ build() {
     echo "$APK_FILE"
   elif [ "${BUILD:-0}" = 1 ]; then
     local task="assemble$(tr '[:lower:]' '[:upper:]' <<< "${flavor:0:1}")${flavor:1}Release"
-    ./gradlew -q --console=plain "$task"
+    # Command substitution may clear errexit; never return a stale APK after a failed build.
+    ./gradlew -q --console=plain "$task" >&2 || return $?
     echo "app/build/outputs/apk/$flavor/release/app-$flavor-release.apk"
   else
-    local out="${TMPDIR:-/tmp}/aethertv-$flavor.apk" url
-    for url in "https://github.com/$REPO/releases/latest/download/aethertv-$flavor.apk"; do
-      echo "Downloading $url" >&2
-      if curl -fL --progress-bar --connect-timeout 10 -o "$out" "$url"; then echo "$out"; return; fi
-    done
-    echo "No AetherTV release APK available; use BUILD=1 or APK_FILE for a local build" >&2
-    return 1
+    download_apk "$flavor"
   fi
 }
 
@@ -127,8 +142,10 @@ installed_now() {
 # speaks that protocol. The TV downloads the APK from this computer through an ADB reverse tunnel,
 # so nothing is served on the network. The viewer confirms once on the TV (同意).
 tcast_install() {
-  local apk=$1 want=$2 dir srv rc=0
-  nc -z -G 3 "${SERIAL%%:*}" 6553 >/dev/null 2>&1 || return 1
+  local apk=$1 want=$2 dir srv rc=0 timeout_flag=-w
+  # Apple's nc needs -G for connection timeout; Linux/OpenBSD nc has no -G.
+  [ "$(uname -s)" != Darwin ] || timeout_flag=-G
+  nc -z "$timeout_flag" 3 "${SERIAL%%:*}" 6553 >/dev/null 2>&1 || return 1
   dir=$(mktemp -d)
   cp "$apk" "$dir/Aerial.apk"
   python3 -m http.server 8765 --bind 127.0.0.1 --directory "$dir" >/dev/null 2>&1 &
@@ -145,7 +162,10 @@ tcast_install() {
 BEFORE=$(installed_code)
 APK=$(build "$FLAVOR")
 echo "Installing $APK"
-if ! OUT=$(adb install -r "$APK" 2>&1); then
+# Old ADB shell protocols can exit zero while the TV prints an installation failure.
+RC=0
+OUT=$(adb install -r "$APK" 2>&1 | tr -d '\r') || RC=$?
+if [ "$RC" -ne 0 ] || ! printf '%s\n' "$OUT" | grep -qx 'Success'; then
   echo "$OUT" >&2
   case "$OUT" in
     *VERIFICATION_FAILURE*)
@@ -179,12 +199,39 @@ if ! OUT=$(adb install -r "$APK" 2>&1); then
       [ "$TCAST_OK" = 1 ] || installed_now || { echo "Aerial was not installed; nothing else was changed." >&2; exit 1; }
       FLAVOR=guard
       ;;
+    *INCONSISTENT_CERTIFICATES*|*UPDATE_INCOMPATIBLE*)
+      echo "The AetherTV on this TV is signed with another key and cannot be updated in place." >&2
+      echo "Use an APK signed with the original key. Existing settings, wallpapers and photos were preserved." >&2
+      exit 1
+      ;;
     *)
       [ "$FLAVOR" = standard ] && echo "This firmware may refuse apps that declare a home screen. Try: TV=$TV $0 guard" >&2
       exit 1
       ;;
   esac
 fi
+
+allow_revival_listener() {
+  local listener="$PKG/$NS.guard.RevivalListener" listeners
+  local components='^[A-Za-z0-9_.]+/[A-Za-z0-9_.$]+(:[A-Za-z0-9_.]+/[A-Za-z0-9_.$]+)*$'
+  adb shell cmd notification allow_listener "$listener" 2>/dev/null || true
+  # Android6/7 may lack cmd. Never turn a failed settings read into a replacement list.
+  if ! listeners=$(adb shell settings get secure enabled_notification_listeners 2>/dev/null); then
+    echo "Could not read notification listeners; the settings list was left untouched." >&2
+    return 0
+  fi
+  listeners=$(printf '%s' "$listeners" | tr -d '\r')
+  case "$listeners" in
+    ""|null) listeners= ;;
+    *)
+      if [[ ! "$listeners" =~ $components ]]; then
+        echo "Unrecognized notification listener list; the settings list was left untouched." >&2
+        return 0
+      fi ;;
+  esac
+  case ":$listeners:" in *":$listener:"*) return 0 ;; esac
+  adb shell settings put secure enabled_notification_listeners "'${listeners:+$listeners:}$listener'" >/dev/null 2>&1 || true
+}
 
 # Grants that only ADB can give; Aerial never asks for them on screen.
 adb shell pm grant "$PKG" android.permission.ACCESS_FINE_LOCATION 2>/dev/null || true   # Wi-Fi name
@@ -196,7 +243,7 @@ adb shell appops set "$PKG" REQUEST_INSTALL_PACKAGES allow 2>/dev/null || true  
 # Android 5 knows the op only by this name.
 adb shell appops set "$PKG" GET_USAGE_STATS allow 2>/dev/null || true
 adb shell appops set "$PKG" android:get_usage_stats allow 2>/dev/null || true
-adb shell cmd notification allow_listener "$PKG/$NS.guard.RevivalListener" 2>/dev/null || true  # come back after a kill
+allow_revival_listener
 # Android 9 on Xiaomi MiTV-MFTP0 reports success but never binds it (issue #72): low-RAM devices
 # get no notification listeners at all. Aerial's sync adapter brings it back there instead, later.
 if ! adb shell dumpsys notification 2>/dev/null | grep -q "$PKG/$NS.guard.RevivalListener"; then
