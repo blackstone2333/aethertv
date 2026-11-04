@@ -17,6 +17,7 @@
 
 - `contracts/src/main/java/app/orchard/tv/media/MediaContract.kt`定义无网络/播放器依赖的v1启动契约，编入桌面与独立播放器的固定副本。桌面显式指定`app.aethertv.live`和协议版本；找不到入口时返回空值，由UI提示。没有任意播放URL入口。
 - `media/LegacyMediaProvider`以signature权限和调用时权限检查保护旧`live_sources`配置，只响应只读`export_live_v1`；旧配置不被删除或覆写。数据解析、显式导入、频道/EPG、网络/缓存和解码属于独立播放器。
+- `update/LegacyUpdateTls`只在Android5/6的版本清单与APK HTTPS连接上补充ISRG Root X1；保留系统信任链、证书有效性和原有hostname verifier，不改全局TLS或其他模块。Android7+保留平台连接配置。`tools/report.sh`只读采集，不自动启动桌面；缺cmd/可选服务时继续生成，使用白名单包名加完整源码组件，脱敏相邻IPv4并输出本仓库反馈入口。
 - 桌面分支不包含播放器实现，不加载其Gradle项目；播放器各自工作区的未提交改动和Java版本不影响桌面构建。媒体接口兼容变更由桌面Owner审阅，不能让HomeViewModel.reload或守护链依赖媒体服务。
 - `liquidGlass` 按独立菜单设置选择缓存折射或 regular 扩散；静态采样只在背景/布局/亮度变化时重建，不采集逐帧视频。Dock GL 同帧采样视频，焦点几何以临界阻尼弹簧伸展；静态底板缓存两个几何端态。Lite使用768px上限的静态材质，视频播放时只叠透明底板和方向光；不打开MediaMetadataRetriever，Android6无法复制视频平面时先保持暂停平面，面板打开后渐隐回已有壁纸并释放解码器。
 - `AerialStream.loadControl` 保持Full缓冲，Lite的1080p/4K/Dolby分别为8/12/16MiB，以字节阈值优先限制读取；不更改用户画质选择。Lite面板停留时不保留航拍解码器和全屏Home截图。`AppTile`的派生face缓存只在视口附近保留，完整源图/应用/焦点节点仍在；共享bakes与缩略图分别限制8/4MiB，UI存活引用不受全局LRU上限替代。

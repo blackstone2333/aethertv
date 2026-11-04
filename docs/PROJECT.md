@@ -57,6 +57,8 @@ Roadmap 的新功能必须沿现有依赖方向接入：入口/状态 → 功能
 
 ## 当前工作前沿
 
+- `AERIAL-20261104-legacy-update-diagnostics`：为Android5/6更新连接补充公开ISRG Root X1，保留系统信任/hostname校验和本仓库渠道；只读诊断兼容无cmd并修正组件/相邻IPv4脱敏。每flavor13项受影响测试、13项离线报告测试、Java17双Release与APK检查通过；真实旧系统/F3连接未验证，版本仍0.3.1/106。见[工作包](work/AERIAL-20261104-legacy-update-diagnostics.md)。
+
 - `AERIAL-20261103-upstream-install`：逐项登记上游e8c251e..b09b4ed共58个提交，选择性适配安装结果/下载校验/构建失败、Android6/7通知监听器和T-Cast修复。43项离线测试通过，Java17双Release与APK契约通过；APK与0da7ad7检查点逐字节一致，设备行为未验证。见[工作包](work/AERIAL-20261103-upstream-install.md)。
 
 - `AERIAL-20261102-desktop-independent`：桌面worktree与构建隔离；仅保留独立播放器v1接口，选择性适配T-Cast异常长度及Android5 ADB兼容修复。证据与未验证范围见[工作包](work/AERIAL-20261102-desktop-independent.md)。

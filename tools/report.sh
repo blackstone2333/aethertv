@@ -1,13 +1,11 @@
 #!/usr/bin/env bash
-# Collect what a maintainer needs to adapt Aerial to a TV they do not have, as text to paste into
+# Collect what a maintainer needs to adapt AetherTV to a TV they do not have, as text to paste into
 # a GitHub issue (the "机型适配 / Device support" form).
 #
 #   TV=<tv-ip> tools/report.sh
-#   curl -fsSL https://aerial.qust.me/tools/report.sh | TV=<tv-ip> bash
 #
-# Writes aerial-report-<model>.md in the current folder and prints it (on macOS also copies it).
-# Reads only: nothing on the TV is changed, except that Aerial is started if it was not running,
-# for its own part of the report. Nothing personal is collected: no accounts, serial numbers,
+# Writes aethertv-report-<model>.md in the current folder and prints it (on macOS also copies it).
+# Reads only: nothing on the TV is changed or started. Nothing personal is collected: no accounts, serial numbers,
 # Wi-Fi names, addresses or app lists; addresses in log lines are masked. Read the file before
 # posting it.
 set -euo pipefail
@@ -15,6 +13,7 @@ set -euo pipefail
 : "${TV:?set TV to the TV IP address, e.g. TV=<tv-ip> $0}"
 command -v adb >/dev/null || { echo "adb not found. macOS: brew install android-platform-tools; Linux: install android-tools / adb." >&2; exit 1; }
 PKG=com.dangbei.tvlauncher
+NS=app.orchard.tv
 case "$TV" in *:*) SERIAL="$TV" ;; *) SERIAL="$TV:5555" ;; esac
 export ANDROID_SERIAL="$SERIAL"
 adb connect "$SERIAL" >/dev/null
@@ -32,17 +31,22 @@ fi
 sh_() { adb shell "$@" 2>/dev/null | tr -d '\r'; }
 # Addresses, MACs and the phone page's token out of anything that is not a build property.
 mask() {
+  # Adjacent addresses can share the boundary consumed by the preceding match.
   sed -E \
     -e 's#:8790/[A-Za-z0-9]+#:8790/<token>#g' \
+    -e ':mask_ip' \
     -e 's#(^|[^0-9A-Za-z.])([0-9]{1,3}\.){3}[0-9]{1,3}([^0-9A-Za-z.]|$)#\1<ip>\3#g' \
+    -e 't mask_ip' \
     -e 's#([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}#<mac>#g'
 }
 
 MODEL=$(sh_ getprop ro.product.model)
-OUT="aerial-report-$(printf '%s' "${MODEL:-tv}" | tr -c 'A-Za-z0-9._-' '_').md"
+OUT="aethertv-report-$(printf '%s' "${MODEL:-tv}" | tr -c 'A-Za-z0-9._-' '_').md"
 HOME_INTENT=(-a android.intent.action.MAIN -c android.intent.category.HOME)
 
-{
+(
+  # Missing optional services or grep matches must not truncate the remaining diagnostics.
+  set +e
   echo "### adb report"
   echo
   echo '```'
@@ -67,9 +71,14 @@ HOME_INTENT=(-a android.intent.action.MAIN -c android.intent.category.HOME)
   echo
   echo "**Home**"
   echo '```'
-  echo "resolves to: $(sh_ cmd package resolve-activity --brief "${HOME_INTENT[@]}" | tail -n1)"
-  sh_ cmd package query-activities --brief "${HOME_INTENT[@]}" | sed 's/^/  /'
-  sh_ cmd role get-role-holders android.app.role.HOME | sed 's/^/role holder: /'
+  case "$(sh_ 'command -v cmd')" in
+    /*/cmd)
+      RESOLVED=$(sh_ cmd package resolve-activity --brief "${HOME_INTENT[@]}" | grep -E '^[A-Za-z0-9_.]+/[A-Za-z0-9_.$]+$' | tail -n1)
+      echo "resolves to: ${RESOLVED:-(unavailable; see app diagnostics below)}"
+      sh_ cmd package query-activities --brief "${HOME_INTENT[@]}" | grep -E '^[A-Za-z0-9_.]+/[A-Za-z0-9_.$]+$' | sed 's/^/  /'
+      sh_ cmd role get-role-holders android.app.role.HOME | grep -E '^[A-Za-z0-9_.]+$' | sed 's/^/role holder: /' ;;
+    *) echo "resolves to: (no cmd on this Android; see the app's Home section below)" ;;
+  esac
   echo "foreground: $(sh_ dumpsys activity activities | grep -m1 -E "mResumedActivity|topResumedActivity|mFocusedActivity" | sed 's/^ *//')"
   echo '```'
 
@@ -91,7 +100,7 @@ HOME_INTENT=(-a android.intent.action.MAIN -c android.intent.category.HOME)
   echo '```'
   echo "accessibility (bound):"
   sh_ dumpsys accessibility | grep -E "label=|Bound services|Enabled services" | sed -E 's/^ *//' | cut -c1-300 | head -20 | mask
-  echo "notification listener: $(sh_ dumpsys notification | grep -c "$PKG/$PKG.guard.RevivalListener") mentions"
+  echo "notification listener: $(sh_ dumpsys notification | grep -Fc "$PKG/$NS.guard.RevivalListener") mentions"
   echo '```'
 
   echo
@@ -119,15 +128,11 @@ HOME_INTENT=(-a android.intent.action.MAIN -c android.intent.category.HOME)
   echo
 
   # Aerial's own part (Diagnostics.kt): what it sees from inside the app.
-  if ! sh_ pidof "$PKG" >/dev/null; then
-    sh_ am start -n "$PKG/.MainActivity" >/dev/null
-    sleep 4
-  fi
-  APP=$(sh_ dumpsys activity "$PKG/.MainActivity" report | sed -n '/^### Aerial diagnostics/,$p')
-  if [ -n "$APP" ]; then echo "$APP"; else echo "(Aerial's own report is missing: Aerial is older than 1.32 or is not running.)"; fi
-} > "$OUT"
+  APP=$(sh_ dumpsys activity "$PKG/$NS.MainActivity" report | sed -n '/^### Aerial diagnostics/,$p')
+  if [ -n "$APP" ]; then printf '%s\n' "$APP" | mask; else echo "(App diagnostics unavailable; open AetherTV and collect again.)"; fi
+) > "$OUT"
 
 cat "$OUT"
 echo
 command -v pbcopy >/dev/null && pbcopy < "$OUT" && echo "Copied to the clipboard." >&2
-echo "Saved to $OUT. Read it, then paste it into https://github.com/pengchujin/aerial-tv/issues/new?template=device.yml" >&2
+echo "Saved to $OUT. Review it before sharing at https://github.com/blackstone2333/aethertv/issues/new?template=device.yml" >&2

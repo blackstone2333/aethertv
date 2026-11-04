@@ -60,6 +60,7 @@ object Updates {
     var install by mutableStateOf<Install>(Install.Idle); private set
 
     private lateinit var prefs: SharedPreferences
+    private lateinit var appContext: Context
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var started = false
     private var lastAttempt = 0L
@@ -67,6 +68,7 @@ object Updates {
     fun init(context: Context) {
         if (started) return
         started = true
+        appContext = context.applicationContext
         prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         available = prefs.getString("latest", null)?.takeIf { newer(it, current) }
         // A download left from an install that has since finished or been given up.
@@ -110,6 +112,7 @@ object Updates {
 
     private fun read(url: String): String {
         val c = URL(url).openConnection() as HttpURLConnection
+        LegacyUpdateTls.configure(appContext, c)
         c.connectTimeout = 8_000
         c.readTimeout = 10_000
         return try {
@@ -244,6 +247,7 @@ object Updates {
         file.parentFile?.mkdirs()
         val part = File(file.parentFile, file.name + ".part")
         val c = URL(url).openConnection() as HttpURLConnection
+        LegacyUpdateTls.configure(appContext, c)
         c.connectTimeout = 10_000
         c.readTimeout = 20_000
         // A throttled route can keep the TLS handshake up and deliver a byte now and then, so no
