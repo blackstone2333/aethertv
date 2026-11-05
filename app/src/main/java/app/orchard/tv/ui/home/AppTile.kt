@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -187,23 +188,30 @@ fun AppTile(
         animationSpec = if (pressed) tween(110, easing = Motion.EaseOut) else spring(dampingRatio = 1f, stiffness = 520f),
         label = "tile-scale",
     )
-    val lift by animateFloatAsState(
+    val liftState = animateFloatAsState(
         targetValue = if (focused || moving) 1f else 0f,
         animationSpec = spring(dampingRatio = 1f, stiffness = 380f),
         label = "tile-lift",
     )
-    val ring by animateFloatAsState(
+    val lift by liftState
+    val ringState = animateFloatAsState(
         targetValue = if (AerialSettings.focusStyle == FocusStyle.HighContrast) 1f else 0f,
         animationSpec = tween(200, easing = Motion.EaseOut),
         label = "tile-ring",
     )
+    val ring by ringState
     // The frame comes on quickly with the zoom and goes off faster still, so moving along a row
     // never shows two frames at once. It grows out from the tile's edge to its place.
-    val ringIn by animateFloatAsState(
+    val ringInState = animateFloatAsState(
         targetValue = if (focused || moving) 1f else 0f,
         animationSpec = if (focused || moving) spring(dampingRatio = 1f, stiffness = 700f) else spring(dampingRatio = 1f, stiffness = 2400f),
         label = "tile-ring-in",
     )
+    val ringIn by ringInState
+    // Only presence belongs in composition; the springs are read by draw/layer callbacks below
+    // so every animation frame need not recompose the tile and invalidate its drawing cache.
+    val showShadow by remember { derivedStateOf { liftState.value > 0.01f } }
+    val showFrame by remember { derivedStateOf { ringState.value > 0.01f && ringInState.value > 0.01f } }
 
     // tvOS "jiggle" while the app is being moved.
     val wobble = if (moving && !reduced) {
@@ -249,7 +257,7 @@ fun AppTile(
                 translationY = (1f - appear.value) * 18.dp.toPx()
             },
     ) {
-        if (lift > 0.01f && !AerialSettings.liteMode) {
+        if (showShadow && !AerialSettings.liteMode) {
             // A lifted tile casts a soft shadow below it, as cards do on tvOS. The system's
             // elevation shadow is too faint to read on a TV; this one is baked, so it costs one
             // image draw while a tile is lifted.
@@ -450,7 +458,7 @@ fun AppTile(
             })
         }
 
-        if (ring > 0.01f && ringIn > 0.01f) {
+        if (showFrame) {
             // The frame sits outside the tile, so it is drawn on its own unclipped layer that moves
             // exactly as the tile does: same lift, lean, push and jiggle.
             Canvas(
@@ -499,6 +507,8 @@ fun AppTile(
                     // Only the focused app shows its name. With every name shown, the others stay a
                     // little dimmer than the focused one.
                     alpha = if (AerialSettings.allNames) 0.7f + 0.3f * lift else lift
+                    // A fractional label alpha must not clip its shadow to a text-sized buffer.
+                    compositingStrategy = CompositingStrategy.ModulateAlpha
                     // Sits just under the lifted tile, and rises into place as it appears.
                     translationY = height.toPx() * (scale - 1f) / 2f - (1f - lift) * 6.dp.toPx() +
                         if (nameOnPlate) 0f else ring * ringIn * (RingGap + RingWidth).toPx() * scale
