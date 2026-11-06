@@ -57,6 +57,8 @@ Roadmap 的新功能必须沿现有依赖方向接入：入口/状态 → 功能
 
 ## 当前工作前沿
 
+- `AERIAL-20261106-app-menu-bounds`：长按菜单按实际画布/页面高度定位，整页有界滚动与柔和渐隐，返回/重进恢复首焦点；逐项登记16个新增提交。两项基线回归先失败、修复后每flavor两项通过（Robolectric SDK23），Java17双Release与APK/签名检查通过。版本仍0.3.1/106，F3外观/遥控器未验证，未操作设备。见[工作包](work/AERIAL-20261106-app-menu-bounds.md)。
+
 - `AERIAL-20261105-home-render-budget`：选择性适配Home航拍不请求影片帧率、磁贴阴影/焦点框阈值避免逐帧整块重组、名称淡化时保留阴影；逐项登记32个上游新增提交。Java17双Release/API与APK/签名检查通过，版本仍0.3.1/106。无对应现成单测，未重复无关用例；实际刷新率、焦点外观和F3性能未验证，未操作设备。见[工作包](work/AERIAL-20261105-home-render-budget.md)。
 
 - `AERIAL-20261104-legacy-update-diagnostics`：为Android5/6更新连接补充公开ISRG Root X1，保留系统信任/hostname校验和本仓库渠道；只读诊断兼容无cmd并修正组件/相邻IPv4脱敏。每flavor13项受影响测试、13项离线报告测试、Java17双Release与APK检查通过；真实旧系统/F3连接未验证，版本仍0.3.1/106。见[工作包](work/AERIAL-20261104-legacy-update-diagnostics.md)。
