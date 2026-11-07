@@ -57,6 +57,8 @@ Roadmap 的新功能必须沿现有依赖方向接入：入口/状态 → 功能
 
 ## 当前工作前沿
 
+- `AERIAL-20261107-guard-usage-worker`：周期usage-stats查询移到共享IO池，每服务单一未完成请求；复查权限/屏幕/可见Home/主动原桌面、窗口/按键/生命周期代次与结果年龄，解绑/销毁不投递旧结果。每flavor23项受影响守护测试、Java17双Release及APK/签名检查通过；仅适配旧ccf1172周期范围，独立开机/唤醒查询仍同步。新增两个上游提交已登记，版本仍0.3.1/106；F3 HOME/遥控器/性能未验证，未操作设备。见[工作包](work/AERIAL-20261107-guard-usage-worker.md)。
+
 - `AERIAL-20261106-app-menu-bounds`：长按菜单按实际画布/页面高度定位，整页有界滚动与柔和渐隐，返回/重进恢复首焦点；逐项登记16个新增提交。两项基线回归先失败、修复后每flavor两项通过（Robolectric SDK23），Java17双Release与APK/签名检查通过。版本仍0.3.1/106，F3外观/遥控器未验证，未操作设备。见[工作包](work/AERIAL-20261106-app-menu-bounds.md)。
 
 - `AERIAL-20261105-home-render-budget`：选择性适配Home航拍不请求影片帧率、磁贴阴影/焦点框阈值避免逐帧整块重组、名称淡化时保留阴影；逐项登记32个上游新增提交。Java17双Release/API与APK/签名检查通过，版本仍0.3.1/106。无对应现成单测，未重复无关用例；实际刷新率、焦点外观和F3性能未验证，未操作设备。见[工作包](work/AERIAL-20261105-home-render-budget.md)。

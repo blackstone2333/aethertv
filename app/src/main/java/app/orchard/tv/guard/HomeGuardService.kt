@@ -29,6 +29,13 @@ import androidx.core.content.getSystemService
 import app.orchard.tv.MainActivity
 import app.orchard.tv.settings.AerialSettings
 import app.orchard.tv.system.SystemProbe
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Keeps Aerial as the home screen on firmwares that will not let a third-party app own HOME
@@ -63,6 +70,9 @@ class HomeGuardService : AccessibilityService() {
     private var lastWindow: Pair<String, String>? = null
 
     private val handler = Handler(Looper.getMainLooper())
+    private val foregroundScope = lazy { CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate) }
+    private var foregroundQuery: Job? = null
+    private var foregroundRevision = 0L
 
     /** When the screen last lit, for take-overs that are really a wake (issue #111). */
     private var screenOnAt = Long.MIN_VALUE / 2
@@ -97,25 +107,37 @@ class HomeGuardService : AccessibilityService() {
      */
     private val foregroundCheck = object : Runnable {
         override fun run() {
+            if (instance !== this@HomeGuardService) return
             handler.postDelayed(this, FOREGROUND_POLL_MS)
             // Not skipped where Aerial is the default Home, for the same reason as the Home key:
             // Panasonic DX01C (Skyworth-made, Tianci, Android 6) shows its own launcher at power-on
             // and on the Home key whatever Home resolves to.
-            if (screenOff || !GuardSetup.isUserUnlocked(this@HomeGuardService)) return
-            if (SystemClock.uptimeMillis() < allowStockUntil) return
-            val (window, at) = foreground() ?: return
-            if (at <= foregroundTakenAt) return
-            if (stockHomes.isEmpty()) refreshStockHomes()
-            // Its home screen only, as for window changes: PatchWall's children's mode, opened
-            // from its tile, is in the same package and stays.
-            val (pkg, cls) = window
-            if (cls !in stockHomes[pkg].orEmpty()) return
-            foregroundTakenAt = at
-            if (SystemClock.uptimeMillis() - broughtBackAt < 1_000) return
-            Log.i(TAG, "stock launcher $pkg in front by usage stats; bringing Aerial back")
-            goHome(woke = SystemClock.elapsedRealtime() - screenOnAt < WAKE_WINDOW_MS)
+            if (!canPollForeground() || foregroundQuery?.isCompleted == false) return
+            val revision = foregroundRevision
+            val requestedAt = SystemClock.uptimeMillis()
+            // queryEvents can block in system Binder. Share IO threads, and keep the unfinished
+            // job even after cancellation so a reconnect cannot queue work behind that call.
+            foregroundQuery = foregroundScope.value.launch {
+                val front = withContext(Dispatchers.IO) { foreground() }
+                if (revision != foregroundRevision || !canPollForeground() ||
+                    SystemClock.uptimeMillis() - requestedAt > FOREGROUND_POLL_MS * 2
+                ) return@launch
+                val (window, at) = front ?: return@launch
+                if (at <= foregroundTakenAt) return@launch
+                if (stockHomes.isEmpty()) refreshStockHomes()
+                // Its home screen only: children's mode in the same package stays in front.
+                val (pkg, cls) = window
+                if (cls !in stockHomes[pkg].orEmpty()) return@launch
+                foregroundTakenAt = at
+                if (SystemClock.uptimeMillis() - broughtBackAt < 1_000) return@launch
+                Log.i(TAG, "stock launcher $pkg in front by usage stats; bringing Aerial back")
+                goHome(woke = SystemClock.elapsedRealtime() - screenOnAt < WAKE_WINDOW_MS)
+            }
         }
     }
+
+    private fun canPollForeground(): Boolean = instance === this && !screenOff && !aerialResumed &&
+        GuardSetup.isUserUnlocked(this) && SystemClock.uptimeMillis() >= allowStockUntil && usageStatsAllowed(this)
 
     /** The usage-stats time of the move to the front the foreground check last answered. */
     private var foregroundTakenAt = Long.MIN_VALUE / 2
@@ -175,6 +197,7 @@ class HomeGuardService : AccessibilityService() {
      */
     private val userUnlocked = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
+            foregroundRevision++
             // Before unlock only Direct Boot aware launchers resolve.
             refreshStockHomes()
             watchCecInput()
@@ -193,6 +216,7 @@ class HomeGuardService : AccessibilityService() {
 
     private val screenOn = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
+            foregroundRevision++
             screenOff = intent.action == Intent.ACTION_SCREEN_OFF
             updateKeyFilter()
             if (screenOff) {
@@ -227,6 +251,7 @@ class HomeGuardService : AccessibilityService() {
             // Android 6) answers the Home key by starting its own launcher by component, and Home
             // resolution never happens.
             if (intent.getStringExtra("reason") != "homekey") return
+            foregroundRevision++
             val front = lastWindow?.first
             if (front != null && front !in stockHomes) return
             // The stock launcher's window change usually comes first and already brought Aerial
@@ -301,6 +326,7 @@ class HomeGuardService : AccessibilityService() {
     }
 
     override fun onServiceConnected() {
+        foregroundRevision++
         instance = this
         // Register before querying homes or checking the state so an unlock cannot be missed.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
@@ -446,6 +472,8 @@ class HomeGuardService : AccessibilityService() {
     }
 
     override fun onDestroy() {
+        foregroundRevision++
+        if (foregroundScope.isInitialized()) foregroundScope.value.cancel()
         runCatching { unregisterReceiver(screenOn) }
         runCatching { unregisterReceiver(homeKey) }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
@@ -463,6 +491,9 @@ class HomeGuardService : AccessibilityService() {
     }
 
     override fun onUnbind(intent: Intent?): Boolean {
+        foregroundRevision++
+        foregroundQuery?.cancel()
+        handler.removeCallbacks(foregroundCheck)
         if (instance === this) instance = null
         return super.onUnbind(intent)
     }
@@ -517,6 +548,7 @@ class HomeGuardService : AccessibilityService() {
     }
 
     override fun onKeyEvent(event: KeyEvent): Boolean {
+        foregroundRevision++
         if (!GuardSetup.isUserUnlocked(this)) return false
         if (event.keyCode in VOLUME_KEYS) return if (filteringForCecOnly) false else takeVolumeKey(event)
         // Any key that is done: whatever it did to the volume (Control Center's slider) is in.
@@ -712,6 +744,7 @@ class HomeGuardService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
         sawEvent = true
         if (event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
+        foregroundRevision++
         val pkg = event.packageName?.toString() ?: return
         val cls = event.className?.toString() ?: return
         // Only activities count as what is in front. Overlays and dialogs also raise this event:
@@ -835,6 +868,7 @@ class HomeGuardService : AccessibilityService() {
     private var broughtBackAt = Long.MIN_VALUE / 2
 
     private fun goHome(woke: Boolean = false) {
+        foregroundRevision++
         if (!GuardSetup.isUserUnlocked(this)) return
         // Starting an activity can light the screen: on OPPO K9 the TV came back on by itself a few
         // seconds into standby (issue #22). The screen-on check takes over at wake instead.
@@ -980,7 +1014,10 @@ class HomeGuardService : AccessibilityService() {
 
         /** Lets the stock launcher stay in front until Aerial is back: the viewer opened it on purpose. */
         fun allowStockLauncher() {
-            instance?.allowStockUntil = SystemClock.uptimeMillis() + 60 * 60 * 1000L
+            instance?.run {
+                foregroundRevision++
+                allowStockUntil = SystemClock.uptimeMillis() + 60 * 60 * 1000L
+            }
         }
 
         /** Whether Aerial's Home is resumed; set by MainActivity, in this same process. */
@@ -991,6 +1028,7 @@ class HomeGuardService : AccessibilityService() {
         fun onAerialResumed() {
             aerialResumed = true
             val s = instance ?: return
+            s.foregroundRevision++
             // Back in Aerial: an installer opened from Control Center was left without updating.
             GuardSetup.installerJustClosed(s)
             s.allowStockUntil = 0L
@@ -1000,7 +1038,7 @@ class HomeGuardService : AccessibilityService() {
         /** Called when Aerial leaves the front: keys are no longer filtered from Android 12 on. */
         fun onAerialPaused() {
             aerialResumed = false
-            instance?.updateKeyFilter()
+            instance?.run { foregroundRevision++; updateKeyFilter() }
         }
     }
 }
