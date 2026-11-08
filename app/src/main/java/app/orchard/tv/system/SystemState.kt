@@ -320,9 +320,21 @@ object SystemProbe {
             }.getOrNull() != null
             if (shown) return true
         }
-        val intent = tclInputPanel(context) ?: return false
-        return runCatching { context.startService(intent) }.getOrNull() != null
+        tclInputPanel(context)?.let { intent ->
+            if (runCatching { context.startService(intent) }.getOrNull() != null) return true
+        }
+        // Sharp LCD_xxSFFOC470A (Android6) exposes this MStar panel without framework inputs
+        // (upstream #1342, reporter's ADB test). This capability is not verified on F3.
+        val intent = Intent(MSTAR_SOURCE_INFO).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        val activity = runCatching { pm.resolveActivity(intent, 0)?.activityInfo }.getOrNull() ?: return false
+        if (!activity.exported || !activity.enabled || !activity.applicationInfo.enabled ||
+            !activity.permission.isNullOrEmpty() && ContextCompat.checkSelfPermission(context, activity.permission) != PackageManager.PERMISSION_GRANTED
+        ) return false
+        intent.component = ComponentName(activity.packageName, activity.name)
+        return runCatching { context.startActivity(intent) }.isSuccess
     }
+
+    private const val MSTAR_SOURCE_INFO = "com.mstar.tv.tvplayer.ui.intent.action.SOURCE_INFO"
 
     /**
      * TCL's own input panel, where the firmware has one. The remote's input key opens it by itself,
@@ -436,6 +448,7 @@ object SystemProbe {
                 val intent = (if (xiaomi) xiaomiRoute(info, kind, label, profile) else null)
                     ?: generic.takeIf { resolves(context, it) }
                     ?: droidLogicRoute(context, info)
+                    ?: jmgoRoute(context, info)
                     ?: tclPlayer?.let { tclRoute(it, kind, label) }
                     ?: generic
                 val device = cec
@@ -469,6 +482,22 @@ object SystemProbe {
                 (activity.permission == null || ContextCompat.checkSelfPermission(context, activity.permission) == PackageManager.PERMISSION_GRANTED)
         }
     }
+
+    /** JMGO S60's HDMI player needs the port name (upstream #1347, reporter's test; not F3). */
+    private fun jmgoRoute(context: Context, info: TvInputInfo): Intent? {
+        if (info.type != TvInputInfo.TYPE_HDMI) return null
+        val port = JMGO_PORT.find(info.id)?.groupValues?.get(1) ?: return null
+        val intent = Intent().setComponent(ComponentName(JMGO_TV, "$JMGO_TV.AmlogicTvActivity"))
+            .putExtra("inputSrc", "HDMI$port")
+        val activity = runCatching { context.packageManager.getActivityInfo(intent.component!!, 0) }.getOrNull() ?: return null
+        return intent.takeIf {
+            activity.exported && activity.enabled && activity.applicationInfo.enabled &&
+                (activity.permission.isNullOrEmpty() || ContextCompat.checkSelfPermission(context, activity.permission) == PackageManager.PERMISSION_GRANTED)
+        }
+    }
+
+    private const val JMGO_TV = "com.jmgo.tv"
+    private val JMGO_PORT = Regex("""\.Hdmi([1-9]\d*)InputService/""")
 
     private fun resolves(context: Context, intent: Intent) =
         runCatching { context.packageManager.resolveActivity(intent, 0) != null }.getOrDefault(false)

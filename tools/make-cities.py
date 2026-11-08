@@ -24,6 +24,8 @@ from collections import Counter
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "app/src/main/assets/cities-cn.tsv")
 RANK = {"PPLC": 0, "PPLA": 0, "PPLA2": 1, "PPLA3": 2, "ADM3": 3}
+# GeoNames may still favor the former name; keep it searchable without displaying it.
+CURRENT = {"襄樊": "襄阳"}
 CJK = re.compile(r"^[一-鿿]+$")
 SUFFIX = re.compile(r"(壮族自治区|回族自治区|维吾尔自治区|特别行政区|自治区|自治州|自治县|地区|新区|省|市|县|区|盟|旗)$")
 
@@ -69,6 +71,9 @@ out = []
 for rank, _, names, admin1, lat, lon, ascii_name in rows:
     forms = Counter(short(n) for n in names)
     name = max(forms, key=lambda n: (forms[n], len(n) >= 2, -len(n)))
+    if name in CURRENT:
+        name = CURRENT[name]
+        forms[name] += 1
     # A county-level division named like a seat already listed is that seat's area.
     if rank == 3 and (name, admin1) in seen:
         continue
