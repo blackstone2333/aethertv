@@ -53,6 +53,7 @@ printf '%s\\n' "$*" >> "$CALL_LOG"
 case "$*" in
   connect*) echo connected ;;
   get-state) echo device ;;
+  'shell getprop ro.product.model') echo maserati ;;
   'shell getprop ro.build.version.sdk') echo "$SDK" ;;
   'shell dumpsys package com.dangbei.tvlauncher') echo versionCode=1 ;;
   install*)

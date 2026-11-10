@@ -9,7 +9,8 @@ SCRIPT = pathlib.Path(__file__).resolve().parents[1] / 'install.sh'
 
 
 class InstallFailureTest(unittest.TestCase):
-    def run_install(self, failure, status, flavor='standard'):
+    def run_install(self, failure, status, flavor='standard', model='maserati', model_status=0,
+                    inspector='guard', installed='standard', real_apk=None, real_sdk=None):
         with tempfile.TemporaryDirectory() as tmp:
             root = pathlib.Path(tmp)
             log = root / 'calls'
@@ -20,9 +21,11 @@ case "$*" in
   devices) printf 'List of devices attached\\nexample.invalid:5555 device\\n' ;;
   connect*) echo connected ;;
   get-state) echo device ;;
+  'shell getprop ro.product.model') echo "$MODEL"; exit "$MODEL_STATUS" ;;
   'shell getprop ro.build.version.sdk') echo 30 ;;
   'shell dumpsys package com.dangbei.tvlauncher')
-    if [ -f "$MOCK_STATE" ]; then echo versionCode=2; else echo versionCode=1; fi ;;
+    if [ -f "$MOCK_STATE" ]; then echo versionCode=2; else echo versionCode=1; fi
+    echo "versionName=0.3.1$INSTALLED_SUFFIX" ;;
   install*) echo "$INSTALL_OUTPUT"; exit "$INSTALL_STATUS" ;;
   push*) touch "$MOCK_STATE" ;;
   'shell settings get secure enabled_notification_listeners') echo null ;;
@@ -39,6 +42,27 @@ case "$*" in
 esac
 ''')
             adb.chmod(0o755)
+            if inspector != 'missing':
+                tool = root / 'build-tools/fixture/aapt2'
+                tool.parent.mkdir(parents=True)
+                tool.write_text('''#!/usr/bin/env bash
+printf 'aapt2 %s\\n' "$*" >> "$CALL_LOG"
+[ "$INSPECTOR" != broken ] || exit 1
+case "$2" in
+  badging)
+    package=com.dangbei.tvlauncher; suffix=-guard
+    [ "$INSPECTOR" != package ] || package=app.orchard.tv
+    [ "$INSPECTOR" != standard ] || suffix=
+    echo "package: name='$package' versionCode='2' versionName='0.3.1$suffix' platformBuildVersionName='16'" ;;
+  xmltree)
+    [ "$INSPECTOR" != empty ] || exit 0
+    echo 'E: manifest'
+    [ "$INSPECTOR" = component ] || echo '  A: android:name="app.orchard.tv.MainActivity"'
+    [ "$INSPECTOR" != home ] || echo '  A: android:name="android.intent.category.HOME"' ;;
+esac
+exit 0
+''')
+                tool.chmod(0o755)
             for name, command in [('sleep', 'exit 0'), ('nc', 'exit 1'),
                                   ('curl', 'echo "unexpected network" >&2; exit 99')]:
                 stub = root / name
@@ -49,8 +73,11 @@ esac
                        CALL_LOG=str(log), INSTALL_OUTPUT=failure,
                        INSTALL_STATUS=str(status), STAY_CONNECTED='1',
                        MOCK_STATE=str(root/'pushed'), BUILD='0', KEEP_ADB='0',
-                       # No build tools: the test APK is not a real one for aapt2 to read.
+                       MODEL=model, MODEL_STATUS=str(model_status), INSPECTOR=inspector,
+                       INSTALLED_SUFFIX='-guard' if installed == 'guard' else '',
                        ANDROID_HOME=str(root))
+            if real_apk:
+                env.update(APK_FILE=str(real_apk), ANDROID_HOME=str(real_sdk))
             result = subprocess.run(['bash', str(SCRIPT), flavor], env=env,
                                     capture_output=True, text=True, timeout=5)
             return result, log.read_text()
@@ -104,6 +131,74 @@ esac
         self.assertIn('now in Download', result.stdout)
         self.assertIn('Home Guard is running', result.stdout)
         self.assertIn('push ', calls)
+
+    def test_tcl_51_textual_refusal_uses_the_guard_fallback_for_both_shell_statuses(self):
+        for status in (0, 1):
+            with self.subTest(status=status):
+                result, calls = self.run_install(
+                    'install apk has be disabled from pm by system default!', status, 'guard')
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn('now in Download', result.stdout)
+                self.assertIn('push ', calls)
+
+    def assert_no_mutations(self, calls):
+        for command in ('install -r', 'push ', 'pm grant', 'appops set', 'settings put',
+                        'settings delete', 'cmd role', 'set-home-activity', 'am start',
+                        'force-stop', 'uninstall', 'pm clear'):
+            self.assertNotIn(command, calls)
+
+    def test_mt5873_standard_stops_before_build_download_inspection_or_install(self):
+        for installed in ('standard', 'guard'):
+            with self.subTest(installed=installed):
+                result, calls = self.run_install('Success', 0, model='mt5873\r', installed=installed)
+                self.assertEqual(result.returncode, 1)
+                self.assertIn('can hang at boot', result.stderr)
+                self.assertIn("rerun with 'guard'", result.stderr)
+                self.assertNotIn('aapt2', calls)
+                self.assert_no_mutations(calls)
+
+    def test_failed_or_unrecognized_model_stops_without_mutation(self):
+        for model, status in (('mt5873', 1), ('', 0), ('null', 0),
+                              ('getprop: not found', 0), ('error: closed', 0), ('first\nsecond', 0)):
+            with self.subTest(model=model, status=status):
+                result, calls = self.run_install('Success', 0, model=model, model_status=status)
+                self.assertEqual(result.returncode, 1)
+                self.assertIn('model', result.stderr)
+                self.assert_no_mutations(calls)
+
+    def test_mt5873_guard_requires_consistent_actual_apk_metadata(self):
+        for inspector in ('missing', 'broken', 'empty', 'standard', 'package', 'component', 'home'):
+            with self.subTest(inspector=inspector):
+                result, calls = self.run_install('Success', 0, 'guard', model='mt5873', inspector=inspector)
+                self.assertEqual(result.returncode, 1, result.stderr)
+                self.assertIn('nothing was installed', result.stderr)
+                self.assert_no_mutations(calls)
+
+    def test_mt5873_verified_guard_can_update_either_installed_flavor(self):
+        for installed in ('standard', 'guard'):
+            with self.subTest(installed=installed):
+                result, calls = self.run_install('Success', 0, 'guard', model='mt5873', installed=installed)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn('aapt2 dump xmltree', calls)
+                self.assertIn('install -r', calls)
+                self.assertNotIn('cmd role', calls)
+                self.assertNotIn('set-home-activity', calls)
+
+    def test_mt5873_guard_signature_failure_never_uninstalls_or_continues_setup(self):
+        result, calls = self.run_install('Failure [INSTALL_FAILED_UPDATE_INCOMPATIBLE]', 1,
+                                         'guard', model='mt5873')
+        self.assertEqual(result.returncode, 1)
+        self.assertIn('signed with another key', result.stderr)
+        self.assertNotIn('pm grant', calls)
+        self.assertNotIn('uninstall', calls)
+
+    def test_other_mstar_models_keep_the_requested_standard_without_the_inspector(self):
+        for model in ('maserati', 'mt5873-other'):
+            with self.subTest(model=model):
+                result, calls = self.run_install('Success', 0, model=model, inspector='missing')
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn('install -r', calls)
+                self.assertNotIn('aapt2', calls)
 
 
 if __name__ == '__main__':

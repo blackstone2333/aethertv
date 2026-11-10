@@ -1,7 +1,7 @@
 # 安装与升级 AetherTV
 
 源码与版本入口：[blackstone2333/aethertv](https://github.com/blackstone2333/aethertv)。
-当前 **0.3.0 为测试版**，下载入口：[v0.3.0 预发布](https://github.com/blackstone2333/aethertv/releases/tag/v0.3.0)。一般设备选择 `aethertv-standard.apk`；拒绝 HOME 应用的固件才选 `aethertv-guard.apk`。
+当前公开下载为 **0.3.0 测试版**：[v0.3.0 预发布](https://github.com/blackstone2333/aethertv/releases/tag/v0.3.0)；桌面源码仍为 0.3.1 / 106 优化测试版，本轮未发布新版本。一般设备选择 `aethertv-standard.apk`；拒绝 HOME 应用的固件选择 `aethertv-guard.apk`，`mt5873` 投影仪另见下文限制。
 
 ## 构建
 
@@ -12,6 +12,16 @@ JAVA_HOME=/opt/homebrew/opt/openjdk@17 ./gradlew assembleStandardRelease assembl
 ```
 
 标准版位于 `app/build/outputs/apk/standard/release/app-standard-release.apk`；守护版位于对应的 `guard/release` 目录。标准版有 HOME 声明；守护版用于拒绝安装 HOME 应用的固件。
+
+## 安装工具的机型预检
+
+`tools/install.sh` 在构建、下载或安装前读取机型；读取失败或输出无效时停止。上游报告 Redmi 投影仪 4 / 5 Pro（`ro.product.model` 恰为 `mt5873`）使用 HOME 版本可能卡在开机画面。此机型禁止 standard，工具会明确停止，需使用原签名的 guard APK 并另行指定 `guard`，不会自动替换请求的版本。这条限制不扩大到当贝 F3 或其他 MStar 机型。
+
+`mt5873` 的 guard 安装还要求本机 Android SDK build-tools 中有 `aapt2`。工具检查实际选中的 APK，包括 `APK_FILE` 提供的文件：包名必须是 `com.dangbei.tvlauncher`、版本名以 `-guard` 结尾、包含完整类名 `app.orchard.tv.MainActivity` 且不声明 HOME 类别。缺少检查工具、APK 无法解析或元数据不符时，在安装及系统设置步骤前退出，文件名不能代替检查。
+
+覆盖安装的签名一致性仍由 Android 校验；签名冲突会停止，不尝试卸载或清数据。TCL Android 5.1 的 `install apk has be disabled from pm` 提示进入已有的 guard / 多屏互动或本地安装流程，仍需电视端确认，不能据此宣称安装成功。正常 ADB 安装只接受退出码为零且含完整 `Success` 行的结果。
+
+上述预检与拒绝提示处理已通过离线替身测试和真实 Release APK 静态检查；对应投影仪、TCL 及 F3 的实际安装/启动行为未验证。安装工具原有授权与桌面接管步骤仍需按目标设备另行确认，不用于自动维护时操作设备。
 
 ## 手机试用
 

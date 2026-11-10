@@ -84,6 +84,48 @@ if [ "$FLAVOR" = repair ]; then
   exit 1
 fi
 
+# Redmi Projector 4/5 Pro reports name mt5873: standard HOME caused boot hangs
+# requiring a reset (upstream #684/#688). Do not silently replace the requested flavor.
+if ! MODEL=$(adb shell getprop ro.product.model 2>/dev/null); then
+  echo "Could not read the TV model; installation stopped before changing the TV. Retry once ADB responds." >&2
+  exit 1
+fi
+MODEL=${MODEL//$'\r'/}
+case "$MODEL" in
+  ''|null|*$'\n'*|*'not found'*|error:*|Error:*)
+    echo "Could not identify the TV model; installation stopped before changing the TV." >&2
+    exit 1 ;;
+esac
+if [ "$MODEL" = mt5873 ] && [ "$FLAVOR" = standard ]; then
+  echo "mt5873 projectors can hang at boot with a HOME launcher build (upstream #684). Standard was not installed." >&2
+  echo "Use a same-signature AetherTV guard APK and explicitly rerun with 'guard'. Do not uninstall or reset the TV." >&2
+  exit 1
+fi
+
+# A caller-supplied APK can disagree with the command's flavor or its filename.
+check_mt5873_apk() {
+  local aapt2= candidate badging manifest
+  for candidate in "$ANDROID_HOME"/build-tools/*/aapt2; do
+    [ ! -x "$candidate" ] || aapt2=$candidate
+  done
+  if [ -z "$aapt2" ]; then
+    echo "mt5873 guard installation needs Android SDK build-tools/aapt2 to check the actual APK; nothing was installed." >&2
+    return 1
+  fi
+  if ! badging=$("$aapt2" dump badging "$1" 2>/dev/null) ||
+     ! manifest=$("$aapt2" dump xmltree "$1" --file AndroidManifest.xml 2>/dev/null); then
+    echo "Could not inspect the mt5873 APK; nothing was installed." >&2
+    return 1
+  fi
+  if ! grep -q "^package: name='com[.]dangbei[.]tvlauncher' .*versionName='[^']*-guard'" <<< "$badging" ||
+     ! grep -q 'E: manifest' <<< "$manifest" ||
+     ! grep -q '"app.orchard.tv.MainActivity"' <<< "$manifest" ||
+     grep -q '"android.intent.category.HOME"' <<< "$manifest"; then
+    echo "mt5873 requires the com.dangbei.tvlauncher guard APK with app.orchard.tv.MainActivity and no HOME category; nothing was installed." >&2
+    return 1
+  fi
+}
+
 # A failed download must not replace a previously valid file or reach the installer.
 download_apk() (
   local flavor=$1 out="${TMPDIR:-/tmp}/aethertv-$1.apk" partial url
@@ -161,6 +203,7 @@ tcast_install() {
 
 BEFORE=$(installed_code)
 APK=$(build "$FLAVOR")
+[ "$MODEL" != mt5873 ] || check_mt5873_apk "$APK"
 echo "Installing $APK"
 # Old ADB shell protocols can exit zero while the TV prints an installation failure.
 RC=0
@@ -168,9 +211,9 @@ OUT=$(adb install -r "$APK" 2>&1 | tr -d '\r') || RC=$?
 if [ "$RC" -ne 0 ] || ! printf '%s\n' "$OUT" | grep -qx 'Success'; then
   echo "$OUT" >&2
   case "$OUT" in
-    *VERIFICATION_FAILURE*)
+    *VERIFICATION_FAILURE*|*"install apk has be disabled from pm"*)
       # TCL: ADB installs are refused outright, and so is any APK that declares a home screen and is
-      # not signed by TCL. The guard build declares none.
+      # not signed by TCL. Android5.1 p34a5 uses plain text without a Failure code (#1424).
       [ "$FLAVOR" = guard ] || APK=$(build guard)
       WANT=$(version_code "$APK")
       echo
