@@ -57,6 +57,8 @@ Roadmap 的新功能必须沿现有依赖方向接入：入口/状态 → 功能
 
 ## 当前工作前沿
 
+- AERIAL-20261112-upstream-review：上游从 f1a4315 前进至 31deac6，逐项评估 37 个 v1.91–v1.94 提交；图标库、壁纸取帧、守护启动、FengOS、Lite 和厂商信源改动均因本地定制冲突、资源/性能风险或缺少 Android 5/6/F3 证据暂缓，版本仍 0.3.1/106。规则与空白检查通过，未改 Android 源码、未操作设备。见工作包 work/AERIAL-20261112-upstream-review.md。
+
 - `AERIAL-20261110-install-preflight`：适配已知 mt5873 的 standard 安装禁用预检，显式选择 guard 后检查实际 APK；兼容 TCL Android5.1 的文本式安装拒绝。15项安装测试及6项受影响构建/下载离线测试通过，Java17双Release与APK/签名/独立播放器边界检查通过；两份真实APK通过替身ADB检查错版拒绝与guard放行。逐项登记60个新增上游提交；本轮未改Android源码，APK与11月8日检查点一致，版本仍0.3.1/106，相关目标机行为未验证。见[工作包](work/AERIAL-20261110-install-preflight.md)。
 
 - `AERIAL-20261108-source-routing`：选择性适配MStar信源面板兜底、JMGO HDMI播放器路由与襄阳现名/旧名别名；保留本地信源内页、原候选优先级及用户选城。每flavor9项Android6 host-side信源测试、3项离线地名生成测试、Java17双Release与APK/签名/打包资产检查通过，18个上游新增提交已登记。版本仍0.3.1/106；F3及对应厂商的实际信源/HDMI行为未验证，未操作设备。见[工作包](work/AERIAL-20261108-source-routing.md)。
