@@ -48,6 +48,8 @@ object Updates {
      */
     private const val STALL_MS = 30_000L
     private const val STALL_BYTES = 256 * 1024L
+    /** Tries per source while each retry delivers bytes; a source that delivers none is skipped. */
+    private const val RESUME_TRIES = 3
     const val CONTROL_CENTER_MAX_AGE_MS = RETRY_MS
 
     /** This build's version, e.g. "1.17" (the guard build's "-guard" left off). */
@@ -244,24 +246,54 @@ object Updates {
     }
 
     private suspend fun download(url: String, file: File) {
-        file.parentFile?.mkdirs()
-        val part = File(file.parentFile, file.name + ".part")
+        val directory = checkNotNull(file.parentFile)
+        check(directory.isDirectory || directory.mkdirs()) { "Cannot create update directory: $directory" }
+        check(directory.canWrite()) { "Cannot write update directory: $directory" }
+        val part = File(directory, file.name + ".part")
+        part.delete()
+        try {
+            var tries = 0
+            while (true) {
+                try {
+                    fetch(url, part)
+                    break
+                } catch (e: Exception) {
+                    if (e is kotlin.coroutines.cancellation.CancellationException) throw e
+                    if (++tries >= RESUME_TRIES || part.length() == 0L) throw e
+                    Log.w(TAG, "download broke off at ${part.length()} bytes; resuming", e)
+                }
+            }
+            if (!part.renameTo(file)) error("could not keep the download")
+            // The installer on Android 5 and 6 opens the file itself.
+            if (Build.VERSION.SDK_INT < 24) file.setReadable(true, false)
+        } finally {
+            part.delete()
+        }
+    }
+
+    /** Fetches [url] into [part], resuming from its end when the server accepts a byte range. */
+    private suspend fun fetch(url: String, part: File) {
+        val from = part.length()
         val c = URL(url).openConnection() as HttpURLConnection
         LegacyUpdateTls.configure(appContext, c)
         c.connectTimeout = 10_000
         c.readTimeout = 20_000
-        // A throttled route can keep the TLS handshake up and deliver a byte now and then, so no
-        // read() ever blocks long enough to time out and the progress bar sits at 0% for good
-        // (issue #390, FFALCON/TCL on China Unicom). So the bytes are counted, not each read timed.
+        if (from > 0) c.setRequestProperty("Range", "bytes=$from-")
+        // Count bytes over a moving window so a slow but live route is not mistaken for a stall.
         var windowAt = SystemClock.elapsedRealtime()
         var windowFrom = 0L
         try {
-            if (c.responseCode != HttpURLConnection.HTTP_OK) error("HTTP ${c.responseCode}")
-            val total = c.contentLength.toLong()
-            var done = 0L
+            val code = c.responseCode
+            // A server that ignores Range sends the full file; replace the partial file safely.
+            val append = from > 0 && code == HttpURLConnection.HTTP_PARTIAL
+            if (code != HttpURLConnection.HTTP_OK && !append) error("HTTP $code")
+            val length = c.contentLength.toLong()
+            val total = if (length < 0) -1L else if (append) from + length else length
+            var done = if (append) from else 0L
+            windowFrom = done
             var shown = -1
             c.inputStream.use { input ->
-                part.outputStream().use { out ->
+                java.io.FileOutputStream(part, append).use { out ->
                     val buf = ByteArray(64 * 1024)
                     while (true) {
                         val n = input.read(buf)
@@ -283,12 +315,8 @@ object Updates {
                 }
             }
             if (total > 0 && done != total) error("got $done of $total bytes")
-            if (!part.renameTo(file)) error("could not keep the download")
-            // The installer on Android 5 and 6 opens the file itself.
-            if (Build.VERSION.SDK_INT < 24) file.setReadable(true, false)
         } finally {
             c.disconnect()
-            part.delete()
         }
     }
 

@@ -443,6 +443,9 @@ internal fun BrightnessRow(vm: HomeViewModel, requester: FocusRequester? = null)
 private fun InputsPage(vm: HomeViewModel, takeFocus: Boolean, onOpen: (android.content.Intent) -> Unit) {
     val first = remember { FocusRequester() }
     LaunchedEffect(Unit) {
+        vm.refreshSources(again = true)
+    }
+    LaunchedEffect(Unit) {
         if (!takeFocus) return@LaunchedEffect
         withFrameNanos { }
         runCatching { first.requestFocus() }

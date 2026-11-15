@@ -110,6 +110,7 @@ object Diagnostics {
         SystemProbe.sources(context).forEach { s ->
             appendLine("  shown: ${s.label} [${s.kind}] connected=${s.connected} -> ${s.intent.component?.flattenToShortString() ?: s.intent.data}")
         }
+        runCatching { app.orchard.tv.weather.Weather.diagnostics() }.getOrNull()?.let { appendLine("Weather     $it") }
         appendLine("```")
 
         appendLine()

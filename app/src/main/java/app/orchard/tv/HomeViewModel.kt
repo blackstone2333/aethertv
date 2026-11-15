@@ -354,11 +354,14 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
      * Android 9) fills its source list some 30 s after boot, after Aerial has loaded and while it
      * stays in front, so nothing re-probed it (PR #507, by Sakurasan, checked on that TV).
      */
-    fun refreshSources() {
+    fun refreshSources(again: Boolean = false) {
         viewModelScope.launch {
             val ctx = context
             val s = withContext(Dispatchers.Default) { SystemProbe.sources(ctx) }
-            if (s.isNotEmpty() && sources.isEmpty()) { sources = s; arrange() }
+            if (s.isEmpty()) return@launch
+            // [again] refreshes what the input page shows after a cable or CEC device changed.
+            fun shown(list: List<TvSource>) = list.map { listOf(it.id, it.label, it.connected, it.deviceName) }
+            if (sources.isEmpty() || again && shown(s) != shown(sources)) { sources = s; arrange() }
         }
     }
 

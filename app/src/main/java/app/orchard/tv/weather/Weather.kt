@@ -79,6 +79,16 @@ object Weather {
     }
 
     private var failed = false
+    private var lastResult = "none"
+
+    /** A privacy-safe weather status for the diagnostics report. */
+    fun diagnostics(): String {
+        if (!started) return "not started in this process"
+        fun ago(at: Long) = if (at == 0L) "never" else "${(System.currentTimeMillis() - at) / 60_000} min ago"
+        return "shown=${now != null} chosen=$chosen located=${!prefs.getFloat("lat", Float.NaN).isNaN()}; " +
+            "read ${ago(prefs.getLong("fetched_at", 0))}; attempt ${ago(lastAttempt)}, result=$lastResult, " +
+            "inFlight=${job?.isActive == true}"
+    }
 
     /** Like the daily photos: a failed reading is retried when the network connects (issue #129). */
     fun refreshIfStale(networkCameUp: Boolean = false) {
@@ -89,14 +99,18 @@ object Weather {
 
     private fun refresh() {
         lastAttempt = System.currentTimeMillis()
+        lastResult = "pending"
         job?.cancel()
         job = scope.launch {
+            var why: String? = null
             val reading = withContext(Dispatchers.IO) {
-                runCatching { fetch() }.onFailure { Log.w(TAG, "weather unavailable", it) }.getOrNull()
+                runCatching { fetch() }.onFailure { Log.w(TAG, "weather unavailable", it); why = reasonOf(it) }.getOrNull()
             }
             prefs.getString("place", null)?.let { place = it }
             failed = reading == null
+            lastResult = if (reading != null) "success" else "failed ($why)"
             if (reading != null) {
+                Log.i(TAG, "weather read")
                 now = reading
                 prefs.edit {
                     putLong("fetched_at", System.currentTimeMillis())
@@ -109,6 +123,10 @@ object Weather {
             }
         }
     }
+
+    private fun reasonOf(e: Throwable): String = (e as? HttpStatus)?.message ?: e.javaClass.simpleName
+
+    private class HttpStatus(code: Int) : java.io.IOException("HTTP $code")
 
     /** Off the main thread. */
     private fun fetch(): WeatherNow {
@@ -231,6 +249,8 @@ object Weather {
         c.connectTimeout = 8_000
         c.readTimeout = 10_000
         return try {
+            val code = c.responseCode
+            if (code !in 200..299) throw HttpStatus(code)
             c.inputStream.use { it.readBytes().decodeToString() }
         } finally {
             c.disconnect()
