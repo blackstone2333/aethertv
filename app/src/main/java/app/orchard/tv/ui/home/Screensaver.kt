@@ -227,7 +227,7 @@ private fun Labels(caption: String?, now: LocalDateTime, showTime: Boolean = tru
     // Fades in where Home's own clock has moved to, as the photos cover it.
     val time by animateFloatAsState(if (showTime) 1f else 0f, tween(2000), label = "time")
     Box(Modifier.fillMaxSize()) {
-        Canvas(Modifier.fillMaxSize()) {
+        if (showTime || AerialSettings.screensaverCaption) Canvas(Modifier.fillMaxSize()) {
             // Just enough shade under the text to read it over bright sky or snow.
             drawRect(Brush.verticalGradient(0.7f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.45f)))
             drawRect(Brush.verticalGradient(0f to Color.Black.copy(alpha = 0.3f), 0.18f to Color.Transparent))
@@ -240,7 +240,7 @@ private fun Labels(caption: String?, now: LocalDateTime, showTime: Boolean = tru
                 .padding(top = SaverClockTop, start = SaverClockSide, end = SaverClockSide)
                 .graphicsLayer { alpha = time },
         )
-        AnimatedContent(
+        if (AerialSettings.screensaverCaption) AnimatedContent(
             targetState = caption.orEmpty(),
             // One after the other: two names fading across each other in the same place smeared.
             transitionSpec = { fadeIn(tween(600, delayMillis = 400, easing = Motion.EaseOut)) togetherWith fadeOut(tween(400, easing = Motion.EaseOut)) },

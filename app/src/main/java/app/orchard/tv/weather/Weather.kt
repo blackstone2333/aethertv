@@ -14,7 +14,9 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import java.io.IOException
 import java.net.HttpURLConnection
+import java.net.SocketTimeoutException
 import java.net.URL
 import java.net.URLEncoder
 import java.util.Locale
@@ -39,7 +41,8 @@ object Weather {
     private const val TAG = "AerialWeather"
     private const val PREFS = "weather"
     private const val REFRESH_MS = 60 * 60 * 1000L
-    private const val RETRY_MS = 10 * 60 * 1000L
+    /** After a failed reading; only checked when Home comes to the front. */
+    private const val RETRY_MS = 3 * 60 * 1000L
     private const val RELOCATE_MS = 24 * 60 * 60 * 1000L
     /** A reading older than this is not shown at all. */
     private const val STALE_MS = 3 * 60 * 60 * 1000L
@@ -240,7 +243,8 @@ object Weather {
      */
     private fun get(url: String): String = try {
         read(url)
-    } catch (e: SSLException) {
+    } catch (e: IOException) {
+        if (e !is SSLException && e !is SocketTimeoutException) throw e
         read(url.replaceFirst("https://", "http://"))
     }
 

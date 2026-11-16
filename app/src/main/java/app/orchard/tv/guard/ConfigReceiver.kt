@@ -20,6 +20,7 @@ import kotlinx.coroutines.launch
  *   ... --ez clear_pin true         (turn the parental PIN off, for an owner who forgot it)
  *   ... --ez large_clock true --ez clock_right false --ez one_row_home true
  *       --ez peek_next_row false --ez home_plate true --ez show_all_names false
+ *       --ez screensaver_caption false
  *                                   (Home's layout, as in Personalize; for screenshots of each)
  *   ... --ez check_update true      (look for a new version now, not within three hours)
  *   ... --ez update_test true       ("Download and Install" takes files/update-test.apk instead,
@@ -51,6 +52,7 @@ class ConfigReceiver : BroadcastReceiver() {
             "peek_next_row" to AerialSettings::choosePeekNextRow,
             "home_plate" to AerialSettings::chooseHomePlate,
             "show_all_names" to AerialSettings::chooseShowAllNames,
+            "screensaver_caption" to AerialSettings::chooseScreensaverCaption,
         ).filterKeys { intent.hasExtra(it) }
         if (layout.isNotEmpty()) {
             AerialSettings.init(context)

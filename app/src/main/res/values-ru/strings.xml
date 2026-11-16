@@ -96,6 +96,8 @@
     <string name="ss_delay">Запускать через</string>
     <string name="ss_minutes">%d мин</string>
     <string name="ss_never">Никогда</string>
+    <string name="ss_show_caption">Место</string>
+    <string name="ss_show_caption_hint">Название места слева внизу на заставке с аэросъёмкой и название снимка на заставке с фото.</string>
     <string name="ss_back_hint">Совет: нажмите «Назад» в верхнем ряду главного экрана, чтобы запустить заставку.</string>
     <string name="ss_back">Кнопка «Назад»</string>
     <string name="ss_back_on">Запускает её</string>

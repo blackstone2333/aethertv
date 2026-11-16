@@ -96,6 +96,8 @@
     <string name="ss_delay">Запускати через</string>
     <string name="ss_minutes">%d хв</string>
     <string name="ss_never">Ніколи</string>
+    <string name="ss_show_caption">Місце</string>
+    <string name="ss_show_caption_hint">Назва місця зліва внизу на заставці з аерозйомкою і назва знімка на заставці з фото.</string>
     <string name="ss_back_hint">Порада: натисніть «Назад» у верхньому ряду головного екрана, щоб запустити заставку.</string>
     <string name="ss_back">Кнопка «Назад»</string>
     <string name="ss_back_on">Запускає її</string>

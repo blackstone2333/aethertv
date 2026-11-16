@@ -173,6 +173,9 @@ object AerialSettings {
      */
     var screensaverMinutes by mutableStateOf(DEFAULT_SCREENSAVER_MINUTES); private set
 
+    /** The place name or photo title shown at the bottom left of aerial and photo screensavers. */
+    var screensaverCaption by mutableStateOf(true); private set
+
     const val NEVER = 0
 
     val screensaverChoices = listOf(2, 5, 10, 20, NEVER)
@@ -220,6 +223,7 @@ object AerialSettings {
         }
         backStartsScreensaver = prefs.getBoolean("back_starts_screensaver", true)
         screensaverMinutes = prefs.getInt("screensaver_minutes", DEFAULT_SCREENSAVER_MINUTES)
+        screensaverCaption = prefs.getBoolean("screensaver_caption", true)
         aerialQuality = AerialQuality.of(prefs.getString("aerial_quality", null))
     }
 
@@ -308,6 +312,11 @@ object AerialSettings {
         screensaverMinutes = minutes
         app.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit { putInt("screensaver_minutes", minutes) }
         GuardSetup.setSystemScreensaverOff(app, minutes == NEVER)
+    }
+
+    fun chooseScreensaverCaption(on: Boolean) {
+        screensaverCaption = on
+        app.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit { putBoolean("screensaver_caption", on) }
     }
 
     fun setPinned(inputId: String, pinned: Boolean) {

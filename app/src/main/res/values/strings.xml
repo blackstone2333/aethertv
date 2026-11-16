@@ -104,6 +104,8 @@
     <string name="ss_delay">Start after</string>
     <string name="ss_minutes">%d min</string>
     <string name="ss_never">Never</string>
+    <string name="ss_show_caption">Place</string>
+    <string name="ss_show_caption_hint">The place name bottom left on the aerial screensaver, and the picture\'s title on the photo screensaver.</string>
     <string name="ss_back_hint">Tip: press Back on the top row of Home to start the screensaver.</string>
     <string name="ss_back">Back Button</string>
     <string name="ss_back_on">Starts It</string>

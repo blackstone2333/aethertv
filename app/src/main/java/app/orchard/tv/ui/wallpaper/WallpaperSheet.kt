@@ -309,6 +309,11 @@ fun WallpaperSheet(
                                     },
                                     AerialSettings.screensaverMinutes, AerialSettings::chooseScreensaverMinutes,
                                 )
+                                if (Wallpapers.screensaver == ScreensaverMode.Aerial || Wallpapers.screensaver == ScreensaverMode.Photos) Choices(
+                                    R.string.ss_show_caption, stringResource(R.string.ss_show_caption_hint), note,
+                                    listOf(true to R.string.st_on, false to R.string.st_off),
+                                    AerialSettings.screensaverCaption, AerialSettings::chooseScreensaverCaption,
+                                )
                                 Choices(
                                     R.string.ss_back, stringResource(R.string.ss_back_choice_hint), note,
                                     listOf(true to R.string.ss_back_on, false to R.string.ss_back_off),
