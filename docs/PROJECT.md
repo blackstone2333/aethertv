@@ -57,6 +57,7 @@ Roadmap 的新功能必须沿现有依赖方向接入：入口/状态 → 功能
 
 ## 当前工作前沿
 
+- `AERIAL-20261117-upstream-review`：上游从 `d5a3473` 前进至 `b7c3624`（11 个提交，含 v2.0 元数据）。仅吸收无 Android 输入列表时遥控器 Input 键调用现有原生信源面板能力检测的行为；Lite、Guard/HOME、Dream、版本、发布和交接提交按边界暂缓或略过。Java17 双 Release、受影响单测、规则与 APK 契约检查见[工作包](work/AERIAL-20261117-upstream-review.md)；版本仍 0.3.1/106，F3 行为未验证。
 - `AERIAL-20261116-upstream-review`：上游从 `50ba53c` 前进至 `d5a3473`（v1.99，共 18 个提交）。选择性吸收天气 TLS 超时回退与三分钟失败重试、航拍/照片屏保地点标题开关；个性化滚动、厂商信源、Guard/HOME、Lite、播放器和发布元数据按边界暂缓或略过。Java17 双 Release、Standard/Guard 单测、规则与 APK 契约检查通过；版本仍 0.3.1/106，F3 行为未验证。见[工作包](work/AERIAL-20261116-upstream-review.md)。
 - `AERIAL-20261115-upstream-review`：上游从 `31deac6` 前进至 `50ba53c`（v1.95–v1.98，共 62 个提交）。选择性吸收更新断点续传、设置候选可启动性保护、信源页打开时刷新状态和天气失败诊断；Guard/HOME、厂商信源/设置、Lite、4K 画布、发布与播放器改动均按边界暂缓或略过。Java17 双 Release、受影响单测、APK/签名/包名检查通过；版本仍 0.3.1/106，F3 行为未验证。见[工作包](work/AERIAL-20261115-upstream-review.md)。
 

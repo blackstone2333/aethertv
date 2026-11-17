@@ -383,7 +383,10 @@ fun HomeScreen(
                         // TCL's firmware opens its own input panel on this key; answering it here
                         // as well drew both panels at once (TCL MT5879, PR #334).
                         if (firmwareInputPanel) return@onPreviewKeyEvent false
-                        vm.overlay = Overlay.ControlCenter(CcPage.Inputs)
+                        // With no inputs listed to Android, let a TV expose its own source panel
+                        // instead of opening an empty page (the upstream Philips/MStar case).
+                        vm.overlay = if (vm.sources.isEmpty() && SystemProbe.openInputPicker(appContext)) Overlay.None
+                        else Overlay.ControlCenter(CcPage.Inputs)
                         true
                     }
                     else -> false
