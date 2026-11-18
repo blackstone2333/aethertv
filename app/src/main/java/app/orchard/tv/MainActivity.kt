@@ -490,13 +490,17 @@ class MainActivity : ComponentActivity() {
     private fun restartIdleTimer() {
         vm.lastInputAt = SystemClock.uptimeMillis()
         idleHandler.removeCallbacks(showScreensaver)
-        if (AerialSettings.screensaverMinutes != AerialSettings.NEVER) idleHandler.postDelayed(showScreensaver, idleBeforeScreensaver())
+        val never = AerialSettings.screensaverMinutes == AerialSettings.NEVER
+        if (!never) idleHandler.postDelayed(showScreensaver, idleBeforeScreensaver())
         // Not with "System": the firmware's screensaver is wanted then, and holding the screen on
         // held it off (Xiaomi's starts on its own timer, screen_saver_timeout).
-        else if (Wallpapers.screensaver != ScreensaverMode.System &&
-            window.attributes.flags and WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON == 0 && screenNeverOff()) {
-            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        }
+        val keepOn = Wallpapers.screensaver != ScreensaverMode.System &&
+            if (never) screenNeverOff() else holdsOffTheDream()
+        val held = window.attributes.flags and WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON != 0
+        if (keepOn && !held) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        // Release the flag after switching to the firmware screensaver; otherwise it stays until
+        // Aerial restarts and prevents the system dream from appearing.
+        else if (!keepOn && held && !vm.screensaverVisible) window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     }
 
     /**
@@ -512,6 +516,18 @@ class MainActivity : ComponentActivity() {
      */
     private fun screenNeverOff(): Boolean =
         runCatching { Settings.System.getLong(contentResolver, Settings.System.SCREEN_OFF_TIMEOUT) }.getOrDefault(0L) >= 24 * 60 * 60 * 1000L
+
+    /** Whether Home's timer would otherwise hold off Aerial's system dream. */
+    private fun holdsOffTheDream(): Boolean {
+        val firmware = runCatching { Settings.System.getLong(contentResolver, "screen_saver_timeout") }
+            .getOrNull()?.takeIf { it > 0 }
+        if (firmware != null) return false
+        val dream = if (SystemScreensaver.isAerials(this)) {
+            runCatching { Settings.System.getLong(contentResolver, Settings.System.SCREEN_OFF_TIMEOUT) }
+                .getOrNull()
+        } else null
+        return dream != null && AerialSettings.screensaverMinutes * 60_000L > dream - 15_000L
+    }
 
     private fun idleBeforeScreensaver(): Long {
         val chosen = AerialSettings.screensaverMinutes * 60_000L

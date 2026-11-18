@@ -165,7 +165,8 @@ object SystemProbe {
         pkg in SETTINGS_PACKAGES ||
             context.packageManager.resolveActivity(Intent(Settings.ACTION_SETTINGS), 0)?.activityInfo?.packageName == pkg
 
-    private val SETTINGS_PACKAGES = setOf("com.android.settings", "com.android.tv.settings", "com.xiaomi.mitv.settings", "com.tcl.settings", "com.helios.setting", "com.haier.tv.menusetting")
+    private const val BAOFENG_SETTINGS = "com.baofengtv.settings"
+    private val SETTINGS_PACKAGES = setOf("com.android.settings", "com.android.tv.settings", "com.xiaomi.mitv.settings", "com.tcl.settings", "com.helios.setting", "com.haier.tv.menusetting", BAOFENG_SETTINGS)
 
     fun settingsIntent(context: Context): Intent =
         xgimiSettingsIntent(context, "Settings://com.xgimi.misckey.main/mainPage") ?: settingsActivityIntent(context)
@@ -182,6 +183,8 @@ object SystemProbe {
             Intent(Intent.ACTION_MAIN).setComponent(ComponentName("com.tcl.settings", "com.tcl.settings.ui.MainActivity")),
             // PPTV K55U27 (MStar, Android 6): its settings app answers no standard action (issue #264).
             Intent(Intent.ACTION_MAIN).setComponent(ComponentName("com.pptv.setting", "com.pptv.setting.root.SettingsActivity")),
+            // Baofeng AML_T962 (Android 9) answers neither ACTION_SETTINGS nor a network action.
+            Intent(Intent.ACTION_MAIN).setComponent(ComponentName(BAOFENG_SETTINGS, "$BAOFENG_SETTINGS.MainActivity")),
             // XGIMI GMUI (Z7X, Android 9) neither; its settings open by link (issue #241).
             Intent(Intent.ACTION_VIEW, Uri.parse("Settings://com.xgimi.misckey.main/mainPage")),
             WHALEY_SETTINGS,
@@ -240,6 +243,8 @@ object SystemProbe {
             Intent(Settings.ACTION_SETTINGS),
             // TCL tcl_m7642 (Android 9) answers neither Wi-Fi nor settings actions (issue #15).
             Intent(Intent.ACTION_MAIN).setComponent(ComponentName("com.tcl.settings", "com.tcl.settings.ui.MainActivity")),
+            // Baofeng AML_T962 (Android 9) keeps its network page inside its settings activity.
+            Intent(Intent.ACTION_MAIN).setComponent(ComponentName(BAOFENG_SETTINGS, "$BAOFENG_SETTINGS.MainActivity")),
             WHALEY_SETTINGS,
         )
     }
@@ -332,6 +337,12 @@ object SystemProbe {
         tclInputPanel(context)?.let { intent ->
             if (runCatching { context.startService(intent) }.getOrNull() != null) return true
         }
+        // Baofeng AML_T962 has no framework inputs or BFTVSourceSwitch; its exported FUI activity
+        // is the firmware source bar. Capability-check the component before starting it.
+        val bftvRow = ComponentName("com.bftv.fui.biu", "com.bftv.fui.biu.views.activity.FRowActivity")
+        if (runCatching { pm.getActivityInfo(bftvRow, 0) }.getOrNull()?.exported == true &&
+            runCatching { context.startActivity(Intent(Intent.ACTION_MAIN).setComponent(bftvRow).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }.isSuccess
+        ) return true
         // Sharp LCD_xxSFFOC470A (Android6) exposes this MStar panel without framework inputs
         // (upstream #1342, reporter's ADB test). This capability is not verified on F3.
         val intent = Intent(MSTAR_SOURCE_INFO).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -360,6 +371,13 @@ object SystemProbe {
         }
         return intent.takeIf { runCatching { pm.resolveService(it, 0) }.getOrNull() != null }
     }
+
+    /**
+     * Older TCL Amlogic boards show their own source chooser from the remote input key while Home
+     * remains visible. Detect the source-manager package so both panels are not drawn together.
+     */
+    fun tclSourceManagerPanel(context: Context): Boolean =
+        runCatching { context.packageManager.getPackageInfo("com.tcl.sourcemananger", 0) }.isSuccess
 
     private fun firstResolvable(context: Context, vararg intents: Intent): Intent {
         // Not Intent.resolveActivity: it returns an explicit component unchecked, so Xiaomi's

@@ -18,6 +18,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
 import android.util.Log
 import app.orchard.tv.dream.AerialDream
+import app.orchard.tv.settings.AerialSettings
 import app.orchard.tv.system.SystemScreensaver
 
 /**
@@ -389,16 +390,27 @@ object GuardSetup {
     fun screensaverModeChanged(context: Context) {
         if (!isUserUnlocked(context)) return
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        if (!prefs.getBoolean(KEY_OWN_SCREENSAVER, false)) return
-        if (!systemChosen(context)) { keepScreensaver(context); return }
+        if (!systemChosen(context)) {
+            keepScreensaver(context)
+            // "Never" switches the system's screensaver off only while it is Aerial's; coming back
+            // from "System" with "Never" still chosen does that again.
+            if (AerialSettings.screensaverMinutes == AerialSettings.NEVER) setSystemScreensaverOff(context, true)
+            return
+        }
         val resolver = context.contentResolver
         val mine = ComponentName(context, AerialDream::class.java).flattenToString()
-        val firmware = SystemScreensaver.firmwareDream(context) ?: return
-        if (Settings.Secure.getString(resolver, "screensaver_components").orEmpty() != mine) return
-        runCatching {
-            Settings.Secure.putString(resolver, "screensaver_components", firmware)
-            Log.i(TAG, "screensaver set to the system's; the dream is $firmware again")
-        }.onFailure { Log.w(TAG, "could not give the system screensaver back", it) }
+        val firmware = SystemScreensaver.firmwareDream(context)
+        // Aerial's dream may have been installed by ADB even when this install was never told it
+        // owns the screensaver. Give the firmware dream back before remembering ownership.
+        if (firmware != null && Settings.Secure.getString(resolver, "screensaver_components").orEmpty() == mine) {
+            runCatching {
+                Settings.Secure.putString(resolver, "screensaver_components", firmware)
+                prefs.edit().putBoolean(KEY_OWN_SCREENSAVER, true).apply()
+                Log.i(TAG, "screensaver set to the system's; the dream is $firmware again")
+            }.onFailure { Log.w(TAG, "could not give the system screensaver back", it) }
+        }
+        // "System" wants the firmware screensaver enabled after "Never" switched it off.
+        setSystemScreensaverOff(context, false)
     }
 
     /**

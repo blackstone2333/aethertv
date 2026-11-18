@@ -488,6 +488,13 @@
 - `4090910`、`46ea8be` 为 Lite-only；`5216c78`、`f991579`、`efe171f`、`b246e5b` 涉及 Dream/Guard/HOME/keep_adb，需独立 Android 5/6 与 F3 安全回归；`fa39848`、`3fe0372`、`4bace84`、`b7c3624` 为 README、交接或版本/发布元数据，均未导入。版本仍 0.3.1/106，未发布正式 Release。
 - `git diff --check`、Java17 规则检查、Standard/Guard 单测、双 Release 构建和 APK 包名/签名/HOME/无播放器检查通过；版本保持 0.3.1/106。当前没有 F3 或其他设备证据，遥控器、厂商信源面板与 HOME 行为仍标记“未验证”。
 
+## 2026-11-18 桌面独立维护：屏保状态与厂商信源回退
+
+- 桌面独立 worktree/分支所有权正确，开始时工作树干净且没有桌面构建占用。fetch 从 `b7c3624` 前进至 `3d4571b`，新增 15 个提交并取得 v2.1 标签；未检查或修改播放器 worktree，不操作共享设备。
+- 工作包：[AERIAL-20261118-upstream-review](work/AERIAL-20261118-upstream-review.md)。选择性吸收 `44b2e1c` 的 System/永不屏保状态恢复与 stale keep-screen-on 释放、`69b3dc0` 的 Baofeng AML_T962 能力检测设置/信源回退、`21e4a71` 的 TCL `com.tcl.sourcemananger` 信源面板避让。
+- `707851a`–`bb15cb6` 为 Lite-only；`86bfc4f` 的视频海报/AV1 路径暂缓以保护自定义 Lite/Full 性能和内存；`b69e4b8` 的 Tencent/Skyworth Digital 路由需厂商设备证据；`76e1ef0`、`77ff37e`、`50056e3`、`3d4571b` 为设备、交接或版本/发布元数据，均未导入。版本仍 0.3.1/106，未发布正式 Release。
+- Standard/Guard 单测、Java17 规则检查、双 Release 和 APK 包名/签名/HOME/无播放器检查通过；版本保持 0.3.1/106。当前没有 F3 或其他设备证据，屏保、TCL/Baofeng 面板与 HOME 行为仍标记“未验证”。
+
 ## 下一次检查
 
 先检查桌面工作区/文件所有权与构建占用。mt5873安装预检范围已适配，真实机型验收须另行协调；优先继续ca6e4f2剩余draw阶段颜色读取、控制中心焦点裁切及本轮应用发现/设置能力候选。周期usage-stats查询范围已适配；独立开机/唤醒frontByUsage仍同步，需单列安全审查，不能顺带引入整套前台/开机链。信源新路径不以芯片相同推断F3已通过。97ab5cf仍针对ScrollState而本地是LazyListState，不能直接移植。天气网络、字体/面板缓存、农历、双排焦点、视频上传和电脑编辑页继续开放；`f1a4315`只是增量记账边界，不关闭历史未完成项。
