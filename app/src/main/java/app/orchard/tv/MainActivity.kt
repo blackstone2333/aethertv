@@ -672,6 +672,7 @@ class MainActivity : ComponentActivity() {
     /** What onResume does once the user is unlocked; also run by a start that was locked before. */
     private fun resumeWork() {
         vm.resumed = true
+        Weather.whileShown(true)
         DiagLog.i("onResume; screensaver after ${idleBeforeScreensaver() / 1000} s")
         if (SystemClock.uptimeMillis() - dreamAskedAt < 1_000) idleHandler.postDelayed(dreamCheck, 1_500)
         restartIdleTimer()
@@ -692,6 +693,7 @@ class MainActivity : ComponentActivity() {
         super.onPause()
         if (locked) return
         vm.resumed = false
+        Weather.whileShown(false)
         DiagLog.i("onPause")
         GuardSetup.setHomeInFront(this, false)
         HomeGuardService.onAerialPaused()

@@ -48,7 +48,7 @@ Three bounded desktop adaptations are included:
 
 ## Status
 
-Active until Release and APK checks finish. Product source changes are limited to `MainActivity.kt`, `GuardSetup.kt`, `SystemState.kt`, and `HomeScreen.kt`; no player worktree, shared device, default-home setting, accessibility service, user data, signature, or `local/` file was touched.
+Complete at checkpoint `ad0b710`, committed and synced to the desktop branch. Product source changes were limited to `MainActivity.kt`, `GuardSetup.kt`, `SystemState.kt`, and `HomeScreen.kt`; no player worktree, shared device, default-home setting, accessibility service, user data, signature, or `local/` file was touched.
 
 ## Evidence
 
@@ -62,7 +62,7 @@ Active until Release and APK checks finish. Product source changes are limited t
 
 ## Exact next action
 
-Review the final diff, commit the desktop-only changes, and push the desktop branch. Device behavior remains unverified until a separately coordinated F3 Release run.
+Continue with `AERIAL-20261119-upstream-review`. Device behavior remains unverified until a separately coordinated F3 Release run.
 
 ## Deferred
 

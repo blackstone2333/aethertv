@@ -9,9 +9,7 @@ import androidx.compose.runtime.setValue
 import androidx.core.content.edit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.IOException
@@ -34,15 +32,12 @@ data class WeatherNow(val celsius: Int, val kind: WeatherKind, val day: Boolean,
  * The guess is often wrong behind a proxy (a whole home behind one shows another country), which
  * is why the phone page shows it and lets the owner correct it.
  *
- * Fetched when Home comes to the front, at most once an hour; nothing runs while the TV is idle.
- * Compose state, written on the main thread only.
+ * Fetched at most once an hour while Home is in front, with bounded retries after a failure.
+ * No refresh timer runs in the background. Compose state, written on the main thread only.
  */
 object Weather {
     private const val TAG = "AerialWeather"
     private const val PREFS = "weather"
-    private const val REFRESH_MS = 60 * 60 * 1000L
-    /** After a failed reading; only checked when Home comes to the front. */
-    private const val RETRY_MS = 3 * 60 * 1000L
     private const val RELOCATE_MS = 24 * 60 * 60 * 1000L
     /** A reading older than this is not shown at all. */
     private const val STALE_MS = 3 * 60 * 60 * 1000L
@@ -61,8 +56,7 @@ object Weather {
     private lateinit var app: Context
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var started = false
-    private var lastAttempt = 0L
-    private var job: Job? = null
+    private val refresh = WeatherRefresh(scope, System::currentTimeMillis, ::readWeather)
 
     fun init(context: Context) {
         if (started) return
@@ -81,7 +75,6 @@ object Weather {
         }
     }
 
-    private var failed = false
     private var lastResult = "none"
 
     /** A privacy-safe weather status for the diagnostics report. */
@@ -89,42 +82,41 @@ object Weather {
         if (!started) return "not started in this process"
         fun ago(at: Long) = if (at == 0L) "never" else "${(System.currentTimeMillis() - at) / 60_000} min ago"
         return "shown=${now != null} chosen=$chosen located=${!prefs.getFloat("lat", Float.NaN).isNaN()}; " +
-            "read ${ago(prefs.getLong("fetched_at", 0))}; attempt ${ago(lastAttempt)}, result=$lastResult, " +
-            "inFlight=${job?.isActive == true}"
+            "read ${ago(prefs.getLong("fetched_at", 0))}; attempt ${ago(refresh.lastAttempt ?: 0L)}, result=$lastResult, " +
+            "inFlight=${refresh.inFlight}"
     }
 
     /** Like the daily photos: a failed reading is retried when the network connects (issue #129). */
     fun refreshIfStale(networkCameUp: Boolean = false) {
         if (!started) return
-        val since = System.currentTimeMillis() - lastAttempt
-        if (since >= REFRESH_MS || (failed && (networkCameUp || since >= RETRY_MS))) refresh()
+        refresh.refreshIfStale(networkCameUp)
     }
 
-    private fun refresh() {
-        lastAttempt = System.currentTimeMillis()
+    fun whileShown(shown: Boolean) {
+        if (started) refresh.whileShown(shown)
+    }
+
+    private suspend fun readWeather(): Boolean {
         lastResult = "pending"
-        job?.cancel()
-        job = scope.launch {
-            var why: String? = null
-            val reading = withContext(Dispatchers.IO) {
-                runCatching { fetch() }.onFailure { Log.w(TAG, "weather unavailable", it); why = reasonOf(it) }.getOrNull()
-            }
-            prefs.getString("place", null)?.let { place = it }
-            failed = reading == null
-            lastResult = if (reading != null) "success" else "failed ($why)"
-            if (reading != null) {
-                Log.i(TAG, "weather read")
-                now = reading
-                prefs.edit {
-                    putLong("fetched_at", System.currentTimeMillis())
-                    putInt("celsius", reading.celsius)
-                    putString("kind", reading.kind.name)
-                    putBoolean("day", reading.day)
-                    putInt("high", reading.high ?: NONE)
-                    putInt("low", reading.low ?: NONE)
-                }
+        var why: String? = null
+        val reading = withContext(Dispatchers.IO) {
+            runCatching { fetch() }.onFailure { Log.w(TAG, "weather unavailable", it); why = reasonOf(it) }.getOrNull()
+        }
+        prefs.getString("place", null)?.let { place = it }
+        lastResult = if (reading != null) "success" else "failed ($why)"
+        if (reading != null) {
+            Log.i(TAG, "weather read")
+            now = reading
+            prefs.edit {
+                putLong("fetched_at", System.currentTimeMillis())
+                putInt("celsius", reading.celsius)
+                putString("kind", reading.kind.name)
+                putBoolean("day", reading.day)
+                putInt("high", reading.high ?: NONE)
+                putInt("low", reading.low ?: NONE)
             }
         }
+        return reading != null
     }
 
     private fun reasonOf(e: Throwable): String = (e as? HttpStatus)?.message ?: e.javaClass.simpleName
@@ -215,7 +207,7 @@ object Weather {
         }
         chosen = true
         place = prefs.getString("place", null)
-        refresh()
+        refresh.refresh()
         return true
     }
 
@@ -223,7 +215,7 @@ object Weather {
     fun useNetworkLocation() {
         prefs.edit { putBoolean("chosen", false); remove("lat"); remove("lon"); remove("located_at") }
         chosen = false
-        refresh()
+        refresh.refresh()
     }
 
     /** WMO weather interpretation codes, as Open-Meteo reports them. */

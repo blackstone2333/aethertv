@@ -298,7 +298,10 @@ object SystemProbe {
         }
         if (isInstalled(context, "com.tcl.settings")) {
             val shown = runCatching {
-                context.startService(Intent("com.tcl.settings.SHOW_WINDOW").setPackage("com.tcl.settings"))
+                // TCL r34a0 (Android 5.1.1, upstream #1625) needs the remote key's extras;
+                // a bare request starts an invisible sticky panel. Not locally device-verified.
+                context.startService(Intent("com.tcl.settings.SHOW_WINDOW").setPackage("com.tcl.settings")
+                    .putExtra("Type", "Settings").putExtra("flag", "1"))
             }.getOrNull() != null
             if (shown) return true
         }
