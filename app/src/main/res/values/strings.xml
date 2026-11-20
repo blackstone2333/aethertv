@@ -319,4 +319,5 @@
     <string name="network_connections">Connections</string>
     <string name="system_settings_open">System Settings</string>
     <string name="live_companion_missing">Install AetherLive to watch live TV</string>
+    <string name="a11y_delete">Delete</string>
 </resources>

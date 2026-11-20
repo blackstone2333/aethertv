@@ -70,6 +70,13 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.disabled
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.onLongClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalFocusManager
@@ -401,6 +408,13 @@ fun AppTile(
                     )
                 }
                 .focusProperties { if (rowEnd) right = FocusRequester.Cancel }
+                .semantics {
+                    contentDescription = app.label
+                    role = Role.Button
+                    if (!enabled) disabled()
+                    onClick { if (enabled) { Sounds.select(); click(bounds); true } else false }
+                    onLongClick { if (enabled) { Sounds.select(); longPress(bounds); true } else false }
+                }
                 .focusable(enabled),
         ) {
             Spacer(Modifier.fillMaxSize().drawWithCache {

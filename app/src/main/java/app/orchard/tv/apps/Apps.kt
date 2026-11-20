@@ -113,6 +113,9 @@ object AppCatalog {
     private val UNLISTED_ENTRIES = listOf(
         ComponentName("com.xiaomi.mitv.mediaexplorer", "com.xiaomi.mitv.mediaexplorer.NewScraperMainEntryActivity"), // 高清播放器
         ComponentName("com.xiaomi.smarthome.tv", "com.xiaomi.smarthome.tv.ui.MainActivity"), // 米家
+        // Baofeng AML_T962 firmware: MAIN-only activities (upstream #1378); local device unverified.
+        ComponentName("com.baofengtv.tvplayer", "com.baofengtv.tvplayer.MainActivity"),
+        ComponentName("com.bftv.fui.biu", "com.bftv.fui.biu.views.activity.FRowActivity"),
     )
 
     /**

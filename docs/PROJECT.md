@@ -57,6 +57,7 @@ Roadmap 的新功能必须沿现有依赖方向接入：入口/状态 → 功能
 
 ## 当前工作前沿
 
+- `AERIAL-20261120-upstream-review`：逐项审查 `29be8ad..982f231` 的 25 个提交（v2.12/v2.13）；选择性适配每日一图 UTC 日期、上传长图采样、FengOS 亮度保护、控件无障碍语义、Baofeng 应用发现、屏保时钟字距及五语言天气定位提示。每 flavor 20 项受影响 host-side 测试、Java17 双 Release 与 APK 契约检查通过，见[工作包](work/AERIAL-20261120-upstream-review.md)；保留独立控件、材质、天气调度与媒体契约，版本仍 0.3.1/106，目标机行为未验证。
 - `AERIAL-20261119-upstream-review`：上游从 `3d4571b` 前进至 `29be8ad`（v2.11，共 10 个提交）。选择性适配前台天气定时刷新、失败退避和并发保护，以及 TCL 图像设置服务参数；Guard/HOME、Whaley LED、Lite 和发布元数据按边界暂缓或略过。每 flavor 23 项受影响测试、Java17 双 Release 与 APK 契约检查通过，见[工作包](work/AERIAL-20261119-upstream-review.md)；版本仍 0.3.1/106，F3/TCL 实机行为未验证。
 - `AERIAL-20261118-upstream-review`：上游从 `b7c3624` 前进至 `3d4571b`（v2.1，共 15 个提交）。选择性吸收 System/永不屏保状态恢复、Baofeng 能力检测信源/设置回退、TCL 旧信源面板避让；Lite、视频海报/AV1、Tencent 厂商路由和发布元数据按边界暂缓或略过。Standard/Guard 单测通过，双 Release 与 APK 契约检查见[工作包](work/AERIAL-20261118-upstream-review.md)；版本仍 0.3.1/106，F3 行为未验证。
 - `AERIAL-20261117-upstream-review`：上游从 `d5a3473` 前进至 `b7c3624`（11 个提交，含 v2.0 元数据）。仅吸收无 Android 输入列表时遥控器 Input 键调用现有原生信源面板能力检测的行为；Lite、Guard/HOME、Dream、版本、发布和交接提交按边界暂缓或略过。Java17 双 Release、受影响单测、规则与 APK 契约检查见[工作包](work/AERIAL-20261117-upstream-review.md)；版本仍 0.3.1/106，F3 行为未验证。

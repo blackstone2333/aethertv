@@ -66,6 +66,7 @@ object Brightness {
 
     /** Current level as 0..1, or null when Aerial cannot change it on this TV. */
     fun level(context: Context): Float? {
+        if (SystemProbe.hidesBrightness(context)) return null
         val r = context.contentResolver
         if (isTcl(context)) TclPicture.backlight(context)?.let { return it / 100f }
         return when {
@@ -94,6 +95,7 @@ object Brightness {
      * steps stay on multiples of 5 above it (1, 5, 10 ...).
      */
     fun adjust(context: Context, direction: Int): Float? {
+        if (SystemProbe.hidesBrightness(context)) return null
         val current = level(context) ?: return null
         val percent = Math.round(current * 100)
         val next = (if (direction > 0) (percent / 5 + 1) * 5 else ((percent + 4) / 5 - 1) * 5).coerceIn(1, 100)

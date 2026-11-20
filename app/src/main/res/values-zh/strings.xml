@@ -318,4 +318,5 @@
     <string name="network_connections">网络连接</string>
     <string name="system_settings_open">系统设置</string>
     <string name="live_companion_missing">请先安装以太直播</string>
+    <string name="a11y_delete">删除</string>
 </resources>

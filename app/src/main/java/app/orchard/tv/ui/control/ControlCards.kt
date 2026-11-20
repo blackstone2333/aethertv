@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -69,7 +70,9 @@ private fun ControlKind.glyph() = when (this) {
 @Composable
 internal fun MainPage(vm: HomeViewModel, now: LocalDateTime, takeFocus: Boolean, care: JSONObject,
                       initial: String, onSelect: (ControlKind) -> Unit, onEdit: () -> Unit) {
-    val specs = AerialSettings.controlLayout
+    val context = LocalContext.current
+    val hideBrightness = remember(context) { SystemProbe.hidesBrightness(context) }
+    val specs = AerialSettings.controlLayout.filterNot { hideBrightness && it.kind == ControlKind.Brightness }
     val placements = remember(specs) { ControlLayout.place(specs) }
     val requesters = remember { ControlKind.entries.associateWith { FocusRequester() } }
     val edit = remember { FocusRequester() }

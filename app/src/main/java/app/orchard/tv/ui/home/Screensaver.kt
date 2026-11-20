@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
@@ -234,11 +235,18 @@ private fun Labels(caption: String?, now: LocalDateTime, showTime: Boolean = tru
         }
         if (time > 0f) BasicText(
             timeText(now),
-            style = SaverClockStyle,
+            style = SaverClockStyle.copy(fontSize = Type.Title.fontSize),
             modifier = Modifier
                 .align(if (AerialSettings.clockRight) Alignment.TopEnd else Alignment.TopStart)
                 .padding(top = SaverClockTop, start = SaverClockSide, end = SaverClockSide)
-                .graphicsLayer { alpha = time },
+                .graphicsLayer {
+                    // Match the carried Home clock's text metrics before enlarging it.
+                    val scale = SaverClockStyle.fontSize.toPx() / Type.Title.fontSize.toPx()
+                    transformOrigin = TransformOrigin(if (AerialSettings.clockRight) 1f else 0f, 0f)
+                    scaleX = scale
+                    scaleY = scale
+                    alpha = time
+                },
         )
         if (AerialSettings.screensaverCaption) AnimatedContent(
             targetState = caption.orEmpty(),

@@ -24,6 +24,12 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.disabled
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import app.orchard.tv.system.Sounds
 import app.orchard.tv.ui.theme.LocalReducedMotion
 import app.orchard.tv.ui.theme.Motion
@@ -71,6 +77,7 @@ fun Pressable(
     focusRequester: FocusRequester? = null,
     focusedScale: Float = 1.06f,
     onKey: ((KeyEvent) -> Boolean)? = null,
+    label: String? = null,
     content: @Composable BoxScope.(PressState) -> Unit,
 ) {
     val state = remember { PressState() }
@@ -115,6 +122,7 @@ fun Pressable(
                 )
             }
             .onKeyEvent { e ->
+                if (!enabled) return@onKeyEvent false
                 if (onKey?.invoke(e) == true) return@onKeyEvent true
                 if (!e.isSelect()) return@onKeyEvent false
                 when (e.type) {
@@ -136,6 +144,14 @@ fun Pressable(
                         true
                     }
                     else -> false
+                }
+            }
+            .semantics(mergeDescendants = true) {
+                role = Role.Button
+                label?.let { contentDescription = it }
+                if (!enabled) disabled()
+                onClick {
+                    if (enabled) { Sounds.select(); click(); true } else false
                 }
             }
             .focusable(enabled)

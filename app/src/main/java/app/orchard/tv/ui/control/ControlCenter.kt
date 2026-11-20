@@ -333,6 +333,7 @@ private fun RoundButton(glyph: Glyph, label: String, focusRequester: FocusReques
 @Composable
 private fun SliderRow(
     glyph: Glyph,
+    label: String,
     level: Float,
     value: String,
     steps: Int,
@@ -354,6 +355,7 @@ private fun SliderRow(
         focusRequester = focusRequester,
         focusedScale = 1.03f,
         modifier = Modifier.fillMaxWidth(),
+        label = label,
         onKey = { e ->
             val code = e.nativeKeyEvent.keyCode
             if (code != NativeKeyEvent.KEYCODE_DPAD_LEFT && code != NativeKeyEvent.KEYCODE_DPAD_RIGHT) return@Pressable false
@@ -402,6 +404,7 @@ private fun SliderRow(
 internal fun VolumeRow(vm: HomeViewModel, requester: FocusRequester? = null) {
     val volume = vm.volume
     SliderRow(
+        label = stringResource(R.string.cc_volume),
         glyph = if (volume.muted) Glyph.SpeakerMuted else Glyph.Speaker,
         level = if (volume.muted) 0f else volume.fraction,
         value = if (volume.muted) stringResource(R.string.cc_muted) else volume.level.toString(),
@@ -419,6 +422,7 @@ internal fun VolumeRow(vm: HomeViewModel, requester: FocusRequester? = null) {
 @Composable
 internal fun BrightnessRow(vm: HomeViewModel, requester: FocusRequester? = null) {
     val context = LocalContext.current
+    if (SystemProbe.hidesBrightness(context)) return
     val level = vm.brightness
     if (level == null) {
         MenuRow(Glyph.Sun, stringResource(R.string.cc_settings), focusRequester = requester, onClick = {
@@ -427,6 +431,7 @@ internal fun BrightnessRow(vm: HomeViewModel, requester: FocusRequester? = null)
         }, trailing = "›")
     } else {
         SliderRow(
+            label = stringResource(R.string.cc_brightness),
             glyph = Glyph.Sun,
             level = level,
             value = Math.round(level * 100).toString(),

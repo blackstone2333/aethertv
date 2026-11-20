@@ -463,12 +463,15 @@ object Wallpapers {
         if (due) scope.launch { refreshDaily() }
     }
 
-    /** Bing's dates are China's, as yyyyMMdd. */
-    private fun hasTodaysDaily(): Boolean {
-        val today = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Shanghai"))
-            .format(java.time.format.DateTimeFormatter.BASIC_ISO_DATE)
-        return readDailyIndex().any { it.first >= today }
-    }
+    // Bing's date ID can be yesterday even while the photo is current in China.
+    private fun hasTodaysDaily(): Boolean = runCatching {
+        val index = JSONArray(File(dailyDir, "index.json").readText())
+        val starts = (0 until index.length()).mapNotNull { i ->
+            val item = index.getJSONObject(i)
+            item.optString("start").takeIf { File(dailyDir, item.getString("date") + ".jpg").exists() }
+        }
+        dailyIsCurrent(starts, System.currentTimeMillis())
+    }.getOrDefault(false)
 
     private var dailyRetry: Job? = null
 
@@ -511,7 +514,8 @@ object Wallpapers {
                     }
                     val copyright = img.optString("copyright")
                     val title = img.optString("title").ifBlank { copyright.substringBefore(" (").ifBlank { date } }
-                    index.put(JSONObject().put("date", date).put("title", title).put("caption", copyright))
+                    index.put(JSONObject().put("date", date).put("title", title).put("caption", copyright)
+                        .put("start", img.optString("fullstartdate")))
                 }
                 File(dailyDir, "index.json").writeText(index.toString())
                 // Keep only what Bing still lists.
@@ -537,7 +541,7 @@ object Wallpapers {
 
     // ---- uploads ----
 
-    /** Stores an uploaded picture, downscaled to at most 2560 px wide, and returns its id. */
+    /** Stores a new photo, halving its decode until the longer side is below 5120 px. */
     suspend fun addPhoto(input: InputStream): String? = io.withLock {
         val id = withContext(Dispatchers.IO) {
             val tmp = File.createTempFile("upload", ".bin", app.cacheDir)
@@ -545,9 +549,8 @@ object Wallpapers {
                 tmp.outputStream().use { input.copyTo(it) }
                 val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
                 BitmapFactory.decodeFile(tmp.path, bounds)
-                if (bounds.outWidth <= 0) return@withContext null
-                var sample = 1
-                while (bounds.outWidth / (sample * 2) >= 2560) sample *= 2
+                if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return@withContext null
+                val sample = Images.photoSampleSize(bounds.outWidth, bounds.outHeight)
                 val bmp = BitmapFactory.decodeFile(tmp.path, BitmapFactory.Options().apply { inSampleSize = sample }) ?: return@withContext null
                 val name = System.currentTimeMillis().toString(36)
                 File(photoDir, "$name.jpg").outputStream().use { bmp.compress(Bitmap.CompressFormat.JPEG, 90, it) }

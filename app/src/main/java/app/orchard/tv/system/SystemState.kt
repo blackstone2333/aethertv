@@ -282,6 +282,10 @@ object SystemProbe {
     private val WHALEY_SETTINGS
         get() = Intent(Intent.ACTION_MAIN).setComponent(ComponentName("com.helios.setting", "com.helios.activity.StartActivity"))
 
+    // FengOS Q3 Pro's Lights HAL can stay dark after standby if screen_brightness is written
+    // (upstream #1668, Android9 reporter evidence). Local hardware behavior is unverified.
+    fun hidesBrightness(context: Context): Boolean = isInstalled(context, "cn.formovie.fengos.settings")
+
     /**
      * Opens the TV's own picture settings where brightness lives, for TVs whose backlight Aerial
      * cannot set itself. TCL keeps it in a side panel that its settings app shows as a service.

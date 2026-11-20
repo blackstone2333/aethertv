@@ -16,6 +16,14 @@ import kotlin.random.Random
 /** Bitmap helpers shared by the wallpaper code. All of it runs off the main thread. */
 object Images {
 
+    /** Width alone decodes a narrow portrait panorama at full size. */
+    internal fun photoSampleSize(width: Int, height: Int): Int {
+        val longest = maxOf(width, height)
+        var sample = 1
+        while (longest / (sample * 2) >= 2560) sample *= 2
+        return sample
+    }
+
     /** Decodes [file] no larger than needed for [w]×[h], then centre-crops it to exactly that size. */
     fun decodeCover(file: File, w: Int, h: Int): Bitmap? {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
