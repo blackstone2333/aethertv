@@ -21,7 +21,15 @@ class FengOsBrightnessTest {
     private val context: Context = RuntimeEnvironment.getApplication()
 
     @Test fun fengOsBlocksAllBrightnessAccessBeforeItReachesSettingsOrVendorCode() {
-        shadowOf(context.packageManager).installPackage(PackageInfo().apply { packageName = "cn.formovie.fengos.settings" })
+        assertBlockedWhenInstalled("cn.formovie.fengos.settings")
+    }
+
+    @Test fun fengmiLauncherWithoutTheSettingsPanelAlsoBlocksAllBrightnessAccess() {
+        assertBlockedWhenInstalled("com.tvfengmi.launcher")
+    }
+
+    private fun assertBlockedWhenInstalled(pkg: String) {
+        shadowOf(context.packageManager).installPackage(PackageInfo().apply { packageName = pkg })
         val caller = object : ContextWrapper(context) {
             override fun getContentResolver(): ContentResolver = throw AssertionError("FengOS brightness must not access settings")
         }
@@ -33,6 +41,7 @@ class FengOsBrightnessTest {
 
     @Test fun unrelatedPackagesDoNotSuppressTheExistingBacklightPath() {
         shadowOf(context.packageManager).installPackage(PackageInfo().apply { packageName = "cn.formovie.other" })
+        shadowOf(context.packageManager).installPackage(PackageInfo().apply { packageName = "com.tvfengmi.other" })
         shadowOf(context as Application).grantPermissions(Manifest.permission.WRITE_SECURE_SETTINGS)
         val resolver = context.contentResolver
         Settings.System.putInt(resolver, Settings.System.SCREEN_BRIGHTNESS, 128)

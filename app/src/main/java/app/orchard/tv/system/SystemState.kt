@@ -282,9 +282,10 @@ object SystemProbe {
     private val WHALEY_SETTINGS
         get() = Intent(Intent.ACTION_MAIN).setComponent(ComponentName("com.helios.setting", "com.helios.activity.StartActivity"))
 
-    // FengOS Q3 Pro's Lights HAL can stay dark after standby if screen_brightness is written
-    // (upstream #1668, Android9 reporter evidence). Local hardware behavior is unverified.
-    fun hidesBrightness(context: Context): Boolean = isInstalled(context, "cn.formovie.fengos.settings")
+    // Q3 Pro (#1668) and Q1 Pro (#1661) can stay dark after a brightness write on Android9.
+    // Q1 Pro lacks the settings package but has Fengmi's launcher; local hardware is unverified.
+    fun hidesBrightness(context: Context): Boolean =
+        isInstalled(context, "cn.formovie.fengos.settings") || isInstalled(context, "com.tvfengmi.launcher")
 
     /**
      * Opens the TV's own picture settings where brightness lives, for TVs whose backlight Aerial
