@@ -57,6 +57,7 @@ Roadmap 的新功能必须沿现有依赖方向接入：入口/状态 → 功能
 
 ## 当前工作前沿
 
+- `AERIAL-20261122-upstream-review`：逐项审查 `0c750221..695e4a16` 的 12 个提交（v2.16）；选择性适配 MiTV 背光 Binder 槽位 80/81 的 descriptor 检测，以及屏保大时钟沿用 Home 的 cut/tracking。守护更新后前台保护、海信 HOME 写入、电池、海尔信源和外部图标库按边界暂缓；版本仍 0.3.1/106，实机行为未验证。
 - `AERIAL-20261121-upstream-review`：逐项审查 `982f231..0c750221` 的 15 个提交（v2.14/v2.15）；补充仅有峰米桌面包的固件检测，复用现有亮度读写保护与控件过滤。Guard/HOME、海信安装/还原、电池及外部图标库按边界暂缓；本地 PIN 仍是最后一项，不导入依赖上游 About 重排的滚动改动。每 flavor 3 项 L0 测试、Java17 双 Release 与 APK 契约检查通过，见[工作包](work/AERIAL-20261121-upstream-review.md)；版本仍 0.3.1/106，实机行为未验证。
 - `AERIAL-20261120-upstream-review`：逐项审查 `29be8ad..982f231` 的 25 个提交（v2.12/v2.13）；选择性适配每日一图 UTC 日期、上传长图采样、FengOS 亮度保护、控件无障碍语义、Baofeng 应用发现、屏保时钟字距及五语言天气定位提示。每 flavor 20 项受影响 host-side 测试、Java17 双 Release 与 APK 契约检查通过，见[工作包](work/AERIAL-20261120-upstream-review.md)；保留独立控件、材质、天气调度与媒体契约，版本仍 0.3.1/106，目标机行为未验证。
 - `AERIAL-20261119-upstream-review`：上游从 `3d4571b` 前进至 `29be8ad`（v2.11，共 10 个提交）。选择性适配前台天气定时刷新、失败退避和并发保护，以及 TCL 图像设置服务参数；Guard/HOME、Whaley LED、Lite 和发布元数据按边界暂缓或略过。每 flavor 23 项受影响测试、Java17 双 Release 与 APK 契约检查通过，见[工作包](work/AERIAL-20261119-upstream-review.md)；版本仍 0.3.1/106，F3/TCL 实机行为未验证。

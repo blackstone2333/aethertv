@@ -233,21 +233,26 @@ private fun Labels(caption: String?, now: LocalDateTime, showTime: Boolean = tru
             drawRect(Brush.verticalGradient(0.7f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.45f)))
             drawRect(Brush.verticalGradient(0f to Color.Black.copy(alpha = 0.3f), 0.18f to Color.Transparent))
         }
-        if (time > 0f) BasicText(
-            timeText(now),
-            style = SaverClockStyle.copy(fontSize = Type.Title.fontSize),
-            modifier = Modifier
-                .align(if (AerialSettings.clockRight) Alignment.TopEnd else Alignment.TopStart)
-                .padding(top = SaverClockTop, start = SaverClockSide, end = SaverClockSide)
-                .graphicsLayer {
-                    // Match the carried Home clock's text metrics before enlarging it.
-                    val scale = SaverClockStyle.fontSize.toPx() / Type.Title.fontSize.toPx()
-                    transformOrigin = TransformOrigin(if (AerialSettings.clockRight) 1f else 0f, 0f)
-                    scaleX = scale
-                    scaleY = scale
-                    alpha = time
-                },
-        )
+        if (time > 0f) {
+            // The large Home clock has its own cut and tracking; keep those metrics when it moves
+            // into the screensaver instead of spreading digits with the small clock's tracking.
+            val large = AerialSettings.largeClock
+            val laidOut = if (large) Type.Clock.fontSize else Type.Title.fontSize
+            BasicText(
+                timeText(now),
+                style = if (large) Type.Clock.copy(color = SaverClockStyle.color) else SaverClockStyle.copy(fontSize = laidOut),
+                modifier = Modifier
+                    .align(if (AerialSettings.clockRight) Alignment.TopEnd else Alignment.TopStart)
+                    .padding(top = SaverClockTop, start = SaverClockSide, end = SaverClockSide)
+                    .graphicsLayer {
+                        val scale = SaverClockStyle.fontSize.toPx() / laidOut.toPx()
+                        transformOrigin = TransformOrigin(if (AerialSettings.clockRight) 1f else 0f, 0f)
+                        scaleX = scale
+                        scaleY = scale
+                        alpha = time
+                    },
+            )
+        }
         if (AerialSettings.screensaverCaption) AnimatedContent(
             targetState = caption.orEmpty(),
             // One after the other: two names fading across each other in the same place smeared.
