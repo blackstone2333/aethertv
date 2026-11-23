@@ -639,7 +639,11 @@ class MainActivity : ComponentActivity() {
         )
         ContextCompat.registerReceiver(
             this, volumeReceiver,
-            IntentFilter("android.media.VOLUME_CHANGED_ACTION"),
+            // Some TV audio services change mute without changing the stream level, so the
+            // Control Center must refresh when the mute state changes on its own.
+            IntentFilter("android.media.VOLUME_CHANGED_ACTION").apply {
+                addAction("android.media.STREAM_MUTE_CHANGED_ACTION")
+            },
             ContextCompat.RECEIVER_EXPORTED,
         )
         ContextCompat.registerReceiver(

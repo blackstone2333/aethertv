@@ -143,19 +143,26 @@ class HomeGuardService : AccessibilityService() {
     private var foregroundTakenAt = Long.MIN_VALUE / 2
 
     /** The newest activity moved to the front in the last few seconds, with its time; null if none. */
+    @Volatile
+    private var futureUsageLogged = false
+
     private fun foreground(lookbackMs: Long = FOREGROUND_LOOKBACK_MS): Pair<Pair<String, String>, Long>? = runCatching {
         val now = System.currentTimeMillis()
-        val events = getSystemService<UsageStatsManager>()?.queryEvents(now - lookbackMs, now) ?: return null
-        var last: Pair<Pair<String, String>, Long>? = null
+        val usm = getSystemService<UsageStatsManager>() ?: return null
+        val events = UsageFront.queryEvents(usm, now - lookbackMs, now) ?: return null
+        val queryNow = System.currentTimeMillis()
+        val picker = UsageFront.Picker(queryNow + UsageFront.FUTURE_SLACK_MS)
         val event = UsageEvents.Event()
         while (events.hasNextEvent()) {
             events.getNextEvent(event)
             @Suppress("DEPRECATION")
-            if (event.eventType == UsageEvents.Event.MOVE_TO_FOREGROUND && event.className != null) {
-                last = (event.packageName to event.className) to event.timeStamp
-            }
+            picker.add(event.eventType, event.packageName, event.className, event.timeStamp)
         }
-        last
+        if (picker.skippedFuture && !futureUsageLogged) {
+            futureUsageLogged = true
+            Log.i(TAG, "usage stats contain future-dated events; ignoring timestamps past now")
+        }
+        picker.result(queryNow)?.let { (it.pkg to it.cls) to it.at }
     }.getOrNull()
 
 
