@@ -378,7 +378,7 @@ class MainActivity : ComponentActivity() {
         } else null
         DiagLog.i(
             "display ${m.widthPixels}x${m.heightPixels} ${m.densityDpi}dpi, canvas density ${canvasDensity(m)}; $modes; " +
-                "hwui ${systemProperty("debug.hwui.renderer")}, soft_layer=${DiagLog.softLayer(this)}",
+                "hwui ${systemProperty("debug.hwui.renderer")}, soft_layer=${DiagLog.softLayer(this)}, soft_clock=${DiagLog.softClock(this)} (gles ${DiagLog.glesMajor(this)})",
         )
         window.decorView.viewTreeObserver.addOnDrawListener {
             draws++

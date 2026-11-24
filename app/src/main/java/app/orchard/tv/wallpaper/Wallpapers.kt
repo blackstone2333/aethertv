@@ -457,7 +457,8 @@ object Wallpapers {
     fun refreshDailyIfStale(networkCameUp: Boolean = false) {
         if (!started) return
         val since = System.currentTimeMillis() - lastDailyRefresh
-        val due = since >= 6 * 60 * 60 * 1000L ||
+        // A clock set back can make the saved refresh time appear to be in the future.
+        val due = since < 0 || since >= 6 * 60 * 60 * 1000L ||
             (dailyFailed && (networkCameUp || since >= 10 * 60 * 1000L)) ||
             (!hasTodaysDaily() && since >= DAILY_RETRY_MS)
         if (due) scope.launch { refreshDaily() }

@@ -58,10 +58,13 @@ class ConfigReceiver : BroadcastReceiver() {
             AerialSettings.init(context)
             layout.forEach { (key, choose) -> choose(intent.getBooleanExtra(key, false)) }
         }
-        // ... --ez diag true / --ez mode_switch false / --ez soft_layer true   (see DiagLog;
-        //                                 the last two apply the next time Home starts)
+        // ... --ez diag true / --ez mode_switch false / --ez soft_layer true / --ez soft_clock true
+        //                                 (the options apply the next time Home starts)
         if (intent.hasExtra("diag")) DiagLog.setEnabled(context, intent.getBooleanExtra("diag", false))
-        for (key in listOf("mode_switch", "soft_layer")) {
+        // ... --es soft_clock auto clears the override and returns to GPU detection.
+        if (intent.extras?.get("soft_clock") is String) DiagLog.clearOption(context, "soft_clock")
+        for (key in listOf("mode_switch", "soft_layer", "soft_clock")) {
+            if (intent.extras?.get(key) is String) continue
             if (intent.hasExtra(key)) DiagLog.setOption(context, key, intent.getBooleanExtra(key, false))
         }
         if (intent.hasExtra("update_test")) {

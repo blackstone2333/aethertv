@@ -49,7 +49,18 @@ object DiagLog {
      */
     fun modeSwitch(context: Context): Boolean = prefs(context).getBoolean("mode_switch", !BuildConfig.DIAG)
     fun softLayer(context: Context): Boolean = prefs(context).getBoolean("soft_layer", false)
+    /** Draw very large clock digits through a cached CPU picture on GLES2, where edges can jag. */
+    fun softClock(context: Context): Boolean = prefs(context).let { p ->
+        if (p.contains("soft_clock")) p.getBoolean("soft_clock", false) else glesMajor(context) in 1..2
+    }
+
+    /** The OpenGL ES major version declared by the device, or zero when unavailable. */
+    fun glesMajor(context: Context): Int =
+        (context.getSystemService(Context.ACTIVITY_SERVICE) as? android.app.ActivityManager)
+            ?.deviceConfigurationInfo?.reqGlEsVersion?.let { it shr 16 } ?: 0
+
     fun setOption(context: Context, key: String, on: Boolean) = prefs(context).edit().putBoolean(key, on).apply()
+    fun clearOption(context: Context, key: String) = prefs(context).edit().remove(key).apply()
     private fun prefs(context: Context) = context.getSharedPreferences("system", Context.MODE_PRIVATE)
 
     fun init(context: Context) {

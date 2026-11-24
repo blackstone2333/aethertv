@@ -64,6 +64,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -85,6 +90,7 @@ import app.orchard.tv.ui.theme.GlyphIcon
 import app.orchard.tv.ui.theme.Motion
 import app.orchard.tv.ui.theme.Palette
 import app.orchard.tv.ui.theme.Type
+import app.orchard.tv.system.DiagLog
 import app.orchard.tv.weather.Weather
 import app.orchard.tv.weather.WeatherKind
 import app.orchard.tv.weather.WeatherNow
@@ -95,6 +101,8 @@ import java.time.format.DateTimeFormatter
 import java.util.Date
 import java.util.Locale
 import kotlin.math.roundToInt
+import kotlin.math.abs
+import kotlin.math.ceil
 
 /** Tick on the minute and refresh immediately after waking or a system clock correction. */
 @Composable
@@ -509,6 +517,9 @@ fun ShelfClock(
     val shadow = Shadow(Color.Black.copy(alpha = 0.28f), Offset(0f, 2f), blurRadius = 18f)
     val secondary = Color.White.copy(alpha = 0.78f)
     val aside = Modifier.graphicsLayer { alpha = 1f - (toSaver() * 2.5f).coerceIn(0f, 1f) }
+    val context = LocalContext.current
+    val softDigits = remember { DiagLog.softClock(context) }
+    var timeLayout by remember { mutableStateOf<TextLayoutResult?>(null) }
     Column(modifier, horizontalAlignment = if (alignEnd) Alignment.End else Alignment.Start) {
         BasicText(dateText(now), style = Type.Title.copy(color = Color.White.copy(alpha = 0.9f), shadow = shadow), modifier = aside)
         BasicText(
@@ -516,7 +527,9 @@ fun ShelfClock(
             style = Type.Clock.copy(shadow = shadow),
             // The digits' cap top, in the trimmed box: the 104sp line puts it 7.6dp down, less the trim.
             modifier = Modifier.toSaverClock(toSaver, Type.Clock.fontSize, 7.6.dp - ClockTrimTop)
-                .trimmed(top = ClockTrimTop, bottom = ClockTrimBottom),
+                .trimmed(top = ClockTrimTop, bottom = ClockTrimBottom)
+                .then(if (softDigits) Modifier.softwareClockText({ timeLayout }, toSaver) else Modifier),
+            onTextLayout = { timeLayout = it },
         )
         Weather.now?.let { w ->
             Row(aside, verticalAlignment = Alignment.CenterVertically) {
@@ -528,6 +541,25 @@ fun ShelfClock(
                 BasicText(detail, style = Type.Headline.copy(color = secondary, shadow = shadow), modifier = Modifier.padding(start = 12.dp))
             }
         }
+    }
+}
+
+/** Draws the large time from a cached CPU picture only while it is settled on Home. */
+private fun Modifier.softwareClockText(layout: () -> TextLayoutResult?, moving: () -> Float) = drawWithCache {
+    val text = layout()
+    val shadow = text?.layoutInput?.style?.shadow
+    val pad = shadow?.let { ceil(it.blurRadius + maxOf(abs(it.offset.x), abs(it.offset.y))).toInt() + 2 } ?: 0
+    val width = text?.let { ceil(it.size.width.toFloat()).toInt() + 2 * pad } ?: 0
+    val height = text?.let { ceil(it.size.height.toFloat()).toInt() + 2 * pad } ?: 0
+    val picture = if (text != null && width > 0 && height > 0) {
+        val bitmap = ImageBitmap(width, height)
+        CanvasDrawScope().draw(this, layoutDirection, androidx.compose.ui.graphics.Canvas(bitmap), Size(width.toFloat(), height.toFloat())) {
+            translate(pad.toFloat(), pad.toFloat()) { drawText(text) }
+        }
+        bitmap
+    } else null
+    onDrawWithContent {
+        if (picture == null || moving() > 0f) drawContent() else drawImage(picture, Offset(-pad.toFloat(), -pad.toFloat()))
     }
 }
 
