@@ -54,6 +54,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
@@ -515,8 +516,13 @@ private fun <T> Choices(
 ) {
     SettingRow(label, hint, note, first, wideOptions = true) {
         Row(Modifier.fillMaxWidth().let { viewport -> val edgeScroll = rememberScrollState(); viewport.softScrollEdges(edgeScroll, horizontal = true).horizontalScroll(edgeScroll) }, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            options.forEach { (value, text) ->
-                Chip(if (text is Int) stringResource(text) else text.toString(), on = current == value) { choose(value) }
+            options.forEachIndexed { index, (value, text) ->
+                Chip(
+                    if (text is Int) stringResource(text) else text.toString(),
+                    on = current == value,
+                    rowStart = index == 0,
+                    rowEnd = index == options.lastIndex,
+                ) { choose(value) }
             }
         }
     }
@@ -526,8 +532,14 @@ private fun <T> Choices(
 @Composable
 private fun PinChoice(onPin: (on: Boolean) -> Unit, onFocused: () -> Unit) {
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        listOf(false to R.string.st_pin_off, true to R.string.st_pin_on).forEach { (on, label) ->
-            Chip(stringResource(label), on = AerialSettings.pinSet == on, onFocused = onFocused) {
+        listOf(false to R.string.st_pin_off, true to R.string.st_pin_on).forEachIndexed { index, (on, label) ->
+            Chip(
+                stringResource(label),
+                on = AerialSettings.pinSet == on,
+                onFocused = onFocused,
+                rowStart = index == 0,
+                rowEnd = index == 1,
+            ) {
                 if (AerialSettings.pinSet != on) onPin(on)
             }
         }
@@ -561,8 +573,22 @@ private fun WeatherValue() {
 
 /** A pill to pick one of a few options: a check on the chosen one, white when focused. */
 @Composable
-private fun Chip(label: String, on: Boolean, onFocused: (() -> Unit)? = null, onClick: () -> Unit) {
-    Pressable(onClick = onClick, focusedScale = 1.06f) { state ->
+private fun Chip(
+    label: String,
+    on: Boolean,
+    onFocused: (() -> Unit)? = null,
+    rowStart: Boolean = false,
+    rowEnd: Boolean = false,
+    onClick: () -> Unit,
+) {
+    Pressable(
+        onClick = onClick,
+        focusedScale = 1.06f,
+        modifier = Modifier.focusProperties {
+            if (rowStart) left = FocusRequester.Cancel
+            if (rowEnd) right = FocusRequester.Cancel
+        },
+    ) { state ->
         if (onFocused != null) LaunchedEffect(state.focused) { if (state.focused) onFocused() }
         val bg by animateColorAsState(
             when {
@@ -587,7 +613,14 @@ private fun Chip(label: String, on: Boolean, onFocused: (() -> Unit)? = null, on
 /** A pill that does something rather than choosing a value: white when focused, a glyph after its label. */
 @Composable
 private fun ActionChip(label: String, glyph: Glyph, onClick: () -> Unit) {
-    Pressable(onClick = onClick, focusedScale = 1.06f) { state ->
+    Pressable(
+        onClick = onClick,
+        focusedScale = 1.06f,
+        modifier = Modifier.focusProperties {
+            left = FocusRequester.Cancel
+            right = FocusRequester.Cancel
+        },
+    ) { state ->
         val bg by animateColorAsState(if (state.focused) Palette.Focus else Palette.FillStrong, tween(140, easing = Motion.EaseOut), label = "action-bg")
         val fg = if (state.focused) Palette.OnFocus else Palette.Label
         Row(
@@ -611,11 +644,20 @@ private fun ScreensaverChoice(onStart: () -> Unit) {
             ScreensaverMode.Clock to R.string.ss_clock,
             ScreensaverMode.Videos to R.string.ss_videos,
             ScreensaverMode.System to R.string.ss_system,
-        ).forEach { (mode, label) ->
-            Chip(stringResource(label), on = Wallpapers.screensaver == mode) { Wallpapers.chooseScreensaver(mode) }
+        ).forEachIndexed { index, (mode, label) ->
+            Chip(
+                stringResource(label),
+                on = Wallpapers.screensaver == mode,
+                rowStart = index == 0,
+                rowEnd = index == 4,
+            ) { Wallpapers.chooseScreensaver(mode) }
         }
         Spacer(Modifier.width(6.dp))
-        Pressable(onClick = onStart, focusedScale = 1.06f) { state ->
+        Pressable(
+            onClick = onStart,
+            focusedScale = 1.06f,
+            modifier = Modifier.focusProperties { right = FocusRequester.Cancel },
+        ) { state ->
             val bg by animateColorAsState(if (state.focused) Palette.Focus else Palette.FillStrong, tween(140, easing = Motion.EaseOut), label = "ss-start")
             val fg = if (state.focused) Palette.OnFocus else Palette.Label
             Row(

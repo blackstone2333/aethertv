@@ -119,6 +119,7 @@ fun ControlCenter(
     var settingsFocus by remember { mutableStateOf<CcPage?>(null) }
     var careFocus by remember { mutableStateOf(CareFocus.Clean) }
     val parents = remember { mutableMapOf<CcPage, CcPage>() }
+    val focusInputSettings = (vm.overlay as? Overlay.ControlCenter)?.focusInputSettings == true
     fun go(next: CcPage) {
         if (page == CcPage.Settings) settingsFocus = next
         parents[next] = page
@@ -134,7 +135,7 @@ fun ControlCenter(
             CcPage.CareDetails, CcPage.Exchange -> CcPage.Care
             else -> CcPage.Main
         }
-        vm.overlay = Overlay.ControlCenter(parent, root)
+        vm.overlay = Overlay.ControlCenter(parent, root, focusInputSettings = page == CcPage.InputSettings)
     }
 
     LaunchedEffect(visible) { if (visible) Updates.checkIfStale(maxAgeMs = Updates.CONTROL_CENTER_MAX_AGE_MS) }
@@ -177,7 +178,7 @@ fun ControlCenter(
                         })
                 else -> ControlSurface {
                     when (p) {
-                        CcPage.Inputs -> InputsPage(vm, visible, onOpen)
+                        CcPage.Inputs -> InputsPage(vm, visible, focusInputSettings, onOpen)
                         CcPage.InputSettings -> InputSettingsPage(vm, visible)
                         CcPage.Update -> UpdatePage(vm, visible)
                         CcPage.Setup -> SetupPage(vm, visible, onOpen)
@@ -445,15 +446,22 @@ internal fun BrightnessRow(vm: HomeViewModel, requester: FocusRequester? = null)
 }
 
 @Composable
-private fun InputsPage(vm: HomeViewModel, takeFocus: Boolean, onOpen: (android.content.Intent) -> Unit) {
+private fun InputsPage(
+    vm: HomeViewModel,
+    takeFocus: Boolean,
+    focusInputSettings: Boolean,
+    onOpen: (android.content.Intent) -> Unit,
+) {
     val first = remember { FocusRequester() }
+    val settings = remember { FocusRequester() }
     LaunchedEffect(Unit) {
         vm.refreshSources(again = true)
     }
-    LaunchedEffect(Unit) {
+    LaunchedEffect(takeFocus, focusInputSettings) {
         if (!takeFocus) return@LaunchedEffect
         withFrameNanos { }
-        runCatching { first.requestFocus() }
+        val target = if (focusInputSettings && vm.sources.isNotEmpty()) settings else first
+        runCatching { target.requestFocus() }
     }
     Column(Modifier.heightIn(max = 470.dp).let { viewport -> val edgeScroll = rememberScrollState(); viewport.softScrollEdges(edgeScroll).verticalScroll(edgeScroll) }) {
         if ((vm.overlay as? Overlay.ControlCenter)?.root == CcPage.Inputs) {
@@ -487,7 +495,17 @@ private fun InputsPage(vm: HomeViewModel, takeFocus: Boolean, onOpen: (android.c
         // Switching is this page's one job; what Aerial does with the inputs is a page further in.
         if (vm.sources.isNotEmpty()) {
             Spacer(Modifier.height(10.dp))
-            MenuRow(Glyph.Gear, stringResource(R.string.cc_inputs_settings), onClick = { vm.overlay = Overlay.ControlCenter(CcPage.InputSettings, (vm.overlay as? Overlay.ControlCenter)?.root ?: CcPage.Main) })
+            MenuRow(
+                Glyph.Gear,
+                stringResource(R.string.cc_inputs_settings),
+                focusRequester = settings,
+                onClick = {
+                    vm.overlay = Overlay.ControlCenter(
+                        CcPage.InputSettings,
+                        (vm.overlay as? Overlay.ControlCenter)?.root ?: CcPage.Main,
+                    )
+                },
+            )
         }
     }
 }
@@ -506,7 +524,17 @@ private fun InputSettingsPage(vm: HomeViewModel, takeFocus: Boolean) {
     }
     fun name(source: app.orchard.tv.system.TvSource) = source.deviceName?.let { "${source.label} · $it" } ?: source.label
     Column(Modifier.heightIn(max = 470.dp).let { viewport -> val edgeScroll = rememberScrollState(); viewport.softScrollEdges(edgeScroll).verticalScroll(edgeScroll) }) {
-        MenuRow(Glyph.ChevronLeft, stringResource(R.string.cc_inputs_settings), onClick = { vm.overlay = Overlay.ControlCenter(CcPage.Inputs, (vm.overlay as? Overlay.ControlCenter)?.root ?: CcPage.Main) })
+        MenuRow(
+            Glyph.ChevronLeft,
+            stringResource(R.string.cc_inputs_settings),
+            onClick = {
+                vm.overlay = Overlay.ControlCenter(
+                    CcPage.Inputs,
+                    (vm.overlay as? Overlay.ControlCenter)?.root ?: CcPage.Main,
+                    focusInputSettings = true,
+                )
+            },
+        )
 
         Spacer(Modifier.height(10.dp))
         BasicText(stringResource(R.string.cc_inputs_pin), style = Type.Callout, modifier = Modifier.padding(start = 14.dp, bottom = 6.dp))

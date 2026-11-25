@@ -53,6 +53,9 @@
         <package android:name="app.aethertv.live" />
         <package android:name="com.skyworth.tv" />
         <provider android:authorities="com.skyworth.tv.sdk.provider" />
+        <!-- SystemProbe.tclQuickPanel: TCL Google TV firmware owns the remote input key while its
+             enabled Quick Panel service is present. -->
+        <package android:name="com.tcl.suspension" />
     </queries>
 
     <!-- largeHeap: up to Android 7 bitmaps live on the Java heap, and LeTV X3-55 Pro (Android 5.0.1)

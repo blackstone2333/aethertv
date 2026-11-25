@@ -28,6 +28,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
 import app.orchard.tv.MainActivity
 import app.orchard.tv.settings.AerialSettings
+import app.orchard.tv.system.DiagLog
 import app.orchard.tv.system.SystemProbe
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -562,7 +563,12 @@ class HomeGuardService : AccessibilityService() {
         if (event.action == KeyEvent.ACTION_UP) volumeSeen = volumeNow()
         if (event.keyCode != KeyEvent.KEYCODE_HOME) return false
         if (takeCecHome(event)) return true
-        if (isDefaultHome()) return false
+        if (isDefaultHome()) {
+            if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
+                DiagLog.i("guard: Home key left to the system, AetherTV is the default Home")
+            }
+            return false
+        }
         // Held, Home is the firmware's task center, which taking the key hid (Xiaomi, issue #185):
         // open the recent apps instead, and leave Home alone when the key comes up. Timed here:
         // the filter sees keys before Android makes the repeats that would say the key is held.
@@ -584,6 +590,7 @@ class HomeGuardService : AccessibilityService() {
             handler.removeCallbacks(homeHold)
             if (!event.isCanceled && !homeHeld) {
                 Log.i(TAG, "Home key taken before the system saw it")
+                DiagLog.i("guard: Home key taken before the system saw it; bringing AetherTV back")
                 lastHomeUpAt = event.eventTime
                 goHome()
                 closeSystemDialogs()

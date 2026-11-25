@@ -43,7 +43,12 @@ import kotlinx.coroutines.withContext
 
 sealed interface Overlay {
     data object None : Overlay
-    data class ControlCenter(val page: CcPage = CcPage.Main, val root: CcPage = CcPage.Main) : Overlay
+    data class ControlCenter(
+        val page: CcPage = CcPage.Main,
+        val root: CcPage = CcPage.Main,
+        /** Return from Input settings to its row in the input list. */
+        val focusInputSettings: Boolean = false,
+    ) : Overlay
     /** [inFolder]: the menu was opened inside that folder, and closes back to it. */
     data class AppMenu(val key: String, val anchor: Rect, val inFolder: String? = null) : Overlay
     data class Folder(val id: String) : Overlay

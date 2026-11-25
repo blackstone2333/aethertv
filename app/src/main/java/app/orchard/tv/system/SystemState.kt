@@ -387,6 +387,18 @@ object SystemProbe {
     fun tclSourceManagerPanel(context: Context): Boolean =
         runCatching { context.packageManager.getPackageInfo("com.tcl.sourcemananger", 0) }.isSuccess
 
+    /**
+     * TCL Google TV's enabled Quick Panel owns the remote input key before Home sees it. Keep the
+     * local Inputs page closed while that firmware panel is available (TCL G10, Android 12).
+     */
+    fun tclQuickPanel(context: Context): Boolean = runCatching {
+        val info = context.packageManager.getServiceInfo(
+            ComponentName("com.tcl.suspension", "com.tcl.suspension.DismissService"),
+            0,
+        )
+        info.enabled && info.applicationInfo.enabled
+    }.getOrDefault(false)
+
     private fun firstResolvable(context: Context, vararg intents: Intent): Intent {
         // Not Intent.resolveActivity: it returns an explicit component unchecked, so Xiaomi's
         // component was picked on TCL too, where it does not exist.
