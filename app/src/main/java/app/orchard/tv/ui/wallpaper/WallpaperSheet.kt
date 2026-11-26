@@ -69,6 +69,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import app.orchard.tv.R
+import app.orchard.tv.WallpaperFocus
 import app.orchard.tv.settings.AerialSettings
 import app.orchard.tv.settings.FocusStyle
 import app.orchard.tv.settings.UiSounds
@@ -105,6 +106,7 @@ import kotlin.math.roundToInt
 @Composable
 fun WallpaperSheet(
     visible: Boolean,
+    focusTarget: WallpaperFocus = WallpaperFocus.Default,
     onDismiss: () -> Unit,
     hiddenCount: Int,
     onHiddenApps: () -> Unit,
@@ -115,16 +117,20 @@ fun WallpaperSheet(
     var phoneUrl by remember { mutableStateOf<String?>(null) }
     var qr by remember { mutableStateOf<ImageBitmap?>(null) }
     val firstWallpaper = remember { FocusRequester() }
+    val hiddenAppsFocus = remember { FocusRequester() }
 
     BackHandler(enabled = visible, onBack = onDismiss)
 
     // The phone page only listens while this sheet is up, plus a few minutes so an upload that is
     // already under way can finish.
-    LaunchedEffect(visible) {
+    LaunchedEffect(visible, focusTarget) {
         PhoneServer.visible("wallpaper", visible)
         if (visible) {
             withFrameNanos { }
-            runCatching { firstWallpaper.requestFocus() }
+            runCatching {
+                if (focusTarget == WallpaperFocus.HiddenApps) hiddenAppsFocus.requestFocus()
+                else firstWallpaper.requestFocus()
+            }
             val url = withContext(Dispatchers.IO) { PhoneServer.start(context) }
             phoneUrl = url
             qr = url?.let { withContext(Dispatchers.Default) { PhoneServer.qr(it).asImageBitmap() } }
@@ -211,6 +217,7 @@ fun WallpaperSheet(
                                         if (hiddenCount == 0) stringResource(R.string.st_hidden_none) else stringResource(R.string.st_hidden_count, hiddenCount),
                                         Glyph.ChevronRight,
                                         onHiddenApps,
+                                        focusRequester = hiddenAppsFocus,
                                     )
                                 }
                             }
@@ -612,9 +619,10 @@ private fun Chip(
 
 /** A pill that does something rather than choosing a value: white when focused, a glyph after its label. */
 @Composable
-private fun ActionChip(label: String, glyph: Glyph, onClick: () -> Unit) {
+private fun ActionChip(label: String, glyph: Glyph, onClick: () -> Unit, focusRequester: FocusRequester? = null) {
     Pressable(
         onClick = onClick,
+        focusRequester = focusRequester,
         focusedScale = 1.06f,
         modifier = Modifier.focusProperties {
             left = FocusRequester.Cancel

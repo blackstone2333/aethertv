@@ -65,9 +65,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import app.orchard.tv.CcPage
+import app.orchard.tv.ControlCenterFocus
 import app.orchard.tv.apps.SourceLooks
 import app.orchard.tv.HomeViewModel
 import app.orchard.tv.Overlay
+import app.orchard.tv.WallpaperFocus
 import app.orchard.tv.R
 import app.orchard.tv.settings.AerialSettings
 import app.orchard.tv.apps.AppEntry
@@ -747,6 +749,7 @@ fun HomeScreen(
         ControlCenter(
             visible = overlay is Overlay.ControlCenter,
             page = (overlay as? Overlay.ControlCenter)?.page ?: CcPage.Main,
+            focus = (overlay as? Overlay.ControlCenter)?.focus ?: ControlCenterFocus.Default,
             vm = vm,
             now = now,
             onOpen = {
@@ -833,16 +836,21 @@ fun HomeScreen(
             apps = vm.hiddenApps,
             onUnhide = { key ->
                 vm.unhide(key)
-                if (vm.hiddenApps.isEmpty()) vm.overlay = Overlay.Wallpaper
+                if (vm.hiddenApps.isEmpty()) vm.overlay = Overlay.Wallpaper(WallpaperFocus.HiddenApps)
             },
             // Hidden apps are reached from Personalization, and Back returns there.
-            onDismiss = { vm.overlay = Overlay.Wallpaper },
+            onDismiss = { vm.overlay = Overlay.Wallpaper(WallpaperFocus.HiddenApps) },
         )
 
         CompositionLocalProvider(LocalMenuScene provides menuScene, LocalMenuSurfaceLight provides .82f) {
         WallpaperSheet(
             visible = overlay is Overlay.Wallpaper,
-            onDismiss = { vm.overlay = personalizeOrigin },
+            focusTarget = (overlay as? Overlay.Wallpaper)?.focus ?: WallpaperFocus.Default,
+            onDismiss = {
+                vm.overlay = if (personalizeOrigin.page == CcPage.Main) {
+                    personalizeOrigin.copy(focus = ControlCenterFocus.Personalize)
+                } else personalizeOrigin
+            },
             hiddenCount = vm.hiddenApps.size,
             onHiddenApps = { vm.whenUnlocked { vm.overlay = Overlay.HiddenApps } },
             onStartScreensaver = {
@@ -850,8 +858,8 @@ fun HomeScreen(
                 onStartScreensaver()
             },
             onPin = { on ->
-                if (on) vm.overlay = Overlay.Pin(PinMode.Create) { vm.overlay = Overlay.Wallpaper }
-                else vm.whenUnlocked { AerialSettings.choosePin(null); vm.overlay = Overlay.Wallpaper }
+                if (on) vm.overlay = Overlay.Pin(PinMode.Create) { vm.overlay = Overlay.Wallpaper() }
+                else vm.whenUnlocked { AerialSettings.choosePin(null); vm.overlay = Overlay.Wallpaper() }
             },
         )
 

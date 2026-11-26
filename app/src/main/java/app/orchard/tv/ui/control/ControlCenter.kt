@@ -73,6 +73,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.orchard.tv.CcPage
+import app.orchard.tv.ControlCenterFocus
 import app.orchard.tv.HomeViewModel
 import app.orchard.tv.Overlay
 import app.orchard.tv.R
@@ -112,6 +113,7 @@ fun ControlCenter(
     now: LocalDateTime,
     onOpen: (android.content.Intent) -> Unit,
     onClose: () -> Unit,
+    focus: ControlCenterFocus = ControlCenterFocus.Default,
 ) {
     val context = LocalContext.current
     val care = rememberCareSnapshot(visible)
@@ -156,14 +158,14 @@ fun ControlCenter(
             // Closing sets the page back to Main while the panel fades out; that page must
             // not take focus from the tile Home has just put it back on.
             when (p) {
-                CcPage.Main -> MainPage(vm, now, visible, care, mainFocus, onSelect = { kind ->
+                CcPage.Main -> MainPage(vm, now, visible, care, mainFocus, focus = focus, onSelect = { kind ->
                     mainFocus = kind.key
                     when (kind) {
                         app.orchard.tv.settings.ControlKind.Inputs -> go(CcPage.Inputs)
                         app.orchard.tv.settings.ControlKind.Network -> go(CcPage.Network)
                         app.orchard.tv.settings.ControlKind.Settings -> go(CcPage.Settings)
                         app.orchard.tv.settings.ControlKind.Care -> vm.whenUnlocked { careFocus = CareFocus.Clean; go(CcPage.Care) }
-                        app.orchard.tv.settings.ControlKind.Personalize -> vm.overlay = Overlay.Wallpaper
+                        app.orchard.tv.settings.ControlKind.Personalize -> vm.overlay = Overlay.Wallpaper()
                         app.orchard.tv.settings.ControlKind.Live -> app.orchard.tv.media.MediaBridge.liveIntent(context)?.let(onOpen) ?: vm.notify(context.getString(R.string.live_companion_missing))
                         else -> Unit
                     }

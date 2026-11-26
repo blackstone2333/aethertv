@@ -28,6 +28,8 @@ import androidx.core.content.ContextCompat
  */
 object Brightness {
     private const val XIAOMI_BACKLIGHT = "picture_backlight"
+    /** Newer Xiaomi picture panels keep the effective level in this separate global setting. */
+    private const val XIAOMI_PANEL_BACKLIGHT = "xiaomi_picture_backlight"
 
     /**
      * MiTV-MFTP0 (Android 9) has picture_backlight, yet changing it leaves the panel as it was (two
@@ -72,6 +74,7 @@ object Brightness {
         return when {
             usesXiaomiBacklight(context) -> {
                 if (ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_SECURE_SETTINGS) != PackageManager.PERMISSION_GRANTED) return null
+                Settings.Global.getString(r, XIAOMI_PANEL_BACKLIGHT)?.toIntOrNull()?.let { return it.coerceIn(0, 100) / 100f }
                 Settings.Global.getInt(r, XIAOMI_BACKLIGHT, 50) / 100f
             }
             // The MiTV middleware is driven over its own binder and Aerial keeps the level in its own
@@ -121,6 +124,7 @@ object Brightness {
             if (isTcl(context)) {
                 TclPicture.setBacklight(context, next)
             } else if (usesXiaomiBacklight(context)) {
+                if (Settings.Global.getString(r, XIAOMI_PANEL_BACKLIGHT) != null) Settings.Global.putInt(r, XIAOMI_PANEL_BACKLIGHT, next)
                 Settings.Global.putInt(r, XIAOMI_BACKLIGHT, next)
             } else {
                 Settings.System.putInt(r, Settings.System.SCREEN_BRIGHTNESS_MODE, Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL)

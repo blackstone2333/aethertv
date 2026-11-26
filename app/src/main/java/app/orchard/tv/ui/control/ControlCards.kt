@@ -24,6 +24,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.orchard.tv.R
 import app.orchard.tv.CcPage
+import app.orchard.tv.ControlCenterFocus
 import app.orchard.tv.HomeViewModel
 import app.orchard.tv.Overlay
 import app.orchard.tv.settings.*
@@ -69,19 +70,26 @@ private fun ControlKind.glyph() = when (this) {
 
 @Composable
 internal fun MainPage(vm: HomeViewModel, now: LocalDateTime, takeFocus: Boolean, care: JSONObject,
-                      initial: String, onSelect: (ControlKind) -> Unit, onEdit: () -> Unit) {
+                      initial: String, focus: ControlCenterFocus = ControlCenterFocus.Default,
+                      onSelect: (ControlKind) -> Unit, onEdit: () -> Unit) {
     val context = LocalContext.current
     val hideBrightness = remember(context) { SystemProbe.hidesBrightness(context) }
     val specs = AerialSettings.controlLayout.filterNot { hideBrightness && it.kind == ControlKind.Brightness }
     val placements = remember(specs) { ControlLayout.place(specs) }
     val requesters = remember { ControlKind.entries.associateWith { FocusRequester() } }
+    val personalizeFocus = remember { FocusRequester() }
     val edit = remember { FocusRequester() }
     val scroll = rememberScrollState()
-    LaunchedEffect(Unit) {
+    LaunchedEffect(takeFocus, focus) {
         if (takeFocus) {
             withFrameNanos { }
-            val target = specs.firstOrNull { it.kind.key == initial && it.visible } ?: specs.firstOrNull { it.visible }
-            runCatching { (if (initial == "edit" || target == null) edit else requesters.getValue(target.kind)).requestFocus() }
+            runCatching {
+                if (focus == ControlCenterFocus.Personalize) personalizeFocus.requestFocus()
+                else {
+                    val target = specs.firstOrNull { it.kind.key == initial && it.visible } ?: specs.firstOrNull { it.visible }
+                    (if (initial == "edit" || target == null) edit else requesters.getValue(target.kind)).requestFocus()
+                }
+            }
         }
     }
     Column {
@@ -117,7 +125,12 @@ internal fun MainPage(vm: HomeViewModel, now: LocalDateTime, takeFocus: Boolean,
                                 Spacer(Modifier.weight(1f))
                             }
                         } else {
-                            Pressable({ onSelect(kind) }, modifier = position, focusRequester = requesters.getValue(kind), focusedScale = 1.025f) { state ->
+                            Pressable(
+                                { onSelect(kind) },
+                                modifier = position,
+                                focusRequester = if (kind == ControlKind.Personalize) personalizeFocus else requesters.getValue(kind),
+                                focusedScale = 1.025f,
+                            ) { state ->
                                 val shape = RoundedCornerShape(22.dp)
                                 Column(Modifier.fillMaxSize().liquidGlass(22.dp)
                                     .border(if (state.focused) 2.dp else 0.dp, if (state.focused) Palette.Focus else Color.Transparent, shape)
@@ -248,7 +261,7 @@ internal fun SettingsPage(vm: HomeViewModel, takeFocus: Boolean, initial: CcPage
     Column(Modifier.softScrollEdges(scroll).verticalScroll(scroll).padding(4.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         BasicText(stringResource(R.string.cc_settings), style = Type.Title, modifier = Modifier.padding(4.dp))
         ControlSurface {
-            MenuRow(Glyph.Photo, stringResource(R.string.cc_personalize), focusRequester = first, onClick = { vm.overlay = Overlay.Wallpaper }, trailing = "›")
+            MenuRow(Glyph.Photo, stringResource(R.string.cc_personalize), focusRequester = first, onClick = { vm.overlay = Overlay.Wallpaper() }, trailing = "›")
             MenuRow(Glyph.Pencil, stringResource(R.string.controls_edit), focusRequester = requesters.getValue(CcPage.EditControls), onClick = { onPage(CcPage.EditControls) }, trailing = "›")
             MenuRow(Glyph.Input, stringResource(R.string.cc_inputs_settings), focusRequester = requesters.getValue(CcPage.InputSettings), onClick = { onPage(CcPage.InputSettings) }, trailing = "›")
         }

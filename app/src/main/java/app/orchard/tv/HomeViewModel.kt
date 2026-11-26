@@ -48,16 +48,21 @@ sealed interface Overlay {
         val root: CcPage = CcPage.Main,
         /** Return from Input settings to its row in the input list. */
         val focusInputSettings: Boolean = false,
+        val focus: ControlCenterFocus = ControlCenterFocus.Default,
     ) : Overlay
     /** [inFolder]: the menu was opened inside that folder, and closes back to it. */
     data class AppMenu(val key: String, val anchor: Rect, val inFolder: String? = null) : Overlay
     data class Folder(val id: String) : Overlay
     data object HiddenApps : Overlay
-    data object Wallpaper : Overlay
+    data class Wallpaper(val focus: WallpaperFocus = WallpaperFocus.Default) : Overlay
     data class Pin(val mode: PinMode, val onDone: () -> Unit) : Overlay
 }
 
 enum class CcPage { Main, Inputs, InputSettings, Update, Setup, Care, CareDetails, Exchange, Network, Settings, EditControls }
+
+enum class ControlCenterFocus { Default, Personalize }
+
+enum class WallpaperFocus { Default, HiddenApps }
 
 /** Time since boot at which the app list is looked at again; see HomeViewModel.catchUpAfterBoot. */
 private val BOOT_CATCH_UP_MS = listOf(60_000L, 180_000L)

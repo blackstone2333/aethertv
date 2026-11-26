@@ -57,6 +57,9 @@ Roadmap 的新功能必须沿现有依赖方向接入：入口/状态 → 功能
 
 ## 当前工作前沿
 
+- `AERIAL-20261126-upstream-review`：逐项审查 `cf97c6f3..f30f942a` 的 7 个提交（v2.20）；选择性吸收个性化/隐藏应用返回焦点和 Xiaomi 双背光键读取写入，版本仍 0.3.1/106，设备行为未验证。个性化逐选项说明回调、厂商文档、版本与发布元数据按边界暂缓或略过。见[工作包](work/AERIAL-20261126-upstream-review.md)。
+- `AERIAL-20261125-upstream-review`：逐项审查 `7af23a46..cf97c6f3` 的 10 个提交（v2.19）；选择性吸收输入设置、个性化行边界、TCL Quick Panel、Home 键诊断和 PIN 焦点组，视频/Amlogic 取帧链暂缓，版本仍 0.3.1/106。见[工作包](work/AERIAL-20261125-upstream-review.md)。
+
 - `AERIAL-20261124-upstream-review`：逐项审查 `c6721912..7af23a46` 的 8 个提交（v2.18）；选择性吸收文件夹聚焦行滚动、时钟回拨后的每日一图重试和 GLES2 大时钟软绘制。Whaley CEC、Lite 独立产品线、设备文档及版本/发布元数据按边界暂缓或略过；版本仍 0.3.1/106，实机行为未验证。见[工作包](work/AERIAL-20261124-upstream-review.md)。
 - `AERIAL-20261123-upstream-review`：逐项审查 `695e4a16..c6721912` 的 14 个提交（v2.17）；选择性吸收静音变化广播和 Android 5/6 usage-stats 未来时间桶修复。Guard 开机/更新前台链、Xiaomi MediaTek `running_package_name`、Hisense 磁贴、HOME 属性及版本/发布元数据按边界暂缓或略过；版本仍 0.3.1/106，实机行为未验证。见[工作包](work/AERIAL-20261123-upstream-review.md)。
 - `AERIAL-20261122-upstream-review`：逐项审查 `0c750221..695e4a16` 的 12 个提交（v2.16）；选择性适配 MiTV 背光 Binder 槽位 80/81 的 descriptor 检测，以及屏保大时钟沿用 Home 的 cut/tracking。守护更新后前台保护、海信 HOME 写入、电池、海尔信源和外部图标库按边界暂缓；版本仍 0.3.1/106，实机行为未验证。
